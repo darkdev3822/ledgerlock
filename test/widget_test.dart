@@ -1,30 +1,49 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:ledgerlock/main.dart';
+import 'package:ledgerlock/security/vault.dart';
+import 'package:ledgerlock/ui/lock_screens.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('password strength', () {
+    expect(passwordStrength('short'), 0);
+    expect(passwordStrength('abcdefgh'), 1);
+    expect(passwordStrength('abcdefghijkl'), 2);
+    expect(passwordStrength('Abcdefghij1!'), 3);
+    expect(passwordStrength('Correct-Horse-Battery-9'), 4);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('setup requires strong matching password and the no-recovery acknowledgement', (t) async {
+    String? submitted;
+    await t.pumpWidget(MaterialApp(home: SetupScreen(onSubmit: (p) async => submitted = p)));
+    final button = find.widgetWithText(FilledButton, 'Create encrypted vault');
+    bool enabled() => t.widget<FilledButton>(button).onPressed != null;
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await t.enterText(find.byKey(const Key('pw')), 'Correct-Horse-9');
+    await t.enterText(find.byKey(const Key('confirm')), 'Correct-Horse-9');
+    await t.pump();
+    expect(enabled(), isFalse, reason: 'must acknowledge no recovery');
+    await t.ensureVisible(find.byKey(const Key('understood')));
+    await t.tap(find.byKey(const Key('understood')));
+    await t.pump();
+    expect(enabled(), isTrue);
+    await t.enterText(find.byKey(const Key('confirm')), 'mismatch');
+    await t.pump();
+    expect(enabled(), isFalse);
+    expect(find.text("Passwords don't match"), findsOneWidget);
+    await t.enterText(find.byKey(const Key('confirm')), 'Correct-Horse-9');
+    await t.pump();
+    await t.ensureVisible(button);
+    await t.pump();
+    await t.tap(button);
+    await t.pump();
+    expect(submitted, 'Correct-Horse-9');
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('unlock shows an error on a wrong password', (t) async {
+    await t.pumpWidget(MaterialApp(home: UnlockScreen(onSubmit: (_) async => throw const WrongPassword())));
+    await t.enterText(find.byKey(const Key('unlock')), 'nope');
+    await t.tap(find.text('Unlock'));
+    await t.pump();
+    expect(find.text('Wrong password'), findsOneWidget);
   });
 }

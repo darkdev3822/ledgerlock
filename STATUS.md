@@ -14,8 +14,17 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   google_apis x86_64 image installed. `flutter doctor` green for Android (Chrome missing, not needed). AVD
   `ledgerlock` (1080x2400) runs the release APK. Release APK permissions checked with aapt2: no INTERNET/network.
 
-## Next: M1 security core (SPEC §1, §8)
-- Master password, Argon2id, SQLCipher, encrypted file store, auto-lock. Vet each package for networking first.
+- M1 DONE (2026-11-01): lib/security/ (crypto.dart wrapper: Argon2id, AES-256-GCM, HKDF subkeys; vault.dart:
+  wrapped data key + change password; encrypted_file_store.dart; session.dart; auto_lock.dart + blur cover),
+  lib/data/database.dart (drift + SQLCipher, raw hex key, fails closed if cipher missing), lib/ui/lock_screens.dart
+  (functional setup/unlock, restyle in M2). 13 tests pass; Argon2id output cross-checked vs libargon2 and pinned.
+  On emulator: pulled ledger.db is random bytes ("file is not a database"); release APK still has no INTERNET.
+  Packages vetted for networking: cryptography, drift, sqlite3, path_provider (runtime code clean).
+
+## Next: M2 design system and app shell (SPEC §5, §8)
+- Theme, components, bottom nav, year switcher; golden screenshots for the owner to review. Restyle lock screens.
+- Still open from SPEC §1 (later milestones): biometric unlock (flutter_secure_storage + local_auth), FLAG_SECURE
+  toggle, auto-lock minutes setting UI, Argon2id tuning on a real mid-range phone (target ~0.5 s).
 
 ## Gotchas
 - PATH is not set globally: use `export PATH=$HOME/flutter/bin:$HOME/Android/Sdk/platform-tools:$PATH`.
@@ -25,3 +34,7 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - Emulator: `setsid ~/Android/Sdk/emulator/emulator -avd ledgerlock -no-audio -no-boot-anim &`. Screenshot:
   `adb exec-out screencap -p > x.png`. avdmanager `-d pixel_7` fails (devices.xml); create without -d.
 - Permission check: `~/Android/Sdk/build-tools/36.0.0/aapt2 dump permissions <apk>`.
+- sqlite3 3.x build hook downloads prebuilt SQLCipher at BUILD time (hash-pinned); selected via `hooks:
+  user_defines: sqlite3: source: sqlcipher` in pubspec.yaml. No sqlcipher_flutter_libs needed.
+- After editing drift tables: `dart run build_runner build`. Generated database.g.dart is committed.
+- Emulator image is rootable: `adb root` then pull /data/data/com.darkdev.ledgerlock/files/* to inspect.
