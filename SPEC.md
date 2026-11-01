@@ -97,6 +97,8 @@ better design and search.** Lead with privacy in every store listing and screens
       data, no query parameters, no tracking codes**. A sheet says "Opens irs.gov in your browser" before leaving.
     - **Wording:** "information from official sources, not tax advice", on the screen and in store copy. Never
       call it a representative, advisor or preparer. No "you qualify" claims: say "may be worth checking".
+    - **Verified or it doesn't ship:** every number and resource carries `"verified": "YYYY-MM-DD"` from the
+      owner-led review (docs/ANNUAL_RULES_REVIEW.md); a test fails if any item for a shipping year lacks it.
 
 ## 3. PRO features
 - **On-device OCR** (Google ML Kit text recognition / Apple Vision, both offline): scan a receipt and it fills in

@@ -69,6 +69,8 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   10k seeded records: every SPEC example <= 3 ms. SECURITY T6 + T7 fixed. 82 tests, 30 goldens.
 
 ## Next: M6 (see SPEC §8), plus M5 leftovers
+- **Owner-led tax-rules review** (docs/ANNUAL_RULES_REVIEW.md): first one in M6, then every Dec 1 - Jan 31.
+  NEXT ONE DUE: 2026-12-01. Walk the owner through it step by step before other work.
 - M6 now includes SPEC §2.12 ("What changed for you" + tailored free resources). Offline only, decided.
 - M5 leftovers: tappable/removable filter chips (date range, platform, tag, tax line, business %), pull-down-
   to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.

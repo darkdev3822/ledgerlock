@@ -16,3 +16,6 @@ Every step should cost as little as possible.
 7. **End of every session:** update `STATUS.md` (done / next / gotchas) in a few lines, and commit to git with a
    clear message.
 8. Show the owner progress with screenshots (`setsid xdg-open <png> &`) and a short summary.
+9. **Tax-rules review (docs/ANNUAL_RULES_REVIEW.md) comes FIRST when due:** Dec 1 - Jan 31, after any edit to
+   `assets/tax_rules/`, or before a release. Before any milestone work, tell the owner plainly that it is due and
+   walk them through it step by step. Be insistent; never fill tax numbers or resource details from memory.
