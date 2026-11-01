@@ -57,6 +57,7 @@ Future<SearchResults> runSearch(AppDatabase db, SearchQuery q, {int limit = 200}
       args.add(Variable.withString(text));
     }
   }
+  if (q.unpaidOnly) where.add('(e.is_income = 1 AND e.paid = 0)');
   if (q.feesOnly) where.add("(e.fee_cents > 0 OR e.category = 'platform_fees')");
   if (q.hasReceipt != null) {
     where.add('${q.hasReceipt! ? '' : 'NOT '}EXISTS (SELECT 1 FROM attachments a WHERE a.entry_id = e.id)');

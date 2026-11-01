@@ -49,6 +49,9 @@ class AppController extends ChangeNotifier {
   /// Optional W-2 Social Security wages per tax year (cents), for the SE tax wage-base cap.
   Map<int, int> w2WagesCents = {};
 
+  /// Home office square feet per tax year (simplified method), 0 = none.
+  Map<int, int> homeOfficeSqft = {};
+
   AppController({
     required this.dataDir,
     required this.biometrics,
@@ -124,9 +127,12 @@ class AppController extends ChangeNotifier {
     age60OptIn = await db.getSetting('age60OptIn') == 'true';
     irsProblemOptIn = await db.getSetting('irsProblemOptIn') == 'true';
     w2WagesCents = {};
+    homeOfficeSqft = {};
     for (final y in TaxRules.supportedYears) {
       final v = int.tryParse(await db.getSetting('w2Wages:$y') ?? '');
       if (v != null) w2WagesCents[y] = v;
+      final h = int.tryParse(await db.getSetting('homeOfficeSqft:$y') ?? '');
+      if (h != null) homeOfficeSqft[y] = h;
     }
     slots = await vault.enabledSlots();
     _session = s;
@@ -148,6 +154,7 @@ class AppController extends ChangeNotifier {
     pendingCode = null;
     age60OptIn = irsProblemOptIn = false;
     w2WagesCents = {}; // sensitive answers: reload from the encrypted DB on unlock
+    homeOfficeSqft = {};
     stage = Stage.locked;
     notifyListeners();
     s.lock();
@@ -267,6 +274,12 @@ class AppController extends ChangeNotifier {
     await _session?.db.setSetting('w2Wages:$year', '$cents');
   }
 
+  Future<void> setHomeOfficeSqft(int year, int sqft) async {
+    homeOfficeSqft = {...homeOfficeSqft, year: sqft};
+    notifyListeners();
+    await _session?.db.setSetting('homeOfficeSqft:$year', '$sqft');
+  }
+
   Future<void> setYear(int y) async {
     selectedYear = y;
     notifyListeners();
@@ -294,8 +307,17 @@ final summaryProvider = Provider.family<LedgerSummary, int>((ref, year) {
   final entries = ref.watch(entriesProvider(year)).value ?? const [];
   final pct = ref.watch(appControllerProvider.select((a) => a.setAsidePct));
   final w2 = ref.watch(appControllerProvider.select((a) => a.w2WagesCents[year] ?? 0));
+  final trips = ref.watch(tripsProvider(year)).value ?? const [];
+  final sqft = ref.watch(appControllerProvider.select((a) => a.homeOfficeSqft[year] ?? 0));
   if (rules == null) return LedgerSummary.empty;
-  return summarize(entries.map((e) => e.data), rules, setAsidePct: pct, w2WagesCents: w2);
+  return summarize(
+    entries.map((e) => e.data),
+    rules,
+    setAsidePct: pct,
+    w2WagesCents: w2,
+    mileageCents: mileageDeductionCents(trips.map((t) => (t.date, t.milesTenths)), rules),
+    homeOfficeCents: homeOfficeCents(sqft, rules) ?? 0,
+  );
 });
 
 /// Bundled free-help list (SPEC §2.12). Overridable in tests.
@@ -306,4 +328,19 @@ final hasIrsLetterProvider = StreamProvider.family<bool, int>((ref, year) {
   final db = ref.watch(appControllerProvider.select((a) => a.db));
   if (db == null) return Stream.value(false);
   return db.watchAttachments(year, folder: 'letter').map((l) => l.isNotEmpty);
+});
+
+final paymentsProvider = StreamProvider.family<List<TaxPayment>, int>((ref, year) {
+  final db = ref.watch(appControllerProvider.select((a) => a.db));
+  return db == null ? Stream.value(const []) : db.watchPayments(year);
+});
+
+final tripsProvider = StreamProvider.family<List<Trip>, int>((ref, year) {
+  final db = ref.watch(appControllerProvider.select((a) => a.db));
+  return db == null ? Stream.value(const []) : db.watchTrips(year);
+});
+
+final forms1099Provider = StreamProvider.family<List<Form1099>, int>((ref, year) {
+  final db = ref.watch(appControllerProvider.select((a) => a.db));
+  return db == null ? Stream.value(const []) : db.watchForms1099(year);
 });

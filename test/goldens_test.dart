@@ -22,6 +22,7 @@ import 'package:ledgerlock/ui/search/search_screen.dart';
 import 'package:ledgerlock/tax/guidance.dart';
 import 'package:ledgerlock/ui/settings_screen.dart';
 import 'package:ledgerlock/ui/taxes/guidance_section.dart';
+import 'package:ledgerlock/ui/taxes/tools.dart';
 import 'package:ledgerlock/ui/shell/app_shell.dart';
 
 class FakeBiometrics implements BiometricSecretStore {
@@ -49,6 +50,8 @@ Future<void> loadFonts() async {
   await load('Roboto', ['Roboto-Regular.ttf', 'Roboto-Medium.ttf', 'Roboto-Bold.ttf']);
   await load('MaterialIcons', ['MaterialIcons-Regular.otf']);
 }
+
+int recordedEtsy() => recordedFrom('Etsy', fixtureEntries().where((e) => e.date.startsWith('2026')));
 
 List<LedgerEntry> fixtureEntries() {
   final raw = jsonDecode(File('test/fixtures/ledger_records.json').readAsStringSync()) as List;
@@ -163,6 +166,47 @@ void main() {
               )['resources'])
                 Resource.fromJson({...r as Map<String, dynamic>, 'verified': 'preview'}),
             ],
+          ),
+        ],
+      ),
+    );
+    testWidgets(
+      'mileage ${b.name}',
+      (t) => shoot(
+        t,
+        'mileage',
+        const MileageScreen(2026),
+        b,
+        extra: [
+          tripsProvider.overrideWith(
+            (ref, y) => Stream.value(const [
+              Trip(
+                id: 2,
+                date: '2026-08-04',
+                milesTenths: 236,
+                purpose: 'Client workshop',
+                route: 'Home to Riverside',
+              ),
+              Trip(id: 1, date: '2026-05-12', milesTenths: 84, purpose: 'Supplies run', route: ''),
+            ]),
+          ),
+        ],
+      ),
+    );
+    testWidgets(
+      'forms1099 ${b.name}',
+      (t) => shoot(
+        t,
+        'forms1099',
+        const Forms1099Screen(2026),
+        b,
+        data: true,
+        extra: [
+          forms1099Provider.overrideWith(
+            (ref, y) => Stream.value([
+              Form1099(id: 1, year: 2026, kind: '1099-K', payer: 'Etsy', amountCents: recordedEtsy()),
+              const Form1099(id: 2, year: 2026, kind: '1099-NEC', payer: 'Studio Co', amountCents: 120000),
+            ]),
           ),
         ],
       ),

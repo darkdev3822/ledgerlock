@@ -34,6 +34,9 @@ class EntryScreen extends ConsumerStatefulWidget {
 
 class _EntryScreenState extends ConsumerState<EntryScreen> {
   late bool _income = widget.existing?.isIncome ?? widget.startIncome;
+
+  /// Income only: false = invoiced, not received yet (not counted until paid).
+  late bool _paid = widget.existing?.paid ?? true;
   late int _cents = widget.existing?.amountCents ?? 0;
   late String? _category = widget.existing?.category;
   late DateTime _date = widget.existing?.day ?? _defaultDate();
@@ -124,6 +127,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           party: _party.text.trim(),
           platform: _platform.text.trim(),
           notes: _notes.text.trim(),
+          paid: !_income || _paid,
         ),
       );
     } else {
@@ -138,6 +142,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           party: Value(_party.text.trim()),
           platform: Value(_platform.text.trim()),
           notes: Value(_notes.text.trim()),
+          paid: Value(!_income || _paid),
         ),
       );
       for (final r in _pendingReceipts) {
@@ -350,7 +355,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                       ),
                     ],
                   ),
-                  if (_income)
+                  if (_income) ...[
                     Padding(
                       padding: const EdgeInsets.fromLTRB(4, Space.sm, 4, 0),
                       child: Text(
@@ -358,6 +363,18 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                         style: context.text.bodySmall,
                       ),
                     ),
+                    SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      title: const Text('Received'),
+                      subtitle: Text(
+                        _paid
+                            ? 'Counted in your totals.'
+                            : 'Invoiced, not paid yet: not counted until you mark it received.',
+                      ),
+                      value: _paid,
+                      onChanged: (v) => setState(() => _paid = v),
+                    ),
+                  ],
                   const SizedBox(height: Space.xl),
                 ],
               ),

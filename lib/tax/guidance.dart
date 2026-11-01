@@ -202,6 +202,8 @@ String _figure(KeyFigure k) {
 String _one(KeyFigure k, num v) => switch (k.unit) {
   'cents_per_mile' => '$v¢ a mile',
   'dollars' => [_money((v * 100).round()), if (k.detail.isNotEmpty) k.detail].join(' '),
+  'dollars_per_sqft' => '\$$v a sq ft',
+  'sqft' => '$v sq ft',
   _ => '$v',
 };
 

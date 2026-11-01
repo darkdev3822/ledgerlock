@@ -307,6 +307,22 @@
       "value": 176100,
       "source": "2025 Schedule SE (Form 1040), line 7 (https://www.irs.gov/pub/irs-pdf/f1040sse.pdf)",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "home_office_rate",
+      "name": "Home office simplified method rate",
+      "unit": "dollars_per_sqft",
+      "value": null,
+      "source": "",
+      "verified": null
+    },
+    {
+      "id": "home_office_max_sqft",
+      "name": "Home office simplified method maximum area",
+      "unit": "sqft",
+      "value": null,
+      "source": "",
+      "verified": null
     }
   ],
   "quarterlyDueReview": {

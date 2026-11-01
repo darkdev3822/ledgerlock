@@ -86,8 +86,14 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   (encrypted setting). 0.9% Additional Medicare shown as a note only. se_tax_test; 107 tests. SECURITY T10.
 - SPEC §3 "Draft return base" (owner decision): fill official Schedule C/SE/1040-ES PDFs + carry-over sheet, for
   review; no e-file, no full 1040, no state. Owner must get lawyer review + PDF library license before it ships (M7).
-- M6 remaining: payment log, quarterly reminders + check-ins (§2.13, vet notifications plugin), mileage log (use
-  KeyFigure.valueOn per trip date), home office, 1099 tracker, CSV export, invoiced status.
+- M6 part 3 DONE (2026-11-01): schema v6 (ledger paid flag, tax_payments, trips, forms1099; v5->v6 test).
+  lib/ui/taxes/tools.dart: Payment log (by quarter vs set-aside), Mileage (rate by trip date -> line 9), Home
+  office (simplified; OFF until home_office_rate/max_sqft verified -> line 30, can't create a loss), 1099 tracker
+  (matches payer to platform/party, explains mismatches). Entry screen "Received" switch (invoiced = not counted,
+  cash basis), "Invoiced, unpaid" in lists, search keyword "unpaid". 119 tests, goldens mileage/forms1099.
+- M6 remaining: CSV export (SAF create-document channel, warn: leaves encryption), notifications plugin vetting
+  -> quarterly reminders + check-ins (§2.13), emulator check of all M6 screens (FAB black outline seen in goldens:
+  likely test focus highlight, confirm on device). Review adds: home_office_rate + home_office_max_sqft (both years).
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers: tappable/removable filter chips (date range, platform, tag, tax line, business %), pull-down-
   to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.

@@ -140,3 +140,25 @@ LedgerSummary summarize(
     monthly: {for (final m in monthly.entries) m.key: (_r(m.value.$1), _r(m.value.$2))},
   );
 }
+
+/// Standard mileage deduction (Schedule C line 9): each trip at the verified rate in force on its date
+/// (rates can change mid-year). 0 if the year's rate isn't verified. Trips: (date 'YYYY-MM-DD', tenths of miles).
+int mileageDeductionCents(Iterable<(String, int)> trips, TaxRules rules) {
+  final rate = rules.figure('mileage_rate');
+  if (rate == null) return 0;
+  var cents = 0.0;
+  for (final (date, tenths) in trips) {
+    final r = rate.valueOn(DateTime.parse(date));
+    if (r != null) cents += tenths / 10 * r; // rate is in cents per mile
+  }
+  return cents.round();
+}
+
+/// Home office, simplified method: area (capped) x rate. Null if the year's figures aren't verified.
+int? homeOfficeCents(int sqft, TaxRules rules) {
+  final rate = rules.figure('home_office_rate'), cap = rules.figure('home_office_max_sqft');
+  if (rate == null || cap == null) return null;
+  if (sqft <= 0) return 0;
+  final area = sqft < cap.value! ? sqft : cap.value!;
+  return (area * rate.value! * 100).round(); // rate in dollars per sq ft
+}

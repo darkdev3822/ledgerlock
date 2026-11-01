@@ -16,12 +16,9 @@ import '../ledger/category_icons.dart';
 import '../ledger/entry_screen.dart';
 import '../search/search_screen.dart';
 import '../taxes/guidance_section.dart';
+import '../taxes/tools.dart';
 
 const _pad = EdgeInsets.fromLTRB(Space.gutter, Space.sm, Space.gutter, Space.xxl);
-
-void _soon(BuildContext context, String what) => ScaffoldMessenger.of(context)
-  ..hideCurrentSnackBar()
-  ..showSnackBar(SnackBar(content: Text('$what arrives in a later milestone.')));
 
 // ============================== Home ==============================
 
@@ -374,6 +371,7 @@ class EntryTile extends StatelessWidget {
         [
           if (entry.party.isNotEmpty) cat?.name ?? '',
           DateFormat.MMMd().format(entry.day),
+          if (entry.isIncome && !entry.paid) 'Invoiced, unpaid',
           ...extra,
         ].join(' · '),
         maxLines: 1,
@@ -648,18 +646,33 @@ class TaxesTab extends ConsumerWidget {
         const SectionHeader('Tools'),
         LLGroup(
           children: [
-            for (final (icon, title, sub) in const [
-              (Icons.payments_outlined, 'Payment log', 'Record what you\'ve paid the IRS'),
-              (Icons.directions_car_outlined, 'Mileage', 'Standard mileage rate, trip by trip'),
-              (Icons.home_work_outlined, 'Home office', 'Simplified or regular method'),
-              (Icons.description_outlined, '1099 tracker', 'Match forms to your income'),
+            for (final (icon, title, sub, Widget screen) in [
+              (
+                Icons.payments_outlined,
+                'Payment log',
+                'Record what you\'ve paid the IRS',
+                PaymentLogScreen(year),
+              ),
+              (
+                Icons.directions_car_outlined,
+                'Mileage',
+                'Standard mileage rate, trip by trip',
+                MileageScreen(year),
+              ),
+              (Icons.home_work_outlined, 'Home office', 'Simplified method', HomeOfficeScreen(year)),
+              (
+                Icons.description_outlined,
+                '1099 tracker',
+                'Match forms to your income',
+                Forms1099Screen(year),
+              ),
             ])
               ListTile(
                 leading: Icon(icon),
                 title: Text(title),
                 subtitle: Text(sub),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => _soon(context, title),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen)),
               ),
           ],
         ),

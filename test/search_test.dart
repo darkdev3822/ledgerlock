@@ -36,6 +36,13 @@ void main() {
       expect(q.categories, {'other_expense', 'other_income'});
       expect(q.year, 2025);
     });
+    test('unpaid / invoiced', () {
+      final q = p('unpaid etsy');
+      expect(q.unpaidOnly, isTrue);
+      expect(q.terms, ['etsy']);
+      expect(q.documentsApply, isFalse);
+    });
+
     test('synonyms, ranges, exact amounts, last month', () {
       expect(p('lunch').categories, {'meals'});
       final b = p('between 20 and 10');

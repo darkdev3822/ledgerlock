@@ -314,6 +314,22 @@
       "value": 184500,
       "source": "https://www.irs.gov/businesses/small-businesses-self-employed/self-employment-tax-social-security-and-medicare-taxes (\"For 2026, the first $184,500\"; page updated 2026-10-30)",
       "verified": "2026-11-01"
+    },
+    {
+      "id": "home_office_rate",
+      "name": "Home office simplified method rate",
+      "unit": "dollars_per_sqft",
+      "value": null,
+      "source": "",
+      "verified": null
+    },
+    {
+      "id": "home_office_max_sqft",
+      "name": "Home office simplified method maximum area",
+      "unit": "sqft",
+      "value": null,
+      "source": "",
+      "verified": null
     }
   ],
   "quarterlyDueReview": {

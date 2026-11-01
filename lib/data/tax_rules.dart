@@ -150,6 +150,14 @@ class TaxRules {
     );
   }
 
+  /// A verified key figure, or null (unverified figures are never used in maths).
+  KeyFigure? figure(String id) {
+    for (final k in keyFigures) {
+      if (k.id == id && k.usable) return k;
+    }
+    return null;
+  }
+
   /// Social Security wage base in cents, only once verified (null = no cap applied; overstates for high earners).
   int? get ssWageBaseCents {
     for (final k in keyFigures) {

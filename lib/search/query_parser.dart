@@ -12,6 +12,9 @@ class SearchQuery {
   /// OR Adobe), so typing a word that happens to be a keyword never hides results.
   final List<String> categoryWords;
   final bool? hasReceipt;
+
+  /// Invoiced income not received yet.
+  final bool unpaidOnly;
   final bool feesOnly;
 
   /// Human-readable chips: what the parser understood.
@@ -27,6 +30,7 @@ class SearchQuery {
     this.categories = const {},
     this.categoryWords = const [],
     this.hasReceipt,
+    this.unpaidOnly = false,
     this.feesOnly = false,
     this.understood = const [],
   });
@@ -40,6 +44,7 @@ class SearchQuery {
       isIncome == null &&
       categories.isEmpty &&
       hasReceipt == null &&
+      !unpaidOnly &&
       !feesOnly;
 
   /// Only text (and maybe a year): documents are worth searching too.
@@ -49,7 +54,8 @@ class SearchQuery {
       categories.isEmpty &&
       !feesOnly &&
       isIncome == null &&
-      hasReceipt == null;
+      hasReceipt == null &&
+      !unpaidOnly;
 
   /// FTS5 MATCH expression built only from letters/digits, each term quoted and prefix-matched,
   /// so user input can never inject FTS syntax (SECURITY.md T6). Null if there's nothing to match.
@@ -203,6 +209,7 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
   final catWords = <String>[];
   int? minC, maxC, year, month;
   bool? income, receipt;
+  var unpaid = false;
   var fees = false;
 
   int? money(String w) {
@@ -247,6 +254,11 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
         i += 3;
         continue;
       }
+    }
+    if ({'unpaid', 'invoiced', 'outstanding'}.contains(w)) {
+      unpaid = true;
+      understood.add('Invoiced, unpaid');
+      continue;
     }
     // Receipts.
     if ({'no', 'without', 'missing'}.contains(w) && (next() == 'receipt' || next() == 'receipts')) {
@@ -333,6 +345,7 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
     categories: cats,
     categoryWords: catWords,
     hasReceipt: receipt,
+    unpaidOnly: unpaid,
     feesOnly: fees,
     understood: understood,
   );
