@@ -30,10 +30,27 @@ better design and search.** Lead with privacy in every store listing and screens
     biometric attempts, and every 7 days.
   - **Auto-lock** after N minutes in the background (configurable, default 1 min). The app switcher shows a
     blurred privacy cover. Screenshots can optionally be blocked (FLAG_SECURE).
-  - **Panic / duress options (Pro):** a wipe after N wrong passwords (off by default, with a strong warning).
-- **No password recovery exists**; that's the point. The onboarding says so plainly and pushes the user to create a
-  backup and write down the password. The user can change the password at any time (it re-wraps the key; data is
-  not re-encrypted).
+  - **Panic / duress options (Pro):** a wipe after N wrong passwords (off by default, with a strong warning that recovery methods
+    cannot bring the data back after a wipe; only a backup can).
+- **Account recovery: several independent ways back in, all offline** (owner decision 2026-11-01: users must
+  never lose their data). The random data key is wrapped separately by each method, so any one of them unlocks it
+  and then lets the user set a new master password (re-wrap only; data is not re-encrypted):
+  1. **Recovery key** (required at setup): a random 128-bit code shown once as 6 groups of letters/digits plus a
+     printable "Emergency Kit" page. The user must re-type part of it to confirm they saved it. Can be regenerated
+     in Settings (the old one stops working).
+  2. **Biometric reset** (offered at setup): a Keystore / Secure Enclave key, gated by biometrics and invalidated
+     when new fingerprints/faces are enrolled, wraps the data key. "Forgot password?" → biometric → new password.
+     Only works on the same phone.
+  3. **Security questions** (optional, only after 1 is set up): 3 questions from a list plus 1 custom; answers are
+     normalised (case, spaces, punctuation) and all 3 are needed. They feed Argon2id with heavier parameters.
+     The UI warns that answers must not be findable online. Never the only method.
+  4. **Encrypted backups** (below) are the answer to a lost, stolen or broken phone: monthly reminders, a banner
+     when the last backup is over 30 days old, and restore needs the master password or the recovery key.
+  - **Not offered:** email/SMS verification codes or any server-held key: they need internet and a server holding a
+    copy of the key, which breaks the local-only promise. Android Auto Backup stays **off** (`allowBackup=false`):
+    the user chooses where backups go.
+  - Settings shows a "Recovery health" card (which methods are on, last backup date) and nudges until at least
+    two methods plus a recent backup exist. The user can change the password at any time.
 - **Backups without a cloud:** "Export encrypted backup" creates a single `.llbackup` file (encrypted with the
   master password or a separate backup password), saved wherever the user chooses (device storage, USB, their
   own drive app; their choice, not ours). Restore from a file. Reminders to back up monthly.

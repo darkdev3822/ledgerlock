@@ -12,7 +12,7 @@ void main() {
     expect(passwordStrength('Correct-Horse-Battery-9'), 4);
   });
 
-  testWidgets('setup requires strong matching password and the no-recovery acknowledgement', (t) async {
+  testWidgets('setup requires a strong, matching password', (t) async {
     String? submitted;
     await t.pumpWidget(MaterialApp(home: SetupScreen(onSubmit: (p) async => submitted = p)));
     final button = find.widgetWithText(FilledButton, 'Create encrypted vault');
@@ -21,11 +21,12 @@ void main() {
     await t.enterText(find.byKey(const Key('pw')), 'Correct-Horse-9');
     await t.enterText(find.byKey(const Key('confirm')), 'Correct-Horse-9');
     await t.pump();
-    expect(enabled(), isFalse, reason: 'must acknowledge no recovery');
-    await t.ensureVisible(find.byKey(const Key('understood')));
-    await t.tap(find.byKey(const Key('understood')));
-    await t.pump();
     expect(enabled(), isTrue);
+    await t.enterText(find.byKey(const Key('pw')), 'abcdefgh');
+    await t.enterText(find.byKey(const Key('confirm')), 'abcdefgh');
+    await t.pump();
+    expect(enabled(), isFalse, reason: 'weak password');
+    await t.enterText(find.byKey(const Key('pw')), 'Correct-Horse-9');
     await t.enterText(find.byKey(const Key('confirm')), 'mismatch');
     await t.pump();
     expect(enabled(), isFalse);

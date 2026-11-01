@@ -59,7 +59,6 @@ class SetupScreen extends StatefulWidget {
 class _SetupScreenState extends State<SetupScreen> {
   final _pw = TextEditingController();
   final _confirm = TextEditingController();
-  bool _understood = false;
   bool _busy = false;
 
   @override
@@ -73,7 +72,7 @@ class _SetupScreenState extends State<SetupScreen> {
   Widget build(BuildContext context) {
     final score = passwordStrength(_pw.text);
     final cs = Theme.of(context).colorScheme;
-    final ok = score >= 2 && _pw.text == _confirm.text && _understood && !_busy;
+    final ok = score >= 2 && _pw.text == _confirm.text && !_busy;
     return _Shell(
       title: 'Create your master password',
       subtitle: 'Everything stays on this phone, encrypted with this password.',
@@ -109,13 +108,12 @@ class _SetupScreenState extends State<SetupScreen> {
         ),
         const SizedBox(height: 16),
         Card(
-          color: cs.errorContainer,
-          child: CheckboxListTile(
-            key: const Key('understood'),
-            value: _understood,
-            onChanged: (v) => setState(() => _understood = v ?? false),
-            title: const Text('There is no password recovery'),
-            subtitle: const Text('If you forget it, your data is gone. Write it down somewhere safe.'),
+          color: cs.secondaryContainer,
+          child: const ListTile(
+            leading: Icon(Icons.health_and_safety_outlined),
+            title: Text('You can always get back in'),
+            subtitle: Text('Next you\'ll save a recovery key and can turn on fingerprint reset, so a '
+                'forgotten password never means lost records.'),
           ),
         ),
         const SizedBox(height: 24),

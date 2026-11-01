@@ -21,10 +21,16 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   On emulator: pulled ledger.db is random bytes ("file is not a database"); release APK still has no INTERNET.
   Packages vetted for networking: cryptography, drift, sqlite3, path_provider (runtime code clean).
 
-## Next: M2 design system and app shell (SPEC §5, §8)
-- Theme, components, bottom nav, year switcher; golden screenshots for the owner to review. Restyle lock screens.
-- Still open from SPEC §1 (later milestones): biometric unlock (flutter_secure_storage + local_auth), FLAG_SECURE
-  toggle, auto-lock minutes setting UI, Argon2id tuning on a real mid-range phone (target ~0.5 s).
+- Recovery decision (2026-11-01, owner): data loss is unacceptable. SPEC §1 rewritten: recovery key (required),
+  biometric reset, optional security questions, encrypted backups; no email/SMS codes (would need internet).
+  allowBackup=false set. Setup screen's "no recovery" checkbox replaced with a "you can always get back in" note.
+
+## Next: M1b recovery (SPEC §1 "Account recovery"), then M2
+- Vault v2: multiple wrapped copies of the data key (password, recoveryKey, biometric, questions), migrate v1.
+- Recovery key screen + confirm step + printable Emergency Kit; "Forgot password?" on unlock; questions setup.
+- Biometrics: local_auth + Android Keystore (vet packages for networking; ask owner before anything paid).
+- Then M2 (design system, golden screenshots for owner review). Still open: FLAG_SECURE toggle, auto-lock
+  setting UI, Argon2id tuning on a real phone.
 
 ## Gotchas
 - PATH is not set globally: use `export PATH=$HOME/flutter/bin:$HOME/Android/Sdk/platform-tools:$PATH`.
