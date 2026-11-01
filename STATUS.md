@@ -57,8 +57,14 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   READ/WRITE_EXTERNAL_STORAGE. "Done when" verified on emulator as root: no JPEG/PNG/PDF signatures anywhere in
   /data/data/<pkg> (cache too) after scan + PDF import; MediaStore image count unchanged (0). 61 tests pass.
 
-## Next: M5 search (SPEC §4)
-- FTS5 over entries + attachment names, chips, natural-language parser; <50 ms on 10k seeded records.
+- Security pass (2026-11-01, owner request): SECURITY.md threat model + findings log; fixed T1 guess throttling
+  (AttemptGuard in Vault), T2 image bombs (safeDecode, 40 MP cap), T3 monotonic auto-lock, T4 KDF param ranges,
+  T5 keyboard learning off on secret/financial fields. hardening_test.dart (6 tests). SPEC §8 gains M9.5
+  (AI-assisted white-hat phase); CLAUDE.md rule 6: security checklist every milestone. Device-verified lockout.
+- M5 (part): FTS5 search_fts table + triggers + backfill (schema v4), migrated on device. Parser/UI next.
+
+## Next: finish M5 search (SPEC §4)
+- Query parser + search service + screen; quote/escape FTS terms (SECURITY.md T6); <50 ms on 10k records.
 - Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
   (only tested on synthetic + emulator scene); PDF preview (M6); iOS document picker channel (M10).
 - Still open: Emergency Kit PDF (M6), custom security questions, backup-age banner (M9), FLAG_SECURE toggle,

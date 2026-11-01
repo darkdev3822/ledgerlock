@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../security/attempt_guard.dart';
 import '../security/biometric_reset.dart';
 import '../security/crypto.dart';
 import '../security/vault.dart';
@@ -94,6 +95,9 @@ class _RecoveryKeyScreenState extends State<RecoveryKeyScreen> {
       subtitle: 'Type the last two groups of your recovery key.',
       children: [
         TextField(
+          enableIMEPersonalizedLearning: false,
+          enableSuggestions: false,
+          autocorrect: false,
           key: const Key('rkCheck'),
           controller: _check,
           autofocus: true,
@@ -203,6 +207,9 @@ class _SecurityQuestionsSetupScreenState extends State<SecurityQuestionsSetupScr
           ),
           const SizedBox(height: 8),
           TextField(
+            enableIMEPersonalizedLearning: false,
+            enableSuggestions: false,
+            autocorrect: false,
             key: Key('a$i'),
             controller: _answers[i],
             decoration: const InputDecoration(labelText: 'Answer', border: OutlineInputBorder()),
@@ -400,6 +407,8 @@ class _RecoveryKeyEntryState extends State<_RecoveryKeyEntry> {
       await widget.onRecovered(dk);
     } on RecoveryFailed {
       if (mounted) setState(() => _error = 'That recovery key didn\'t work. Check each character.');
+    } on TooManyAttempts catch (e) {
+      if (mounted) setState(() => _error = lockoutMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -412,6 +421,9 @@ class _RecoveryKeyEntryState extends State<_RecoveryKeyEntry> {
       padding: const EdgeInsets.all(24),
       children: [
         TextField(
+          enableIMEPersonalizedLearning: false,
+          enableSuggestions: false,
+          autocorrect: false,
           key: const Key('rkEntry'),
           controller: _c,
           autofocus: true,
@@ -467,6 +479,8 @@ class _QuestionsEntryState extends State<_QuestionsEntry> {
       await widget.onRecovered(dk);
     } on RecoveryFailed {
       if (mounted) setState(() => _error = 'At least one answer doesn\'t match.');
+    } on TooManyAttempts catch (e) {
+      if (mounted) setState(() => _error = lockoutMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -482,6 +496,9 @@ class _QuestionsEntryState extends State<_QuestionsEntry> {
           Text(widget.questions[i], style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           TextField(
+            enableIMEPersonalizedLearning: false,
+            enableSuggestions: false,
+            autocorrect: false,
             controller: _c[i],
             decoration: const InputDecoration(border: OutlineInputBorder()),
           ),

@@ -155,19 +155,19 @@ void main() {
 
   group('AutoLock', () {
     test('locks only after timeout in background; cover shown while away', () {
-      var now = DateTime(2026, 1, 1);
+      var now = Duration.zero;
       var locks = 0;
-      final a = AutoLock(onLock: () => locks++, now: () => now);
+      final a = AutoLock(onLock: () => locks++, elapsed: () => now);
       a.didChangeAppLifecycleState(AppLifecycleState.inactive);
       expect(a.coverVisible.value, isTrue);
       a.didChangeAppLifecycleState(AppLifecycleState.paused);
-      now = now.add(const Duration(seconds: 30));
+      now += const Duration(seconds: 30);
       a.didChangeAppLifecycleState(AppLifecycleState.resumed);
       expect(locks, 0);
       expect(a.coverVisible.value, isFalse);
 
       a.didChangeAppLifecycleState(AppLifecycleState.paused);
-      now = now.add(const Duration(minutes: 1));
+      now += const Duration(minutes: 1);
       a.didChangeAppLifecycleState(AppLifecycleState.resumed);
       expect(locks, 1);
     });

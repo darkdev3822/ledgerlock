@@ -11,6 +11,8 @@ Every step should cost as little as possible.
    analytics, all data encrypted. Never add a dependency that phones home. Check each new package.
 5. **Ask the owner** before anything involving their accounts, licenses (e.g. Android SDK licenses), money,
    or store submissions. They accept licenses and terms themselves.
-6. **End of every session:** update `STATUS.md` (done / next / gotchas) in a few lines, and commit to git with a
+6. **Security every milestone:** run the checklist in `SECURITY.md`, fix findings in the same milestone, and log
+   them there with a regression test.
+7. **End of every session:** update `STATUS.md` (done / next / gotchas) in a few lines, and commit to git with a
    clear message.
-7. Show the owner progress with screenshots (`setsid xdg-open <png> &`) and a short summary.
+8. Show the owner progress with screenshots (`setsid xdg-open <png> &`) and a short summary.

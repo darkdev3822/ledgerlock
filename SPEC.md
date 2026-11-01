@@ -168,4 +168,5 @@ Store fees: Apple Small Business Program and Google Play are 15% on the first $1
 | M7 | Pro: OCR, rules, imports, PDF packet, paywall, purchases, trial | Purchases work in Play test mode |
 | M8 | Polish: motion, haptics, accessibility, onboarding, empty states, app icon | The owner's sign-off on video walkthroughs |
 | M9 | Backups and resilience: encrypted export/restore, migration tests | Restore on a fresh install works |
+| M9.5 | Security assessment: debugging, polish, AI-assisted white-hat attacks (APK reverse engineering, root/forensic file attacks, fuzzing every parser, brute-force and tamper scenarios, AI-driven attack agents); see SECURITY.md | No open High findings; every finding has a regression test |
 | M10 | Store launch: listing, screenshots, privacy policy, Play internal test → production; iOS via cloud CI | Live on Google Play; iOS TestFlight |

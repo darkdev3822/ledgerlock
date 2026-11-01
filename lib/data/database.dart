@@ -98,7 +98,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -106,6 +106,7 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
       await customStatement('CREATE INDEX entries_date ON ledger_entries(date)');
       await customStatement('CREATE INDEX attachments_year ON attachments(year, folder)');
+      await _createSearchIndex();
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
@@ -116,8 +117,36 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(attachments);
         await customStatement('CREATE INDEX attachments_year ON attachments(year, folder)');
       }
+      if (from < 4) await _createSearchIndex();
     },
   );
+
+  /// FTS5 full-text index inside the encrypted DB (SPEC §4). rowid = entry id, or -attachment id.
+  /// Kept in sync by triggers, so every write path is covered.
+  Future<void> _createSearchIndex() async {
+    const entryBody =
+        "new.party || ' ' || new.platform || ' ' || new.notes || ' ' || replace(new.category, '_', ' ')";
+    const attBody = "new.name || ' ' || replace(new.folder, '_', ' ')";
+    for (final sql in [
+      "CREATE VIRTUAL TABLE search_fts USING fts5(body, tokenize = 'unicode61 remove_diacritics 2')",
+      'CREATE TRIGGER le_ai AFTER INSERT ON ledger_entries BEGIN '
+          'INSERT INTO search_fts(rowid, body) VALUES (new.id, $entryBody); END',
+      'CREATE TRIGGER le_ad AFTER DELETE ON ledger_entries BEGIN DELETE FROM search_fts WHERE rowid = old.id; END',
+      'CREATE TRIGGER le_au AFTER UPDATE ON ledger_entries BEGIN DELETE FROM search_fts WHERE rowid = old.id; '
+          'INSERT INTO search_fts(rowid, body) VALUES (new.id, $entryBody); END',
+      'CREATE TRIGGER at_ai AFTER INSERT ON attachments BEGIN '
+          'INSERT INTO search_fts(rowid, body) VALUES (-new.id, $attBody); END',
+      'CREATE TRIGGER at_ad AFTER DELETE ON attachments BEGIN DELETE FROM search_fts WHERE rowid = -old.id; END',
+      'CREATE TRIGGER at_au AFTER UPDATE ON attachments BEGIN DELETE FROM search_fts WHERE rowid = -old.id; '
+          'INSERT INTO search_fts(rowid, body) VALUES (-new.id, $attBody); END',
+      // Backfill rows that existed before the index.
+      "INSERT INTO search_fts(rowid, body) SELECT id, party || ' ' || platform || ' ' || notes || ' ' || "
+          "replace(category, '_', ' ') FROM ledger_entries",
+      "INSERT INTO search_fts(rowid, body) SELECT -id, name || ' ' || replace(folder, '_', ' ') FROM attachments",
+    ]) {
+      await customStatement(sql);
+    }
+  }
 
   // ---------- attachments ----------
 

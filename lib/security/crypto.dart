@@ -44,8 +44,19 @@ class KdfParams {
     'salt': base64.encode(salt),
   };
 
+  /// Accepted ranges: a tampered header must not be able to demand gigabytes of RAM or
+  /// hours of CPU (DoS on every unlock), see SECURITY.md T4.
+  static const maxMemoryKiB = 262144, maxIterations = 10, maxParallelism = 4;
+
   factory KdfParams.fromJson(Map<String, dynamic> j) {
     if (j['alg'] != 'argon2id') throw const FormatException('unknown kdf');
+    final m = j['m'], t = j['t'], p = j['p'], salt = j['salt'];
+    if (m is! int || t is! int || p is! int || salt is! String) throw const FormatException('bad kdf params');
+    if (m < 64 || m > maxMemoryKiB || t < 1 || t > maxIterations || p < 1 || p > maxParallelism) {
+      throw const FormatException('kdf params out of range');
+    }
+    final saltBytes = base64.decode(salt);
+    if (saltBytes.length < 16 || saltBytes.length > 64) throw const FormatException('bad salt');
     return KdfParams(
       memoryKiB: j['m'] as int,
       iterations: j['t'] as int,

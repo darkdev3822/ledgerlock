@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'attempt_guard.dart';
 import 'crypto.dart';
 
 class WrongPassword implements Exception {
@@ -60,6 +61,9 @@ class Vault {
   static const _passwordAad = 'ledgerlock/v1/data-key'; // v1-compatible
   final File headerFile;
 
+  /// Escalating lockouts for guessable secrets (password, recovery key, answers).
+  final AttemptGuard guard;
+
   /// KDF factories are injectable so tests can use cheap Argon2 parameters.
   final KdfParams Function() kdfFactory;
   final KdfParams Function() recoveryKdfFactory;
@@ -70,7 +74,9 @@ class Vault {
     KdfParams Function()? kdfFactory,
     KdfParams Function()? recoveryKdfFactory,
     KdfParams Function()? questionsKdfFactory,
+    AttemptGuard? guard,
   }) : headerFile = File('${dir.path}/vault.json'),
+       guard = guard ?? AttemptGuard(dir),
        kdfFactory = kdfFactory ?? KdfParams.generate,
        // The recovery key is 150 random bits, so a light KDF is plenty.
        recoveryKdfFactory = recoveryKdfFactory ?? (() => KdfParams.generate(memoryKiB: 8192, iterations: 1)),
@@ -116,7 +122,25 @@ class Vault {
 
   List<int> _aad(Slot s) => utf8.encode(s == Slot.password ? _passwordAad : '$_passwordAad/${s.name}');
 
+  /// Throws [TooManyAttempts] while locked out. Biometric secrets are random 256-bit keys
+  /// (unguessable, and the OS throttles the sensor), so they don't count toward lockouts.
   Future<Uint8List> _unwrapWithSecret(Slot slot, List<int> secret, Exception onFail) async {
+    final guarded = slot != Slot.biometric;
+    if (guarded) guard.check();
+    try {
+      final dk = await _unwrap(slot, secret, onFail);
+      if (guarded) guard.reset();
+      return dk;
+    } on WrongPassword {
+      if (guarded) guard.recordFailure();
+      rethrow;
+    } on RecoveryFailed {
+      if (guarded) guard.recordFailure();
+      rethrow;
+    }
+  }
+
+  Future<Uint8List> _unwrap(Slot slot, List<int> secret, Exception onFail) async {
     final slots = await _readSlots();
     final s = slots[slot.name] as Map<String, dynamic>?;
     if (s == null) throw onFail;

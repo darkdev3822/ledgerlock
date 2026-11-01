@@ -446,6 +446,7 @@ class _Field extends StatelessWidget {
         const SizedBox(width: Space.lg),
         Expanded(
           child: TextField(
+            enableIMEPersonalizedLearning: false,
             controller: controller,
             keyboardType: keyboard,
             textCapitalization: TextCapitalization.sentences,
@@ -507,6 +508,7 @@ class _AutoFieldState extends State<_AutoField> {
                   .take(5);
             },
             fieldViewBuilder: (context, c, focus, onSubmit) => TextField(
+              enableIMEPersonalizedLearning: false,
               controller: c,
               focusNode: focus,
               textCapitalization: TextCapitalization.words,

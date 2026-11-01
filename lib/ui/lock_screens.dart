@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'design/theme.dart';
 
+import '../security/attempt_guard.dart';
 import '../security/vault.dart';
 
 /// 0..4 heuristic strength score (length + character variety).
@@ -129,6 +130,9 @@ class _SetupScreenState extends State<SetupScreen> {
       subtitle: widget.subtitle,
       children: [
         TextField(
+          enableIMEPersonalizedLearning: false,
+          enableSuggestions: false,
+          autocorrect: false,
           key: const Key('pw'),
           controller: _pw,
           obscureText: true,
@@ -147,6 +151,9 @@ class _SetupScreenState extends State<SetupScreen> {
         Text(_strengthLabels[score], style: Theme.of(context).textTheme.labelMedium),
         const SizedBox(height: 16),
         TextField(
+          enableIMEPersonalizedLearning: false,
+          enableSuggestions: false,
+          autocorrect: false,
           key: const Key('confirm'),
           controller: _confirm,
           obscureText: true,
@@ -228,6 +235,8 @@ class _UnlockScreenState extends State<UnlockScreen> {
       await widget.onSubmit(_pw.text);
     } on WrongPassword {
       if (mounted) setState(() => _error = 'Wrong password');
+    } on TooManyAttempts catch (e) {
+      if (mounted) setState(() => _error = lockoutMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -239,6 +248,9 @@ class _UnlockScreenState extends State<UnlockScreen> {
     subtitle: widget.subtitle,
     children: [
       TextField(
+        enableIMEPersonalizedLearning: false,
+        enableSuggestions: false,
+        autocorrect: false,
         key: const Key('unlock'),
         controller: _pw,
         obscureText: true,
@@ -266,4 +278,11 @@ class BusyDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2));
+}
+
+/// "Too many attempts. Try again in 4 min." (SECURITY.md T1)
+String lockoutMessage(TooManyAttempts e) {
+  final s = e.wait.inSeconds;
+  final when = s < 60 ? '$s s' : (s < 3600 ? '${(s / 60).ceil()} min' : '${(s / 3600).ceil()} h');
+  return 'Too many attempts. Try again in $when.';
 }

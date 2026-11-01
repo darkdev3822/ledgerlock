@@ -185,9 +185,28 @@ ProcessedReceipt finishReceipt(img.Image src, Quad q) {
   return ProcessedReceipt(img.encodeJpg(out, quality: 85), img.encodeJpg(thumb, quality: 70));
 }
 
+/// Largest image we'll decode: a crafted file can claim huge dimensions in a few KB and
+/// make the decoder allocate gigabytes (decompression bomb, SECURITY.md T2). 40 MP covers phone cameras.
+const maxDecodePixels = 40000000;
+
+/// Decodes only after checking the header's dimensions. Returns null for unknown,
+/// corrupt or oversized images instead of throwing or exhausting memory.
+img.Image? safeDecode(Uint8List bytes) {
+  try {
+    final decoder = img.findDecoderForData(bytes);
+    if (decoder == null) return null;
+    final info = decoder.startDecode(bytes);
+    if (info == null || info.width <= 0 || info.height <= 0) return null;
+    if (info.width * info.height > maxDecodePixels) return null;
+    return decoder.decode(bytes, frame: 0);
+  } catch (_) {
+    return null;
+  }
+}
+
 /// Thumbnail for an imported image (no crop).
 Uint8List? thumbnailFor(Uint8List bytes) {
-  final im = img.decodeImage(bytes);
+  final im = safeDecode(bytes);
   if (im == null) return null;
   final t = im.width >= im.height ? img.copyResize(im, width: 320) : img.copyResize(im, height: 320);
   return img.encodeJpg(t, quality: 70);
@@ -211,9 +230,11 @@ Decoded _decoded(img.Image im) {
 Future<Decoded> decodeFrame(YuvFrame f) => Isolate.run(() => _decoded(yuvToImage(f)));
 
 Future<Decoded?> decodeBytes(Uint8List bytes) => Isolate.run(() {
-  final im = img.decodeImage(bytes);
+  final im = safeDecode(bytes);
   return im == null ? null : _decoded(img.bakeOrientation(im));
 });
 
 Future<ProcessedReceipt> finishInBackground(img.Image src, Quad q) =>
     Isolate.run(() => finishReceipt(src, q));
+
+Future<Uint8List?> thumbnailInBackground(Uint8List bytes) => Isolate.run(() => thumbnailFor(bytes));

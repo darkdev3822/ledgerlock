@@ -52,7 +52,7 @@ class Documents {
     int? entryId,
   }) async {
     final fileId = await files.put(bytes);
-    final thumb = mime.startsWith('image/') ? thumbnailFor(bytes) : null;
+    final thumb = mime.startsWith('image/') ? await thumbnailInBackground(bytes) : null;
     final thumbId = thumb == null ? null : await files.put(thumb);
     return db.addAttachment(
       AttachmentsCompanion.insert(
