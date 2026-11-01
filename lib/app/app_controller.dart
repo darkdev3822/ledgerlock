@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+import '../data/database.dart';
+import '../data/ledger.dart';
 import '../data/tax_rules.dart';
 import '../security/auto_lock.dart';
 import '../security/biometric_reset.dart';
@@ -31,6 +33,9 @@ class AppController extends ChangeNotifier {
   int autoLockMinutes = 1;
   int selectedYear;
 
+  /// Percent of profit to set aside for taxes; null = the year's default.
+  double? setAsidePct;
+
   AppController({required this.dataDir, required this.biometrics, Vault? vault, int? year})
     : vault = vault ?? Vault(dataDir),
       selectedYear = year ?? _defaultYear();
@@ -41,6 +46,9 @@ class AppController extends ChangeNotifier {
   }
 
   bool get unlocked => _session != null;
+
+  /// The open encrypted database, or null while locked.
+  AppDatabase? get db => _session?.db;
   bool get vaultExists => vault.exists;
 
   /// For golden/widget tests: show the unlocked shell without a real session.
@@ -83,6 +91,7 @@ class AppController extends ChangeNotifier {
     themeMode = ThemeMode.values.asNameMap()[await db.getSetting('themeMode')] ?? ThemeMode.system;
     final y = int.tryParse(await db.getSetting('selectedYear') ?? '');
     if (y != null && TaxRules.supportedYears.contains(y)) selectedYear = y;
+    setAsidePct = double.tryParse(await db.getSetting('setAsidePct') ?? '');
     slots = await vault.enabledSlots();
     _session = s;
     // Every vault must have a confirmed recovery key; resume setup if it was interrupted.
@@ -187,6 +196,12 @@ class AppController extends ChangeNotifier {
     await _session?.db.setSetting('themeMode', m.name);
   }
 
+  Future<void> setSetAsidePct(double pct) async {
+    setAsidePct = pct;
+    notifyListeners();
+    await _session?.db.setSetting('setAsidePct', '$pct');
+  }
+
   Future<void> setYear(int y) async {
     selectedYear = y;
     notifyListeners();
@@ -201,3 +216,18 @@ final appControllerProvider = ChangeNotifierProvider<AppController>((ref) => thr
 final todayProvider = Provider<DateTime>((ref) => DateTime.now());
 
 final taxRulesProvider = FutureProvider.family<TaxRules, int>((ref, year) => TaxRules.load(year));
+
+/// Live ledger entries for a tax year (empty while locked).
+final entriesProvider = StreamProvider.family<List<LedgerEntry>, int>((ref, year) {
+  final db = ref.watch(appControllerProvider.select((a) => a.db));
+  return db == null ? Stream.value(const []) : db.watchYear(year);
+});
+
+/// Dashboard numbers for a tax year.
+final summaryProvider = Provider.family<LedgerSummary, int>((ref, year) {
+  final rules = ref.watch(taxRulesProvider(year)).value;
+  final entries = ref.watch(entriesProvider(year)).value ?? const [];
+  final pct = ref.watch(appControllerProvider.select((a) => a.setAsidePct));
+  if (rules == null) return LedgerSummary.empty;
+  return summarize(entries.map((e) => e.data), rules, setAsidePct: pct);
+});

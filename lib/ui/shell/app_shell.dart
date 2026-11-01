@@ -9,6 +9,7 @@ import '../../data/tax_rules.dart';
 import '../design/components.dart';
 import '../design/theme.dart';
 import '../settings_screen.dart';
+import '../ledger/entry_screen.dart';
 import 'tabs.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -53,6 +54,11 @@ class _AppShellState extends ConsumerState<AppShell> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Add a record',
+            icon: const Icon(Icons.add_rounded),
+            onPressed: () => openEntry(context),
+          ),
           IconButton(
             tooltip: 'Settings',
             icon: const Icon(Icons.settings_outlined),

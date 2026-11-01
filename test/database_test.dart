@@ -1,0 +1,75 @@
+import 'dart:io';
+
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ledgerlock/data/database.dart';
+import 'package:ledgerlock/security/crypto.dart';
+import 'package:sqlite3/sqlite3.dart' as raw;
+
+void main() {
+  late Directory dir;
+  setUp(() => dir = Directory.systemTemp.createTempSync('ll_db'));
+  tearDown(() => dir.deleteSync(recursive: true));
+
+  LedgerEntriesCompanion e(
+    String date, {
+    bool income = false,
+    String cat = 'software',
+    String party = '',
+    int c = 100,
+  }) => LedgerEntriesCompanion.insert(
+    isIncome: income,
+    date: date,
+    amountCents: c,
+    category: cat,
+    party: Value(party),
+  );
+
+  test('v1 database (M1/M2: settings only) migrates to v2 and keeps settings', () async {
+    final file = File('${dir.path}/old.db');
+    final key = LedgerCrypto.randomBytes(32);
+    final hex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final old = raw.sqlite3.open(file.path)
+      ..execute("PRAGMA key = \"x'$hex'\"")
+      ..execute('CREATE TABLE settings ("key" TEXT NOT NULL PRIMARY KEY, "value" TEXT NOT NULL)')
+      ..execute("INSERT INTO settings VALUES ('themeMode', 'dark')")
+      ..execute('PRAGMA user_version = 1');
+    old.close();
+
+    final db = AppDatabase.open(file, key);
+    expect(await db.getSetting('themeMode'), 'dark');
+    await db.addEntry(e('2026-03-01'));
+    expect((await db.watchYear(2026).first).length, 1);
+    await db.close();
+  });
+
+  test('watchYear filters by year and orders newest first; restore undoes delete', () async {
+    final db = AppDatabase.open(File('${dir.path}/t.db'), LedgerCrypto.randomBytes(32));
+    await db.addEntry(e('2026-01-05', c: 1));
+    await db.addEntry(e('2026-07-01', c: 2));
+    await db.addEntry(e('2025-12-31', c: 3));
+    final y26 = await db.watchYear(2026).first;
+    expect(y26.map((x) => x.amountCents), [2, 1]);
+    expect((await db.watchYear(2025).first).single.amountCents, 3);
+
+    final victim = y26.first;
+    await db.deleteEntry(victim.id);
+    expect((await db.watchYear(2026).first).length, 1);
+    await db.restoreEntry(victim);
+    expect((await db.watchYear(2026).first).first, victim);
+    await db.close();
+  });
+
+  test('smart default: last category for this payee, else last for this kind', () async {
+    final db = AppDatabase.open(File('${dir.path}/s.db'), LedgerCrypto.randomBytes(32));
+    expect(await db.suggestCategory(isIncome: false), isNull);
+    await db.addEntry(e('2026-01-01', cat: 'meals', party: 'Cafe Uno'));
+    await db.addEntry(e('2026-01-02', cat: 'software', party: 'Adobe'));
+    await db.addEntry(e('2026-01-03', income: true, cat: 'services', party: 'Acme'));
+    expect(await db.suggestCategory(isIncome: false, party: 'cafe uno'), 'meals');
+    expect(await db.suggestCategory(isIncome: false, party: 'Someone new'), 'software');
+    expect(await db.suggestCategory(isIncome: true), 'services');
+    expect(await db.recentValues(db.ledgerEntries.party), containsAll(['Cafe Uno', 'Adobe', 'Acme']));
+    await db.close();
+  });
+}

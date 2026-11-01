@@ -1,19 +1,27 @@
-// Tab contents. Real data arrives in M3 (ledger), M4 (vault), M6 (taxes); the
-// layout, components and empty states are final.
+// Tab contents (M3: live ledger data). Vault arrives in M4, tax tools in M6.
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/app_controller.dart';
+import '../../data/database.dart';
+import '../../data/ledger.dart';
 import '../../data/tax_rules.dart';
 import '../design/components.dart';
 import '../design/theme.dart';
+import '../ledger/category_icons.dart';
+import '../ledger/entry_screen.dart';
 
 const _pad = EdgeInsets.fromLTRB(Space.gutter, Space.sm, Space.gutter, Space.xxl);
 
 void _soon(BuildContext context, String what) => ScaffoldMessenger.of(context)
   ..hideCurrentSnackBar()
-  ..showSnackBar(SnackBar(content: Text('$what arrives in the next milestone.')));
+  ..showSnackBar(SnackBar(content: Text('$what arrives in a later milestone.')));
+
+// ============================== Home ==============================
 
 class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
@@ -22,51 +30,69 @@ class HomeTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final year = ref.watch(appControllerProvider.select((a) => a.selectedYear));
     final rules = ref.watch(taxRulesProvider(year)).value;
+    final s = ref.watch(summaryProvider(year));
+    final entries = ref.watch(entriesProvider(year)).value ?? const [];
     final today = ref.watch(todayProvider);
     return ListView(
       padding: _pad,
       children: [
-        _HeroCard(year: year, netCents: 0, incomeCents: 0, expenseCents: 0),
+        _HeroCard(year: year, s: s),
         const SizedBox(height: Space.md),
         Row(
           children: [
             Expanded(
               child: StatTile(
-                label: 'Set aside for taxes',
-                cents: 0,
+                label: 'Set aside (${s.setAsidePct.round()}% of profit)',
+                cents: s.setAsideCents,
                 icon: Icons.savings_outlined,
                 tint: context.ll.warning,
               ),
             ),
             const SizedBox(width: Space.md),
-            const Expanded(
-              child: StatTile(label: 'Est. self-employment tax', cents: 0, icon: Icons.percent_rounded),
+            Expanded(
+              child: StatTile(
+                label: 'Est. self-employment tax',
+                cents: s.seTaxCents,
+                icon: Icons.percent_rounded,
+              ),
             ),
           ],
         ),
-        if (rules != null) ...[const SizedBox(height: Space.md), _NextDueCard(rules: rules, today: today)],
-        const SectionHeader('Recent activity'),
-        EmptyState(
-          icon: Icons.add_card_rounded,
-          title: 'Add your first income or expense',
-          body:
-              'Three taps: amount, category, done. LedgerLock maps it to the right Schedule C line for you.',
-          actionLabel: 'Add a record',
-          onAction: () => _soon(context, 'Adding records'),
+        if (rules != null) ...[
+          const SizedBox(height: Space.md),
+          _NextDueCard(rules: rules, today: today, perQuarterCents: s.setAsideCents ~/ 4),
+        ],
+        if (entries.isNotEmpty) ...[
+          const SectionHeader('Month by month'),
+          LLCard(child: MonthlyChart(summary: s)),
+        ],
+        SectionHeader(
+          'Recent activity',
+          trailing: entries.isEmpty
+              ? null
+              : TextButton(onPressed: () => openEntry(context), child: const Text('Add')),
         ),
+        if (entries.isEmpty)
+          EmptyState(
+            icon: Icons.add_card_rounded,
+            title: 'Add your first income or expense',
+            body: 'Three taps: amount, category, done. LedgerLock maps it to the right Schedule C line for you.',
+            actionLabel: 'Add a record',
+            onAction: () => openEntry(context),
+          )
+        else if (rules != null)
+          LLGroup(
+            children: [for (final e in entries.take(5)) EntryTile(entry: e, rules: rules)],
+          ),
       ],
     );
   }
 }
 
 class _HeroCard extends StatelessWidget {
-  final int year, netCents, incomeCents, expenseCents;
-  const _HeroCard({
-    required this.year,
-    required this.netCents,
-    required this.incomeCents,
-    required this.expenseCents,
-  });
+  final int year;
+  final LedgerSummary s;
+  const _HeroCard({required this.year, required this.s});
 
   @override
   Widget build(BuildContext context) {
@@ -99,17 +125,21 @@ class _HeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: Space.sm),
-          MoneyText(netCents, style: context.text.displaySmall, color: onHero),
+          MoneyText(s.netCents, style: context.text.displaySmall, color: onHero),
           const SizedBox(height: Space.lg),
           Row(
             children: [
               Expanded(
-                child: _HeroStat(label: 'Income', cents: incomeCents, icon: Icons.south_west_rounded),
+                child: _HeroStat(label: 'Income', cents: s.grossCents, icon: Icons.south_west_rounded),
               ),
               Container(width: 1, height: 36, color: onHero.withValues(alpha: 0.2)),
               const SizedBox(width: Space.lg),
               Expanded(
-                child: _HeroStat(label: 'Expenses', cents: expenseCents, icon: Icons.north_east_rounded),
+                child: _HeroStat(
+                  label: 'Deductible expenses',
+                  cents: s.expensesCents,
+                  icon: Icons.north_east_rounded,
+                ),
               ),
             ],
           ),
@@ -135,7 +165,13 @@ class _HeroStat extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: dim),
             const SizedBox(width: 4),
-            Text(label, style: context.text.labelMedium?.copyWith(color: dim)),
+            Flexible(
+              child: Text(
+                label,
+                style: context.text.labelMedium?.copyWith(color: dim),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 2),
@@ -148,7 +184,8 @@ class _HeroStat extends StatelessWidget {
 class _NextDueCard extends StatelessWidget {
   final TaxRules rules;
   final DateTime today;
-  const _NextDueCard({required this.rules, required this.today});
+  final int perQuarterCents;
+  const _NextDueCard({required this.rules, required this.today, required this.perQuarterCents});
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +216,8 @@ class _NextDueCard extends StatelessWidget {
                 Text(
                   next == null
                       ? 'The last one was due ${DateFormat.yMMMd().format(rules.quarterlyDue.last.due)}.'
-                      : 'Due ${DateFormat.yMMMd().format(next.due)}',
+                      : 'Due ${DateFormat.yMMMd().format(next.due)}'
+                            '${perQuarterCents > 0 ? ' · about ${formatCents(perQuarterCents)}' : ''}',
                   style: context.text.bodySmall,
                 ),
               ],
@@ -193,40 +231,312 @@ class _NextDueCard extends StatelessWidget {
   }
 }
 
-class RecordsTab extends StatelessWidget {
-  const RecordsTab({super.key});
+/// Income vs deductible expenses per month (custom-painted: no chart dependency).
+class MonthlyChart extends StatelessWidget {
+  final LedgerSummary summary;
+  const MonthlyChart({super.key, required this.summary});
 
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: _pad,
-    children: [
-      TextField(
-        readOnly: true,
-        onTap: () => _soon(context, 'Search'),
-        decoration: const InputDecoration(
-          prefixIcon: Icon(Icons.search_rounded),
-          hintText: 'Search payee, amount, category…',
-        ),
-      ),
-      const SizedBox(height: Space.md),
-      Wrap(
-        spacing: Space.sm,
+  Widget build(BuildContext context) {
+    final ll = context.ll;
+    final maxV = summary.monthly.values.fold<int>(1, (m, v) => math.max(m, math.max(v.$1, v.$2)));
+    return Semantics(
+      label: 'Monthly income and expenses chart',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final c in const ['All', 'Income', 'Expenses', 'Needs receipt'])
-            FilterChip(label: Text(c), selected: c == 'All', onSelected: (_) {}, showCheckmark: false),
+          Row(
+            children: [
+              _Legend(color: ll.accent, label: 'Income'),
+              const SizedBox(width: Space.lg),
+              _Legend(color: ll.expense.withValues(alpha: 0.75), label: 'Expenses'),
+            ],
+          ),
+          const SizedBox(height: Space.md),
+          SizedBox(
+            height: 120,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var m = 1; m <= 12; m++)
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _Bar(
+                                fraction: math.max(0, summary.monthly[m]?.$1 ?? 0) / maxV,
+                                color: ll.accent,
+                              ),
+                              const SizedBox(width: 2),
+                              _Bar(
+                                fraction: (summary.monthly[m]?.$2 ?? 0) / maxV,
+                                color: ll.expense.withValues(alpha: 0.75),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          DateFormat('MMMMM').format(DateTime(2000, m)),
+                          style: context.text.labelSmall?.copyWith(color: ll.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
-      const SizedBox(height: Space.lg),
-      EmptyState(
-        icon: Icons.receipt_long_rounded,
-        title: 'No records for this year yet',
-        body: 'Everything you add lands here, grouped by month and searchable in an instant.',
-        actionLabel: 'Add a record',
-        onAction: () => _soon(context, 'Adding records'),
+    );
+  }
+}
+
+class _Bar extends StatelessWidget {
+  final double fraction;
+  final Color color;
+  const _Bar({required this.fraction, required this.color});
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, c) => TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: fraction.clamp(0, 1)),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+      builder: (_, f, _) => Container(
+        width: 7,
+        height: math.max(f * c.maxHeight, f > 0 ? 3 : 0),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
       ),
+    ),
+  );
+}
+
+class _Legend extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _Legend({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+      ),
+      const SizedBox(width: 6),
+      Text(label, style: context.text.labelMedium),
     ],
   );
 }
+
+// ============================== Records ==============================
+
+/// One ledger row: icon, payee/category, date, signed amount. Tap to edit.
+class EntryTile extends StatelessWidget {
+  final LedgerEntry entry;
+  final TaxRules rules;
+  const EntryTile({super.key, required this.entry, required this.rules});
+
+  @override
+  Widget build(BuildContext context) {
+    final ll = context.ll;
+    final cat = rules.category(entry.category);
+    final title = entry.party.isNotEmpty ? entry.party : (cat?.name ?? entry.category);
+    final refund = entry.isIncome && cat?.line == '2';
+    final sign = entry.isIncome && !refund ? '+' : '−';
+    final color = entry.isIncome && !refund ? ll.income : ll.text;
+    final extra = [
+      if (!entry.isIncome && entry.businessPct < 100) '${entry.businessPct}% business',
+      if (entry.isIncome && entry.feeCents > 0) 'fee ${formatCents(entry.feeCents)}',
+    ];
+    return ListTile(
+      onTap: () => openEntry(context, existing: entry),
+      leading: CircleAvatar(
+        backgroundColor: entry.isIncome ? ll.accentSoft : ll.surfaceAlt,
+        foregroundColor: entry.isIncome ? ll.accent : ll.muted,
+        child: Icon(categoryIcon(entry.category), size: 20),
+      ),
+      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(
+        [
+          if (entry.party.isNotEmpty) cat?.name ?? '',
+          DateFormat.MMMd().format(entry.day),
+          ...extra,
+        ].join(' · '),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: Text(
+        '$sign${formatCents(entry.amountCents)}',
+        style: context.text.titleSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontFeatures: tabular,
+        ),
+      ),
+    );
+  }
+}
+
+class RecordsTab extends ConsumerStatefulWidget {
+  const RecordsTab({super.key});
+  @override
+  ConsumerState<RecordsTab> createState() => _RecordsTabState();
+}
+
+enum _Filter { all, income, expenses }
+
+class _RecordsTabState extends ConsumerState<RecordsTab> {
+  final _search = TextEditingController();
+  _Filter _filter = _Filter.all;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  bool _matches(LedgerEntry e, TaxRules rules) {
+    if (_filter == _Filter.income && !e.isIncome) return false;
+    if (_filter == _Filter.expenses && e.isIncome) return false;
+    final q = _search.text.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    final hay = [
+      e.party,
+      e.platform,
+      e.notes,
+      rules.category(e.category)?.name ?? '',
+      formatCents(e.amountCents),
+      (e.amountCents / 100).toStringAsFixed(2),
+      DateFormat.yMMMMd().format(e.day),
+    ].join(' ').toLowerCase();
+    return q.split(RegExp(r'\s+')).every(hay.contains);
+  }
+
+  Future<void> _delete(LedgerEntry e) async {
+    final db = ref.read(appControllerProvider).db;
+    if (db == null) return;
+    HapticFeedback.mediumImpact();
+    await db.deleteEntry(e.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Record deleted'),
+          action: SnackBarAction(label: 'Undo', onPressed: () => db.restoreEntry(e)),
+        ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final year = ref.watch(appControllerProvider.select((a) => a.selectedYear));
+    final rules = ref.watch(taxRulesProvider(year)).value;
+    final all = ref.watch(entriesProvider(year)).value ?? const [];
+    final ll = context.ll;
+    final shown = rules == null ? const <LedgerEntry>[] : all.where((e) => _matches(e, rules)).toList();
+    final byMonth = <int, List<LedgerEntry>>{};
+    for (final e in shown) {
+      byMonth.putIfAbsent(e.day.month, () => []).add(e);
+    }
+    return ListView(
+      padding: _pad,
+      children: [
+        TextField(
+          controller: _search,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search_rounded),
+            hintText: 'Search payee, amount, category…',
+            suffixIcon: _search.text.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'Clear',
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => setState(_search.clear),
+                  ),
+          ),
+        ),
+        const SizedBox(height: Space.md),
+        Wrap(
+          spacing: Space.sm,
+          children: [
+            for (final (f, label) in const [
+              (_Filter.all, 'All'),
+              (_Filter.income, 'Income'),
+              (_Filter.expenses, 'Expenses'),
+            ])
+              FilterChip(
+                label: Text(label),
+                selected: _filter == f,
+                showCheckmark: false,
+                onSelected: (_) => setState(() => _filter = f),
+              ),
+          ],
+        ),
+        const SizedBox(height: Space.sm),
+        if (all.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: Space.sm),
+            child: EmptyState(
+              icon: Icons.receipt_long_rounded,
+              title: 'No records for $year yet',
+              body: 'Everything you add lands here, grouped by month and searchable in an instant.',
+              actionLabel: 'Add a record',
+              onAction: () => openEntry(context),
+            ),
+          )
+        else if (shown.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(Space.xxl),
+            child: Text(
+              'Nothing matches. Try another word or amount.',
+              textAlign: TextAlign.center,
+              style: context.text.bodySmall,
+            ),
+          )
+        else
+          for (final m in byMonth.entries) ...[
+            SectionHeader(
+              DateFormat.MMMM().format(DateTime(year, m.key)),
+              trailing: Text(
+                '${m.value.length} ${m.value.length == 1 ? 'record' : 'records'}',
+                style: context.text.labelMedium,
+              ),
+            ),
+            LLGroup(
+              children: [
+                for (final e in m.value)
+                  Dismissible(
+                    key: ValueKey(e.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: Space.xl),
+                      color: ll.expense,
+                      child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                    ),
+                    onDismissed: (_) => _delete(e),
+                    child: EntryTile(entry: e, rules: rules!),
+                  ),
+              ],
+            ),
+          ],
+      ],
+    );
+  }
+}
+
+// ============================== Vault ==============================
 
 class VaultTab extends StatelessWidget {
   const VaultTab({super.key});
@@ -266,7 +576,7 @@ class VaultTab extends StatelessWidget {
         ],
       ),
       const SizedBox(height: Space.lg),
-      EmptyState(
+      const EmptyState(
         icon: Icons.document_scanner_rounded,
         title: 'Scan your first receipt',
         body:
@@ -277,13 +587,19 @@ class VaultTab extends StatelessWidget {
   );
 }
 
+// ============================== Taxes ==============================
+
+String _pct(double? f, int digits) => f == null ? '…' : '${(f * 100).toStringAsFixed(digits)}%';
+
 class TaxesTab extends ConsumerWidget {
   const TaxesTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final year = ref.watch(appControllerProvider.select((a) => a.selectedYear));
+    final app = ref.watch(appControllerProvider);
+    final year = app.selectedYear;
     final rules = ref.watch(taxRulesProvider(year)).value;
+    final s = ref.watch(summaryProvider(year));
     final today = ref.watch(todayProvider);
     final ll = context.ll;
     final next = rules?.nextDue(today);
@@ -294,13 +610,49 @@ class TaxesTab extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Estimated tax owed for $year', style: context.text.bodySmall),
+              Text('Self-employment tax so far ($year)', style: context.text.bodySmall),
               const SizedBox(height: 4),
-              MoneyText(0, style: context.text.headlineMedium),
+              MoneyText(s.seTaxCents, style: context.text.headlineMedium),
               const SizedBox(height: Space.sm),
               Text(
-                'Based on your records so far. Add income to see an estimate.',
+                s.netCents <= 0
+                    ? 'No profit yet, so no self-employment tax. Add income to see an estimate.'
+                    : '${formatCents(s.netCents)} profit × ${_pct(rules?.seNetEarningsFactor, 2)} × '
+                          '${_pct(rules?.seRate, 1)}. Half of it is deductible on Schedule 1. '
+                          'Income tax comes on top and depends on your whole return.',
                 style: context.text.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: Space.md),
+        LLCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Set aside for taxes',
+                      style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  MoneyText(s.setAsideCents, style: context.text.titleMedium),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${s.setAsidePct.round()}% of profit. A quarter of this per payment is a reasonable rule of thumb.',
+                style: context.text.bodySmall,
+              ),
+              Slider(
+                value: s.setAsidePct.clamp(10, 45),
+                min: 10,
+                max: 45,
+                divisions: 7,
+                label: '${s.setAsidePct.round()}%',
+                onChanged: (v) => app.setSetAsidePct(v),
               ),
             ],
           ),
@@ -326,6 +678,27 @@ class TaxesTab extends ConsumerWidget {
                 ),
             ],
           ),
+        if (rules != null && s.lines.isNotEmpty) ...[
+          const SectionHeader('Schedule C so far'),
+          LLGroup(
+            children: [
+              for (final l in rules.lineNames.entries)
+                if (s.lines[l.key] != null)
+                  ListTile(
+                    dense: true,
+                    leading: SizedBox(
+                      width: 36,
+                      child: Text(
+                        l.key,
+                        style: context.text.labelLarge?.copyWith(color: ll.muted, fontFeatures: tabular),
+                      ),
+                    ),
+                    title: Text(l.value),
+                    trailing: MoneyText(s.lines[l.key]!, style: context.text.bodyMedium),
+                  ),
+            ],
+          ),
+        ],
         const SectionHeader('Tools'),
         LLGroup(
           children: [

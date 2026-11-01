@@ -100,6 +100,7 @@ extension LLContext on BuildContext {
     final t = Theme.of(this);
     return t.extension<LLColors>() ?? (t.brightness == Brightness.dark ? LLColors.dark : LLColors.light);
   }
+
   TextTheme get text => Theme.of(this).textTheme;
 }
 

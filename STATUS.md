@@ -38,12 +38,22 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   (lib/app/) owns session/stage/prefs, exposed via Riverpod. Tax rules as data: assets/tax_rules/2025|2026.json
   (quarterly due dates only so far). 16 goldens in test/goldens/ (light+dark). 37 tests pass. Verified on emulator.
 
-## Next: M3 ledger (SPEC §2 items 2-3, 5; §5 fast entry)
-- Owner to review M2 goldens (screenshot sent); apply feedback when it comes.
-- Transactions table (drift), Schedule C categories ported from ~/.local/share/tax-keeper/tax_keeper.py into
-  assets/tax_rules (rates as data), 3-tap add sheet, Records list, dashboard maths matching the desktop app.
+- M3 DONE (2026-11-01): ledger_entries table (drift, schema v2 with v1 migration), lib/data/ledger.dart
+  summarize() = desktop Store.summary() port; categories, Schedule C lines, SE factors and default set-aside are
+  data in assets/tax_rules/<year>.json. Parity proven: tool/desktop_reference.py runs the desktop app's own
+  summary() on test/fixtures/ledger_records.json -> ledger_expected.json; matches every line/total (<=1 cent on
+  half-cent ties). Entry screen (keypad amount, category chips, smart default per payee, details, edit/delete),
+  Records (month groups, search, filters, swipe delete + undo), Home dashboard (hero, set-aside, SE tax, next due
+  with per-quarter hint, monthly chart, recent), Taxes (SE tax, set-aside slider, Schedule C so far).
+  55 tests pass; 26 goldens. Verified on emulator (add expense/income, fee, undo delete, edit, v1->v2 DB).
+
+## Next: M4 receipts and vault (SPEC §2.4, §2.8)
+- Owner to review M2/M3 screenshots; apply feedback.
+- camera + file picker (vet packages; no gallery writes), crop/deskew, EncryptedFileStore for photos and
+  thumbnails, attach to entries or keep unmatched, documents per year. "Done when": photos never appear
+  unencrypted on disk (check app cache dirs too).
 - Still open: Emergency Kit PDF (M6), custom security questions, backup-age banner (M9), FLAG_SECURE toggle,
-  Argon2id tuning on a real phone, go_router (not needed yet; Navigator is enough so far).
+  Argon2id tuning on a real phone, templates for frequent entries (§5), 50-receipt free limit (M7).
 
 ## Gotchas
 - PATH is not set globally: use `export PATH=$HOME/flutter/bin:$HOME/Android/Sdk/platform-tools:$PATH`.
@@ -67,3 +77,6 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   (CI) regenerate goldens there or fonts render as boxes. Today is pinned to 2026-11-01 in goldens.
 - Theme/year prefs live in the encrypted DB, so the lock screen uses the last theme only within a run (system
   theme after a cold start). Intentional: no plaintext prefs file.
+- Riverpod Stream overrides in widget tests need a real event-loop turn: t.runAsync(delay) then pumpAndSettle.
+- dart format reflows code: re-grep before scripted string replacements (a silent no-match bit me once).
+- Pressing back on the root screen closes the activity -> lifecycle detached -> app locks (intended).
