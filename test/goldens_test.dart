@@ -21,6 +21,8 @@ import 'package:ledgerlock/search/search_service.dart';
 import 'package:ledgerlock/ui/search/search_screen.dart';
 import 'package:ledgerlock/tax/guidance.dart';
 import 'package:ledgerlock/ui/settings_screen.dart';
+import 'package:ledgerlock/tax/checkin.dart';
+import 'package:ledgerlock/ui/taxes/checkin_screen.dart';
 import 'package:ledgerlock/ui/taxes/guidance_section.dart';
 import 'package:ledgerlock/ui/taxes/tools.dart';
 import 'package:ledgerlock/ui/shell/app_shell.dart';
@@ -208,6 +210,35 @@ void main() {
               const Form1099(id: 2, year: 2026, kind: '1099-NEC', payer: 'Studio Co', amountCents: 120000),
             ]),
           ),
+        ],
+      ),
+    );
+    testWidgets(
+      'checkin ${b.name}',
+      (t) => shoot(
+        t,
+        'checkin',
+        const CheckInScreen(),
+        b,
+        extra: [
+          checkInProvider.overrideWithValue(const [
+            CheckInQuestion(
+              'a',
+              'Q4 estimated tax is due Jan 15. Have you paid? Log it so your numbers stay right.',
+              CheckInAction.paymentLog,
+            ),
+            CheckInQuestion(
+              'b',
+              'You usually record Adobe every month. Nothing for November yet: missed one?',
+              CheckInAction.addEntry,
+            ),
+            CheckInQuestion(
+              'c',
+              '3 expenses have no receipt attached. Add the ones you have?',
+              CheckInAction.receipts,
+              query: 'no receipt',
+            ),
+          ]),
         ],
       ),
     );

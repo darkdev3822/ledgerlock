@@ -17,6 +17,8 @@ import '../security/biometric_reset.dart';
 import '../security/crypto.dart';
 import '../security/session.dart';
 import '../security/vault.dart';
+import '../platform/reminders.dart';
+import '../tax/checkin.dart';
 import '../tax/guidance.dart';
 
 enum Stage { locked, recoveryKey, biometricOffer, ready }
@@ -51,6 +53,12 @@ class AppController extends ChangeNotifier {
 
   /// Home office square feet per tax year (simplified method), 0 = none.
   Map<int, int> homeOfficeSqft = {};
+
+  /// Reminders (SPEC §2.6, §2.13). Stored in the encrypted DB; only generic notification text leaves it.
+  bool quarterlyReminders = false;
+  String checkInFrequency = 'off';
+  DateTime? lastCheckIn;
+  Set<String> dismissedCheckIns = {};
 
   AppController({
     required this.dataDir,
@@ -134,8 +142,16 @@ class AppController extends ChangeNotifier {
       final h = int.tryParse(await db.getSetting('homeOfficeSqft:$y') ?? '');
       if (h != null) homeOfficeSqft[y] = h;
     }
+    quarterlyReminders = await db.getSetting('quarterlyReminders') == 'true';
+    checkInFrequency = await db.getSetting('checkInFrequency') ?? 'off';
+    lastCheckIn = DateTime.tryParse(await db.getSetting('lastCheckIn') ?? '');
+    dismissedCheckIns = (await db.getSetting('dismissedCheckIns') ?? '')
+        .split('\n')
+        .where((k) => k.isNotEmpty)
+        .toSet();
     slots = await vault.enabledSlots();
     _session = s;
+    rescheduleReminders();
     // Every vault must have a confirmed recovery key; resume setup if it was interrupted.
     if (!slots.contains(Slot.recovery)) {
       pendingCode = RecoveryKey.generate();
@@ -278,6 +294,59 @@ class AppController extends ChangeNotifier {
     homeOfficeSqft = {...homeOfficeSqft, year: sqft};
     notifyListeners();
     await _session?.db.setSetting('homeOfficeSqft:$year', '$sqft');
+  }
+
+  /// Turns quarterly reminders on/off. Asks for notification permission first; returns false if refused.
+  Future<bool> setQuarterlyReminders(bool on) async {
+    if (on && !await requestNotificationPermission()) return false;
+    quarterlyReminders = on;
+    notifyListeners();
+    await _session?.db.setSetting('quarterlyReminders', '$on');
+    await rescheduleReminders();
+    return true;
+  }
+
+  Future<bool> setCheckInFrequency(String f) async {
+    if (f != 'off' && !await requestNotificationPermission()) return false;
+    checkInFrequency = f;
+    notifyListeners();
+    await _session?.db.setSetting('checkInFrequency', f);
+    await rescheduleReminders();
+    return true;
+  }
+
+  /// Called when a check-in is finished: next one is [checkInFrequency] days from now.
+  Future<void> finishCheckIn(DateTime now) async {
+    lastCheckIn = now;
+    notifyListeners();
+    await _session?.db.setSetting('lastCheckIn', now.toIso8601String());
+    await rescheduleReminders();
+  }
+
+  Future<void> dismissCheckIn(String key) async {
+    // Keep the list bounded: keys are per period, old ones stop mattering.
+    dismissedCheckIns = {...dismissedCheckIns.skip(dismissedCheckIns.length > 200 ? 100 : 0), key};
+    notifyListeners();
+    await _session?.db.setSetting('dismissedCheckIns', dismissedCheckIns.join('\n'));
+  }
+
+  /// Rebuilds the notification schedule from settings and the bundled rules (future items only).
+  Future<void> rescheduleReminders() async {
+    final days = checkInFrequencies[checkInFrequency] ?? 0;
+    if (!quarterlyReminders && days == 0) {
+      await scheduleReminders(const []);
+      return;
+    }
+    final rules = [for (final y in TaxRules.supportedYears) await TaxRules.load(y)];
+    await scheduleReminders(
+      planReminders(
+        now: DateTime.now(),
+        rules: rules,
+        quarterly: quarterlyReminders,
+        checkInDays: days,
+        lastCheckIn: lastCheckIn,
+      ),
+    );
   }
 
   Future<void> setYear(int y) async {

@@ -149,6 +149,47 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
+          const SectionHeader('Reminders'),
+          LLGroup(
+            children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.event_note_outlined),
+                title: const Text('Quarterly tax dates'),
+                subtitle: const Text('A week before and the day before each estimated tax due date'),
+                value: app.quarterlyReminders,
+                onChanged: (v) async {
+                  if (!await app.setQuarterlyReminders(v) && context.mounted) _notifDenied(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.fact_check_outlined),
+                title: const Text('"Keep me in check" check-ins'),
+                subtitle: const Text('A few quick questions to catch anything you forgot'),
+                trailing: DropdownButton<String>(
+                  value: app.checkInFrequency,
+                  underline: const SizedBox.shrink(),
+                  items: const [
+                    DropdownMenuItem(value: 'off', child: Text('Off')),
+                    DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                    DropdownMenuItem(value: 'biweekly', child: Text('Every 2 weeks')),
+                    DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                  ],
+                  onChanged: (v) async {
+                    if (v != null && !await app.setCheckInFrequency(v) && context.mounted) {
+                      _notifDenied(context);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, Space.sm, 4, 0),
+            child: Text(
+              'Notifications only ever say things like "Time for a quick check-in": never amounts or names.',
+              style: context.text.bodySmall,
+            ),
+          ),
           const SectionHeader('Appearance'),
           LLCard(
             padding: const EdgeInsets.all(Space.md),
@@ -250,3 +291,7 @@ class _ChangePasswordState extends ConsumerState<_ChangePassword> {
     );
   }
 }
+
+void _notifDenied(BuildContext context) => ScaffoldMessenger.of(context).showSnackBar(
+  const SnackBar(content: Text('Notifications are off for LedgerLock. Turn them on in Android settings.')),
+);

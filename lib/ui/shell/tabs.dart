@@ -15,6 +15,7 @@ import '../design/theme.dart';
 import '../ledger/category_icons.dart';
 import '../ledger/entry_screen.dart';
 import '../search/search_screen.dart';
+import '../taxes/checkin_screen.dart';
 import '../taxes/guidance_section.dart';
 import '../taxes/tools.dart';
 
@@ -35,6 +36,7 @@ class HomeTab extends ConsumerWidget {
     return ListView(
       padding: _pad,
       children: [
+        const CheckInCard(),
         _HeroCard(year: year, s: s),
         const SizedBox(height: Space.md),
         Row(

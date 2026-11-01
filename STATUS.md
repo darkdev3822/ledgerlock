@@ -96,8 +96,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - M6 part 5a: flutter_local_notifications REJECTED (pulls package:http transitively; rule 4). Own Reminders.kt
   (AlarmManager + NotificationManager, boot re-arm, POST_NOTIFICATIONS request) via "ledgerlock/files" channel.
   lib/tax/checkin.dart: checkInQuestions() (7 data-driven questions, max 5, dismissable) + planReminders(). Tests.
-- M6 remaining (5b): Dart channel wrapper, Settings (quarterly reminders on/off, check-in frequency), check-in screen
-  + Home card, schedule on unlock/settings change; then
+- M6 part 5b DONE: lib/platform/reminders.dart, Settings > Reminders (quarterly on/off, check-in frequency; asks
+  POST_NOTIFICATIONS), rescheduled on unlock/change; CheckInScreen + Home CheckInCard (only when due AND questions
+  exist); actions open entry / payment log / 1099s / search. SECURITY T12. 129 tests. Release APK: +POST_NOTIFICATIONS,
+  +RECEIVE_BOOT_COMPLETED, still no INTERNET.
+- M6 remaining: emulator check of all M6 screens; then
   -> quarterly reminders + check-ins (§2.13), emulator check of all M6 screens (FAB black outline seen in goldens:
   likely test focus highlight, confirm on device). Review adds: home_office_rate + home_office_max_sqft (both years).
 - After the review: device-check a link opening in the browser (none visible until items are verified).
