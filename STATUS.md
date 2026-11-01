@@ -10,15 +10,18 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   android + ios). analyze and test are clean.
 - `android/app/src/release/AndroidManifest.xml` strips INTERNET and ACCESS_NETWORK_STATE from release builds.
 
-## Next: finish M0 (blocked on the owner)
-- The owner runs `~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --licenses` in their own terminal.
-- Then: `sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "emulator"
-  "system-images;android-36;google_apis;x86_64"`, then `flutter config --android-sdk ~/Android/Sdk`, create an
-  AVD, `flutter doctor`, and run hello-world in the emulator (take a screenshot).
-- Check the merged release manifest has no INTERNET permission (`apkanalyzer manifest permissions` on the release APK).
+- M0 DONE (2026-11-01): owner accepted SDK licenses; platform-tools, android-36, build-tools 36.0.0, emulator,
+  google_apis x86_64 image installed. `flutter doctor` green for Android (Chrome missing, not needed). AVD
+  `ledgerlock` (1080x2400) runs the release APK. Release APK permissions checked with aapt2: no INTERNET/network.
+
+## Next: M1 security core (SPEC §1, §8)
+- Master password, Argon2id, SQLCipher, encrypted file store, auto-lock. Vet each package for networking first.
 
 ## Gotchas
 - PATH is not set globally: use `export PATH=$HOME/flutter/bin:$HOME/Android/Sdk/platform-tools:$PATH`.
 - Debug and profile manifests keep INTERNET because Flutter's hot reload and debugger need it. They are dev-only.
 - Linux can't build iOS locally: use a cloud macOS CI later (M10).
 - Desktop reference implementation: ~/.local/share/tax-keeper/tax_keeper.py (Schedule C mapping, SE tax, checklist).
+- Emulator: `setsid ~/Android/Sdk/emulator/emulator -avd ledgerlock -no-audio -no-boot-anim &`. Screenshot:
+  `adb exec-out screencap -p > x.png`. avdmanager `-d pixel_7` fails (devices.xml); create without -d.
+- Permission check: `~/Android/Sdk/build-tools/36.0.0/aapt2 dump permissions <apk>`.
