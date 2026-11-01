@@ -191,10 +191,18 @@ String _pct(double v) {
   return '${s.replaceAll(RegExp(r'\.?0+$'), '')}%';
 }
 
-String _figure(KeyFigure k) => switch (k.unit) {
-  'cents_per_mile' => '${k.value}¢ a mile',
-  'dollars' => [_money((k.value! * 100).round()), if (k.detail.isNotEmpty) k.detail].join(' '),
-  _ => '${k.value}',
+String _figure(KeyFigure k) {
+  final base = _one(k, k.value!);
+  if (k.changes.isEmpty) return base;
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  final later = [for (final (d, v) in k.changes) '${_one(k, v)} from ${months[d.month - 1]} ${d.day}'];
+  return '$base, then ${later.join(', then ')}';
+}
+
+String _one(KeyFigure k, num v) => switch (k.unit) {
+  'cents_per_mile' => '$v¢ a mile',
+  'dollars' => [_money((v * 100).round()), if (k.detail.isNotEmpty) k.detail].join(' '),
+  _ => '$v',
 };
 
 /// Differences between last year's and this year's rules, applied to the user's numbers.
@@ -250,7 +258,7 @@ List<RuleChange> whatChanged(
   final before = {for (final k in prev.keyFigures.where((k) => k.usable)) k.id: k};
   for (final k in cur.keyFigures.where((k) => k.usable)) {
     final old = before[k.id];
-    if (old == null || old.value == k.value) continue;
+    if (old == null || (old.value == k.value && old.changes.isEmpty && k.changes.isEmpty)) continue;
     String? forYou;
     if (k.id == 'form_1099k_threshold' && largestPlatformIncomeCents > 0) {
       final top = _money(largestPlatformIncomeCents);

@@ -30,7 +30,9 @@
   "selfEmployment": {
     "netEarningsFactor": 0.9235,
     "rate": 0.153,
-    "minimumNetEarnings": 400
+    "minimumNetEarnings": 400,
+    "verified": null,
+    "reviewNote": "2026-11-01: rate 15.3% and $400 confirmed on the IRS SE tax page. 92.35% NOT yet confirmed for 2026 (2026 Schedule SE unpublished): recheck in January."
   },
   "defaultSetAsidePct": 25,
   "scheduleCLines": [
@@ -243,7 +245,9 @@
       "line": "24b",
       "deductibleShare": 0.5,
       "hint": "Business meals: only half is deductible",
-      "desktopName": "Meals (50%)"
+      "desktopName": "Meals (50%)",
+      "verified": null,
+      "reviewNote": "50% not yet confirmed for 2026: 2026 Pub 463 not out (Jan/Feb 2027)."
     },
     {
       "id": "utilities",
@@ -283,9 +287,15 @@
       "id": "mileage_rate",
       "name": "Standard mileage rate (business)",
       "unit": "cents_per_mile",
-      "value": null,
-      "source": "",
-      "verified": null
+      "value": 72.5,
+      "source": "https://www.irs.gov/tax-professionals/standard-mileage-rates (page updated 2026-07-28); IR-2025-128, IR-2026-29",
+      "verified": "2026-11-01",
+      "changes": [
+        {
+          "from": "2026-07-01",
+          "value": 76
+        }
+      ]
     },
     {
       "id": "form_1099k_threshold",
@@ -295,6 +305,20 @@
       "source": "https://www.irs.gov/businesses/understanding-your-form-1099-k (Reporting threshold; page updated 2026-10-28)",
       "verified": "2026-11-01",
       "detail": "in more than 200 transactions, per platform"
+    },
+    {
+      "id": "ss_wage_base",
+      "name": "Social Security wage base (12.4% part of SE tax stops here)",
+      "unit": "dollars",
+      "value": 184500,
+      "source": "https://www.irs.gov/businesses/small-businesses-self-employed/self-employment-tax-social-security-and-medicare-taxes (\"For 2026, the first $184,500\"; page updated 2026-10-30)",
+      "verified": "2026-11-01"
     }
-  ]
+  ],
+  "quarterlyDueReview": {
+    "datesVerified": "2026-11-01",
+    "source": "2026 Form 1040-ES, Payment Due Dates (owner download, sha256 396ffad25baa737b...)",
+    "note": "Jan 15, 2027 payment not required if the 2026 return is filed by Feb 1, 2027 and the balance paid. \"covers\" periods still need a source (Pub 505).",
+    "coversVerified": "2026-11-01 (Pub 505 for 2026: before Apr 1 / Apr 1-May 31 / Jun 1-Aug 31 / after Aug 31)"
+  }
 }

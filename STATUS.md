@@ -77,8 +77,12 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   96 tests (+1 release gate skipped), 34 goldens. Release APK: still no INTERNET.
 
 ## Next: M6 (see SPEC §8), plus M5 leftovers
-- **FIRST: owner-led tax-rules review** (docs/ANNUAL_RULES_REVIEW.md). Due NOW (data drafted in M6 part 1, all
-  unverified). Start next session with it, step by step, before other work. Then every Dec 1 - Jan 31.
+- Tax-rules review 2026-11-01 DONE as far as published sources allow (docs/ANNUAL_RULES_REVIEW.md log): all 10
+  resources, mileage (2026 mid-year change), SE tax, wage base, quarterly dates + periods, meals 2025, 1099-K 2026.
+  **STILL OPEN, due Dec 1 - Jan 31 window:** 2026 92.35% + meals % (new forms), Free File/VITA 2026 limits, 2025
+  1099-K threshold. Walk the owner through these first thing in the window; then set review.verified + release gate.
+- M6 accuracy gaps found in review: SE tax ignores wage base + 0.9% Additional Medicare (needs optional W-2 wages
+  field); mileage rate must be applied by trip date (KeyFigure.valueOn); per-platform 1099-K logic done.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M6 remaining: payment log, quarterly reminders (vet a notifications plugin), mileage, home office, 1099 tracker,
   CSV export.
@@ -116,5 +120,7 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - Pressing back on the root screen closes the activity -> lifecycle detached -> app locks (intended).
 - Isolate.run closures must not sit next to closures that capture `this` (State): the shared context makes them
   unsendable and the future fails silently. Keep isolate work in top-level functions (lib/media/receipt_image.dart).
+- Owner shares screenshots via claude-shot ("look" = newest in ~/Pictures/claude-shots); open review links with
+  `setsid chromium <url>`; PDFs the owner downloads land in ~/Downloads (read with pdftotext).
 - Golden failure images go to test/failures/ (gitignored now). SearchScreen takes searchOverride for goldens.
 - On-device plaintext audit: adb root, pull /data/data/com.darkdev.ledgerlock, scan for FF D8 FF / %PDF / 89 PNG.

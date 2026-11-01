@@ -47,6 +47,19 @@ class KeyFigure {
 
   /// Extra condition shown with the value, e.g. "in more than 200 transactions".
   final String detail;
+
+  /// Mid-year changes: from each date on, a new value applies ([value] holds from Jan 1).
+  final List<(DateTime, num)> changes;
+
+  /// The value in force on [day] (e.g. a trip's date for the mileage rate).
+  num? valueOn(DateTime day) {
+    var v = value;
+    for (final (from, x) in changes) {
+      if (!day.isBefore(from)) v = x;
+    }
+    return v;
+  }
+
   final String? verified;
   const KeyFigure({
     required this.id,
@@ -54,6 +67,7 @@ class KeyFigure {
     required this.unit,
     this.source = '',
     this.detail = '',
+    this.changes = const [],
     this.value,
     this.verified,
   });
@@ -65,6 +79,10 @@ class KeyFigure {
     unit: j['unit'] as String? ?? '',
     source: j['source'] as String? ?? '',
     detail: j['detail'] as String? ?? '',
+    changes: [
+      for (final c in j['changes'] as List? ?? const [])
+        (DateTime.parse((c as Map<String, dynamic>)['from'] as String), c['value'] as num),
+    ]..sort((a, b) => a.$1.compareTo(b.$1)),
     value: j['value'] as num?,
     verified: j['verified'] as String?,
   );

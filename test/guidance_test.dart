@@ -281,6 +281,32 @@ void main() {
       expect(under.forYou, contains('under it'));
     });
 
+    test('mileage: mid-year change applies by date and is shown', () {
+      final k = KeyFigure.fromJson({
+        'id': 'mileage_rate',
+        'name': 'Mileage',
+        'unit': 'cents_per_mile',
+        'value': 72.5,
+        'verified': 'x',
+        'changes': [
+          {'from': '2026-07-01', 'value': 76},
+        ],
+      });
+      expect(k.valueOn(DateTime(2026, 6, 30)), 72.5);
+      expect(k.valueOn(DateTime(2026, 7, 1)), 76);
+      const old = KeyFigure(
+        id: 'mileage_rate',
+        name: 'Mileage',
+        unit: 'cents_per_mile',
+        value: 70,
+        verified: 'x',
+      );
+      TaxRules r(int y, KeyFigure f) =>
+          TaxRules(year: y, quarterlyDue: const [], verified: 'x', keyFigures: [f]);
+      final c = whatChanged(r(2025, old), r(2026, k)).single;
+      expect(c.detail, '70¢ a mile → 72.5¢ a mile, then 76¢ a mile from Jul 1');
+    });
+
     test('unverified key figures are ignored', () {
       expect(whatChanged(rules(2025, k1099: 5000), rules(2026)), isEmpty);
     });

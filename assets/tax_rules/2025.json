@@ -30,7 +30,8 @@
   "selfEmployment": {
     "netEarningsFactor": 0.9235,
     "rate": 0.153,
-    "minimumNetEarnings": 400
+    "minimumNetEarnings": 400,
+    "verified": "2026-11-01 (2025 Schedule SE: line 4a 92.35%, 4c $400, lines 10+11 12.4%+2.9%)"
   },
   "defaultSetAsidePct": 25,
   "scheduleCLines": [
@@ -243,7 +244,8 @@
       "line": "24b",
       "deductibleShare": 0.5,
       "hint": "Business meals: only half is deductible",
-      "desktopName": "Meals (50%)"
+      "desktopName": "Meals (50%)",
+      "verified": "2026-11-01 (Pub 463 for 2025 returns, rev. Feb 27 2026: 50% limit on meals)"
     },
     {
       "id": "utilities",
@@ -283,9 +285,9 @@
       "id": "mileage_rate",
       "name": "Standard mileage rate (business)",
       "unit": "cents_per_mile",
-      "value": null,
-      "source": "",
-      "verified": null
+      "value": 70,
+      "source": "https://www.irs.gov/tax-professionals/standard-mileage-rates (page updated 2026-07-28); IR-2024-312",
+      "verified": "2026-11-01"
     },
     {
       "id": "form_1099k_threshold",
@@ -294,7 +296,22 @@
       "value": null,
       "source": "",
       "verified": null,
-      "detail": "in more than 200 transactions, per platform"
+      "detail": "in more than 200 transactions, per platform",
+      "reviewNote": "2026-11-01: Form 1099-K instructions (Rev. 12-2026) give >$20,000 and >200 transactions but name no years. Not confirmed for 2025. Look for an IRS page that states the 2025 threshold."
+    },
+    {
+      "id": "ss_wage_base",
+      "name": "Social Security wage base (12.4% part of SE tax stops here)",
+      "unit": "dollars",
+      "value": 176100,
+      "source": "2025 Schedule SE (Form 1040), line 7 (https://www.irs.gov/pub/irs-pdf/f1040sse.pdf)",
+      "verified": "2026-11-01"
     }
-  ]
+  ],
+  "quarterlyDueReview": {
+    "datesVerified": "2026-11-01",
+    "source": "2025 Form 1040-ES (irs.gov/pub/irs-prior/f1040es--2025.pdf), Payment Due Dates",
+    "note": "Jan 15, 2026 payment not required if the 2025 return was filed by Feb 2, 2026 and the balance paid. \"covers\" periods still need a source (Pub 505).",
+    "coversVerified": "2026-11-01 (Pub 505 for 2025: same period table; 2nd payment June 16, 2025)"
+  }
 }
