@@ -1,6 +1,8 @@
 // Functional M1 lock screens. Visual design comes in M2.
 import 'package:flutter/material.dart';
 
+import 'design/theme.dart';
+
 import '../security/vault.dart';
 
 /// 0..4 heuristic strength score (length + character variety).
@@ -32,7 +34,10 @@ class LockShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final ll = context.ll;
+    final canPop = ModalRoute.of(context)?.canPop ?? false;
     return Scaffold(
+      appBar: canPop ? AppBar() : null,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -42,11 +47,36 @@ class LockShell extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(height: 16),
+                  Center(
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [ll.heroStart, ll.heroEnd],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: ll.accent.withValues(alpha: 0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Icon(icon, size: 34, color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   Text(title, style: t.headlineMedium, textAlign: TextAlign.center),
                   const SizedBox(height: 8),
-                  Text(subtitle, style: t.bodyMedium, textAlign: TextAlign.center),
+                  Text(
+                    subtitle,
+                    style: t.bodyMedium?.copyWith(color: ll.muted),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 32),
                   ...children,
                 ],
@@ -162,7 +192,17 @@ class _SetupScreenState extends State<SetupScreen> {
 class UnlockScreen extends StatefulWidget {
   final Future<void> Function(String password) onSubmit;
   final VoidCallback? onForgot;
-  const UnlockScreen({super.key, required this.onSubmit, this.onForgot});
+  final String title;
+  final String subtitle;
+  final String buttonLabel;
+  const UnlockScreen({
+    super.key,
+    required this.onSubmit,
+    this.onForgot,
+    this.title = 'Welcome back',
+    this.subtitle = 'Enter your master password to unlock LedgerLock.',
+    this.buttonLabel = 'Unlock',
+  });
   @override
   State<UnlockScreen> createState() => _UnlockScreenState();
 }
@@ -195,8 +235,8 @@ class _UnlockScreenState extends State<UnlockScreen> {
 
   @override
   Widget build(BuildContext context) => LockShell(
-    title: 'LedgerLock',
-    subtitle: 'Enter your master password to unlock.',
+    title: widget.title,
+    subtitle: widget.subtitle,
     children: [
       TextField(
         key: const Key('unlock'),
@@ -211,26 +251,12 @@ class _UnlockScreenState extends State<UnlockScreen> {
         onSubmitted: (_) => _submit(),
       ),
       const SizedBox(height: 24),
-      FilledButton(onPressed: _busy ? null : _submit, child: _busy ? const BusyDot() : const Text('Unlock')),
+      FilledButton(
+        onPressed: _busy ? null : _submit,
+        child: _busy ? const BusyDot() : Text(widget.buttonLabel),
+      ),
       if (widget.onForgot != null)
         TextButton(onPressed: widget.onForgot, child: const Text('Forgot password?')),
-    ],
-  );
-}
-
-class UnlockedPlaceholder extends StatelessWidget {
-  final VoidCallback onLock;
-  final Widget? recoveryPanel;
-  const UnlockedPlaceholder({super.key, required this.onLock, this.recoveryPanel});
-
-  @override
-  Widget build(BuildContext context) => LockShell(
-    title: 'Vault unlocked',
-    subtitle: 'Encrypted database and file store are open. The ledger arrives in M3.',
-    children: [
-      ?recoveryPanel,
-      const SizedBox(height: 16),
-      OutlinedButton.icon(onPressed: onLock, icon: const Icon(Icons.lock), label: const Text('Lock now')),
     ],
   );
 }

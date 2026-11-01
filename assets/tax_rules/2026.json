@@ -1,0 +1,10 @@
+{
+  "year": 2026,
+  "source": "IRS Form 1040-ES (2026). Verify each year against the IRS calendar.",
+  "quarterlyDue": [
+    {"quarter": "Q1", "covers": "Jan 1 - Mar 31", "due": "2026-04-15"},
+    {"quarter": "Q2", "covers": "Apr 1 - May 31", "due": "2026-06-15"},
+    {"quarter": "Q3", "covers": "Jun 1 - Aug 31", "due": "2026-09-15"},
+    {"quarter": "Q4", "covers": "Sep 1 - Dec 31", "due": "2027-01-15"}
+  ]
+}

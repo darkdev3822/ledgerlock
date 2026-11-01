@@ -31,11 +31,19 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   Forgot-password flow, temporary RecoveryPanel ("recovery health"). 21 tests pass. Verified on emulator with an
   enrolled fake fingerprint: all 3 recovery paths, M1→v2 migration, old password rejected, DB untouched.
 
-## Next: M2 design system and app shell (SPEC §5, §8)
-- Theme, components, bottom nav, year switcher; golden screenshots for owner review. Restyle lock + recovery
-  screens; RecoveryPanel moves into Settings. Then M3.
-- Still open: Emergency Kit PDF (with M6 pdf), custom security questions, backup-age banner (M9), FLAG_SECURE
-  toggle, auto-lock setting UI, Argon2id tuning on a real phone.
+- M2 DONE pending owner review (2026-11-01): design system lib/ui/design/ (theme.dart tokens + LLColors light/dark,
+  components.dart: LLCard, MoneyText (int cents, tabular), StatTile, Pill, EmptyState, LLGroup, SectionHeader).
+  App shell lib/ui/shell/ (top-bar YearSwitcher, Home/Records/Vault/Taxes tabs, raised Scan button), Settings
+  (recovery health + methods, change password, auto-lock 1/5/15/30, theme, privacy facts). AppController
+  (lib/app/) owns session/stage/prefs, exposed via Riverpod. Tax rules as data: assets/tax_rules/2025|2026.json
+  (quarterly due dates only so far). 16 goldens in test/goldens/ (light+dark). 37 tests pass. Verified on emulator.
+
+## Next: M3 ledger (SPEC §2 items 2-3, 5; §5 fast entry)
+- Owner to review M2 goldens (screenshot sent); apply feedback when it comes.
+- Transactions table (drift), Schedule C categories ported from ~/.local/share/tax-keeper/tax_keeper.py into
+  assets/tax_rules (rates as data), 3-tap add sheet, Records list, dashboard maths matching the desktop app.
+- Still open: Emergency Kit PDF (M6), custom security questions, backup-age banner (M9), FLAG_SECURE toggle,
+  Argon2id tuning on a real phone, go_router (not needed yet; Navigator is enough so far).
 
 ## Gotchas
 - PATH is not set globally: use `export PATH=$HOME/flutter/bin:$HOME/Android/Sdk/platform-tools:$PATH`.
@@ -55,3 +63,7 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - Emulator has screen PIN 1234 and a fake fingerprint: `adb emu finger touch 1`. BiometricPrompt screenshots
   come out black (Android secures them). `adb input text` needs %s for spaces; escape ? in grep patterns.
 - UI-driving helpers used this session: dump/tap/field/shot functions over `uiautomator dump` (rewrite as needed).
+- Goldens load Roboto/MaterialIcons from ~/flutter/bin/cache/artifacts/material_fonts; on another machine
+  (CI) regenerate goldens there or fonts render as boxes. Today is pinned to 2026-11-01 in goldens.
+- Theme/year prefs live in the encrypted DB, so the lock screen uses the last theme only within a run (system
+  theme after a cold start). Intentional: no plaintext prefs file.

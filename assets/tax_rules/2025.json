@@ -1,0 +1,10 @@
+{
+  "year": 2025,
+  "source": "IRS Form 1040-ES (2025). Jun 15 2025 fell on a Sunday, so Q2 moved to Jun 16.",
+  "quarterlyDue": [
+    {"quarter": "Q1", "covers": "Jan 1 - Mar 31", "due": "2025-04-15"},
+    {"quarter": "Q2", "covers": "Apr 1 - May 31", "due": "2025-06-16"},
+    {"quarter": "Q3", "covers": "Jun 1 - Aug 31", "due": "2025-09-15"},
+    {"quarter": "Q4", "covers": "Sep 1 - Dec 31", "due": "2026-01-15"}
+  ]
+}
