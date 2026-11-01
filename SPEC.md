@@ -97,8 +97,19 @@ better design and search.** Lead with privacy in every store listing and screens
       data, no query parameters, no tracking codes**. A sheet says "Opens irs.gov in your browser" before leaving.
     - **Wording:** "information from official sources, not tax advice", on the screen and in store copy. Never
       call it a representative, advisor or preparer. No "you qualify" claims: say "may be worth checking".
+    - **Non-government sites** must carry a `siteNote` (cookies, ad partners, location) shown before leaving;
+      without one they are never shown (owner decision for SCORE, 2026-11-01).
     - **Verified or it doesn't ship:** every number and resource carries `"verified": "YYYY-MM-DD"` from the
       owner-led review (docs/ANNUAL_RULES_REVIEW.md); a test fails if any item for a shipping year lacks it.
+13. **"Keep me in check" check-ins** (owner idea 2026-11-01): a short periodic questionnaire against forgetfulness,
+    generated only from the user's own records, on the device. Questions: no entries for N weeks; a recurring
+    payee/platform missing this period; expenses without receipts; uncategorized or missing business-use %;
+    upcoming quarterly payment not logged; year-end 1099s not in the vault; invoiced income not yet marked paid.
+    Each: Add now / Nothing missed / Remind me later. Rules: max 5 questions, skipped when nothing to ask,
+    user-set frequency (weekly / 2 weeks / monthly / off), snooze. Notification text generic ("Time for a quick
+    check-in"), never amounts or payees. Limit: it can't detect purchases never entered (no bank link, by design).
+    Needs: local notifications (shared with quarterly reminders; vet plugin) and an "invoiced, not paid yet" status
+    on income entries. Free tier.
 
 ## 3. PRO features
 - **On-device OCR** (Google ML Kit text recognition / Apple Vision, both offline): scan a receipt and it fills in
@@ -187,7 +198,7 @@ Store fees: Apple Small Business Program and Google Play are 15% on the first $1
 | M3 | Ledger: add/edit/list, Schedule C categories, dashboard | 3-tap add works; dashboard maths matches the desktop Tax Keeper |
 | M4 | Receipts and vault: capture, crop, encrypt, attach, documents per year | Photos never appear unencrypted on disk |
 | M5 | Search: FTS5, chips, natural-language parser | <50 ms on 10k seeded records |
-| M6 | Taxes tab: quarterly reminders, payments, 1099s, mileage, home office, CSV export, "What changed for you" + free resources (§2.12) | Matches the desktop Tax Keeper on the same data |
+| M6 | Taxes tab: quarterly reminders, payments, 1099s, mileage, home office, CSV export, "What changed for you" + free resources (§2.12), check-ins + invoiced status (§2.13) | Matches the desktop Tax Keeper on the same data |
 | M7 | Pro: OCR, rules, imports, PDF packet, paywall, purchases, trial | Purchases work in Play test mode |
 | M8 | Polish: motion, haptics, accessibility, onboarding, empty states, app icon | The owner's sign-off on video walkthroughs |
 | M9 | Backups and resilience: encrypted export/restore, migration tests | Restore on a fresh install works |
