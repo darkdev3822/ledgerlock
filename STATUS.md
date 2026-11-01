@@ -100,7 +100,15 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   POST_NOTIFICATIONS), rescheduled on unlock/change; CheckInScreen + Home CheckInCard (only when due AND questions
   exist); actions open entry / payment log / 1099s / search. SECURITY T12. 129 tests. Release APK: +POST_NOTIFICATIONS,
   +RECEIVE_BOOT_COMPLETED, still no INTERNET.
-- M6 remaining: emulator check of all M6 screens; then
+- M6 code-complete except Emergency Kit PDF. **Device check NOT done (needs owner):** auto mode refused typing the
+  emulator screen PIN / app password (credential entry). Owner: unlock the emulator + app (or tell Claude the test
+  password / allow it), then verify: Export CSV save picker writes a file; Settings > Reminders asks for notification
+  permission and `adb shell dumpsys alarm | grep ledgerlock` shows alarms; check-in card; FAB outline (goldens show a
+  black outline, likely test-only focus highlight). Notification small icon uses the launcher icon (polish: mono icon).
+- Emergency Kit PDF (M6) + draft return (M7) need a PDF library: vet `pdf` (pure Dart) for networking + license;
+  form-FILLING libraries are often commercial -> owner decision.
+- Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).
+  Tax-rules review window opens 2026-12-01: do the open items FIRST then.
   -> quarterly reminders + check-ins (§2.13), emulator check of all M6 screens (FAB black outline seen in goldens:
   likely test focus highlight, confirm on device). Review adds: home_office_rate + home_office_max_sqft (both years).
 - After the review: device-check a link opening in the browser (none visible until items are verified).
