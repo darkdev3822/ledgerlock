@@ -30,7 +30,44 @@ class LedgerEntries extends Table {
   TextColumn get party => text().withDefault(const Constant(''))();
   TextColumn get platform => text().withDefault(const Constant(''))();
   TextColumn get notes => text().withDefault(const Constant(''))();
+
+  /// Income only: false = invoiced, not paid yet (excluded from totals: cash basis). SPEC §2.13.
+  BoolColumn get paid => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// Estimated tax payments made to the IRS (payment log, SPEC §2.6). taxYear = the year the payment is for.
+@DataClassName('TaxPayment')
+class TaxPayments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get taxYear => integer()();
+  TextColumn get quarter => text().withDefault(const Constant(''))(); // 'Q1'..'Q4' or ''
+  TextColumn get date => text().withLength(min: 10, max: 10)();
+  IntColumn get amountCents => integer()();
+  TextColumn get method => text().withDefault(const Constant(''))(); // Direct Pay, EFTPS, check…
+  TextColumn get notes => text().withDefault(const Constant(''))();
+}
+
+/// Business trips for the standard mileage rate (Schedule C line 9). Miles in tenths.
+@DataClassName('Trip')
+class Trips extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get date => text().withLength(min: 10, max: 10)();
+  IntColumn get milesTenths => integer()();
+  TextColumn get purpose => text().withDefault(const Constant(''))();
+  TextColumn get route => text().withDefault(const Constant(''))();
+}
+
+/// 1099 forms received, to reconcile with recorded income (1099 tracker).
+@DataClassName('Form1099')
+class Forms1099 extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get year => integer()();
+  TextColumn get kind => text()(); // '1099-K', '1099-NEC', '1099-MISC'
+  TextColumn get payer => text()(); // matched against entry platform/party (case-insensitive)
+  IntColumn get amountCents => integer()();
+  IntColumn get attachmentId =>
+      integer().nullable().references(Attachments, #id, onDelete: KeyAction.setNull)();
 }
 
 /// Receipts and vault documents. Bytes live encrypted in EncryptedFileStore; only ids and metadata here.
@@ -61,6 +98,7 @@ extension LedgerEntryMaths on LedgerEntry {
     feeCents: feeCents,
     businessPct: businessPct,
     category: category,
+    paid: paid,
   );
 }
 
@@ -72,7 +110,7 @@ class NotEncrypted implements Exception {
   String toString() => 'SQLCipher not available: refusing to open an unencrypted database';
 }
 
-@DriftDatabase(tables: [Settings, LedgerEntries, Attachments])
+@DriftDatabase(tables: [Settings, LedgerEntries, Attachments, TaxPayments, Trips, Forms1099])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -98,7 +136,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -108,6 +146,7 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('CREATE INDEX attachments_year ON attachments(year, folder)');
       await _createSearchIndex();
       await customStatement('CREATE INDEX attachments_entry ON attachments(entry_id)');
+      await _v6Indexes();
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
@@ -120,6 +159,14 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 4) await _createSearchIndex();
       if (from < 5) await customStatement('CREATE INDEX attachments_entry ON attachments(entry_id)');
+      if (from < 6) {
+        // Tables created above (from < 2) already have the column.
+        if (from >= 2) await m.addColumn(ledgerEntries, ledgerEntries.paid);
+        await m.createTable(taxPayments);
+        await m.createTable(trips);
+        await m.createTable(forms1099);
+        await _v6Indexes();
+      }
     },
   );
 
@@ -231,4 +278,35 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> setSetting(String k, String v) =>
       into(settings).insertOnConflictUpdate(SettingsCompanion.insert(key: k, value: v));
+
+  Future<void> _v6Indexes() async {
+    await customStatement('CREATE INDEX payments_year ON tax_payments(tax_year)');
+    await customStatement('CREATE INDEX trips_date ON trips(date)');
+    await customStatement('CREATE INDEX forms1099_year ON forms1099(year)');
+  }
+
+  // ---------- M6: payments, trips, 1099s ----------
+  Stream<List<TaxPayment>> watchPayments(int taxYear) =>
+      (select(taxPayments)
+            ..where((p) => p.taxYear.equals(taxYear))
+            ..orderBy([(p) => OrderingTerm.asc(p.date), (p) => OrderingTerm.asc(p.id)]))
+          .watch();
+  Future<int> addPayment(TaxPaymentsCompanion p) => into(taxPayments).insert(p);
+  Future<void> deletePayment(int id) => (delete(taxPayments)..where((p) => p.id.equals(id))).go();
+
+  Stream<List<Trip>> watchTrips(int year) =>
+      (select(trips)
+            ..where((t) => t.date.like('$year-%'))
+            ..orderBy([(t) => OrderingTerm.desc(t.date), (t) => OrderingTerm.desc(t.id)]))
+          .watch();
+  Future<int> addTrip(TripsCompanion t) => into(trips).insert(t);
+  Future<void> deleteTrip(int id) => (delete(trips)..where((t) => t.id.equals(id))).go();
+
+  Stream<List<Form1099>> watchForms1099(int year) =>
+      (select(forms1099)
+            ..where((f) => f.year.equals(year))
+            ..orderBy([(f) => OrderingTerm.asc(f.payer)]))
+          .watch();
+  Future<int> addForm1099(Forms1099Companion f) => into(forms1099).insert(f);
+  Future<void> deleteForm1099(int id) => (delete(forms1099)..where((f) => f.id.equals(id))).go();
 }

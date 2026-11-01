@@ -43,6 +43,37 @@ void main() {
     await db.close();
   });
 
+  test('v5 database migrates to v6: entries kept and paid, new tables usable', () async {
+    final file = File('${dir.path}/v5.db');
+    final key = LedgerCrypto.randomBytes(32);
+    final hex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    var db = AppDatabase.open(file, key);
+    await db.addEntry(e('2026-03-01', income: true, cat: 'services', c: 5000));
+    await db.close();
+    // Turn it back into a v5 file: no M6 tables, no paid column.
+    final old = raw.sqlite3.open(file.path)
+      ..execute("PRAGMA key = \"x'$hex'\"")
+      ..execute('DROP TABLE tax_payments')
+      ..execute('DROP TABLE trips')
+      ..execute('DROP TABLE forms1099')
+      ..execute('ALTER TABLE ledger_entries DROP COLUMN paid')
+      ..execute('PRAGMA user_version = 5');
+    old.close();
+
+    db = AppDatabase.open(file, key);
+    final rows = await db.watchYear(2026).first;
+    expect(rows.single.paid, isTrue, reason: 'existing income counts as received');
+    await db.addPayment(TaxPaymentsCompanion.insert(taxYear: 2026, date: '2026-04-15', amountCents: 100));
+    await db.addTrip(TripsCompanion.insert(date: '2026-04-02', milesTenths: 125));
+    await db.addForm1099(
+      Forms1099Companion.insert(year: 2026, kind: '1099-K', payer: 'Etsy', amountCents: 1),
+    );
+    expect((await db.watchPayments(2026).first).single.amountCents, 100);
+    expect((await db.watchTrips(2026).first).single.milesTenths, 125);
+    expect((await db.watchForms1099(2026).first).single.payer, 'Etsy');
+    await db.close();
+  });
+
   test('watchYear filters by year and orders newest first; restore undoes delete', () async {
     final db = AppDatabase.open(File('${dir.path}/t.db'), LedgerCrypto.randomBytes(32));
     await db.addEntry(e('2026-01-05', c: 1));

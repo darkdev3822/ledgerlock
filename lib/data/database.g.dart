@@ -281,6 +281,17 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _paidMeta = const VerificationMeta('paid');
+  @override
+  late final GeneratedColumn<bool> paid = GeneratedColumn<bool>(
+    'paid',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("paid" IN (0, 1))'),
+    defaultValue: const Constant(true),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
@@ -303,6 +314,7 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     party,
     platform,
     notes,
+    paid,
     createdAt,
   ];
   @override
@@ -358,6 +370,9 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     if (data.containsKey('notes')) {
       context.handle(_notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
     }
+    if (data.containsKey('paid')) {
+      context.handle(_paidMeta, paid.isAcceptableOrUnknown(data['paid']!, _paidMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta, createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     }
@@ -386,6 +401,7 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
       party: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}party'])!,
       platform: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}platform'])!,
       notes: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
+      paid: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}paid'])!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -410,6 +426,9 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
   final String party;
   final String platform;
   final String notes;
+
+  /// Income only: false = invoiced, not paid yet (excluded from totals: cash basis). SPEC §2.13.
+  final bool paid;
   final DateTime createdAt;
   const LedgerEntry({
     required this.id,
@@ -422,6 +441,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     required this.party,
     required this.platform,
     required this.notes,
+    required this.paid,
     required this.createdAt,
   });
   @override
@@ -437,6 +457,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     map['party'] = Variable<String>(party);
     map['platform'] = Variable<String>(platform);
     map['notes'] = Variable<String>(notes);
+    map['paid'] = Variable<bool>(paid);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -453,6 +474,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       party: Value(party),
       platform: Value(platform),
       notes: Value(notes),
+      paid: Value(paid),
       createdAt: Value(createdAt),
     );
   }
@@ -470,6 +492,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       party: serializer.fromJson<String>(json['party']),
       platform: serializer.fromJson<String>(json['platform']),
       notes: serializer.fromJson<String>(json['notes']),
+      paid: serializer.fromJson<bool>(json['paid']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -487,6 +510,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       'party': serializer.toJson<String>(party),
       'platform': serializer.toJson<String>(platform),
       'notes': serializer.toJson<String>(notes),
+      'paid': serializer.toJson<bool>(paid),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -502,6 +526,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     String? party,
     String? platform,
     String? notes,
+    bool? paid,
     DateTime? createdAt,
   }) => LedgerEntry(
     id: id ?? this.id,
@@ -514,6 +539,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     party: party ?? this.party,
     platform: platform ?? this.platform,
     notes: notes ?? this.notes,
+    paid: paid ?? this.paid,
     createdAt: createdAt ?? this.createdAt,
   );
   LedgerEntry copyWithCompanion(LedgerEntriesCompanion data) {
@@ -528,6 +554,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       party: data.party.present ? data.party.value : this.party,
       platform: data.platform.present ? data.platform.value : this.platform,
       notes: data.notes.present ? data.notes.value : this.notes,
+      paid: data.paid.present ? data.paid.value : this.paid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -545,6 +572,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           ..write('party: $party, ')
           ..write('platform: $platform, ')
           ..write('notes: $notes, ')
+          ..write('paid: $paid, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -562,6 +590,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     party,
     platform,
     notes,
+    paid,
     createdAt,
   );
   @override
@@ -578,6 +607,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           other.party == this.party &&
           other.platform == this.platform &&
           other.notes == this.notes &&
+          other.paid == this.paid &&
           other.createdAt == this.createdAt);
 }
 
@@ -592,6 +622,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
   final Value<String> party;
   final Value<String> platform;
   final Value<String> notes;
+  final Value<bool> paid;
   final Value<DateTime> createdAt;
   const LedgerEntriesCompanion({
     this.id = const Value.absent(),
@@ -604,6 +635,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     this.party = const Value.absent(),
     this.platform = const Value.absent(),
     this.notes = const Value.absent(),
+    this.paid = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   LedgerEntriesCompanion.insert({
@@ -617,6 +649,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     this.party = const Value.absent(),
     this.platform = const Value.absent(),
     this.notes = const Value.absent(),
+    this.paid = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : isIncome = Value(isIncome),
        date = Value(date),
@@ -633,6 +666,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     Expression<String>? party,
     Expression<String>? platform,
     Expression<String>? notes,
+    Expression<bool>? paid,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -646,6 +680,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
       if (party != null) 'party': party,
       if (platform != null) 'platform': platform,
       if (notes != null) 'notes': notes,
+      if (paid != null) 'paid': paid,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -661,6 +696,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     Value<String>? party,
     Value<String>? platform,
     Value<String>? notes,
+    Value<bool>? paid,
     Value<DateTime>? createdAt,
   }) {
     return LedgerEntriesCompanion(
@@ -674,6 +710,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
       party: party ?? this.party,
       platform: platform ?? this.platform,
       notes: notes ?? this.notes,
+      paid: paid ?? this.paid,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -711,6 +748,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (paid.present) {
+      map['paid'] = Variable<bool>(paid.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -730,6 +770,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
           ..write('party: $party, ')
           ..write('platform: $platform, ')
           ..write('notes: $notes, ')
+          ..write('paid: $paid, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1244,22 +1285,1066 @@ class AttachmentsCompanion extends UpdateCompanion<Attachment> {
   }
 }
 
+class $TaxPaymentsTable extends TaxPayments with TableInfo<$TaxPaymentsTable, TaxPayment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TaxPaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _taxYearMeta = const VerificationMeta('taxYear');
+  @override
+  late final GeneratedColumn<int> taxYear = GeneratedColumn<int>(
+    'tax_year',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quarterMeta = const VerificationMeta('quarter');
+  @override
+  late final GeneratedColumn<String> quarter = GeneratedColumn<String>(
+    'quarter',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 10, maxTextLength: 10),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta('amountCents');
+  @override
+  late final GeneratedColumn<int> amountCents = GeneratedColumn<int>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _methodMeta = const VerificationMeta('method');
+  @override
+  late final GeneratedColumn<String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, taxYear, quarter, date, amountCents, method, notes];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tax_payments';
+  @override
+  VerificationContext validateIntegrity(Insertable<TaxPayment> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('tax_year')) {
+      context.handle(_taxYearMeta, taxYear.isAcceptableOrUnknown(data['tax_year']!, _taxYearMeta));
+    } else if (isInserting) {
+      context.missing(_taxYearMeta);
+    }
+    if (data.containsKey('quarter')) {
+      context.handle(_quarterMeta, quarter.isAcceptableOrUnknown(data['quarter']!, _quarterMeta));
+    }
+    if (data.containsKey('date')) {
+      context.handle(_dateMeta, date.isAcceptableOrUnknown(data['date']!, _dateMeta));
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(data['amount_cents']!, _amountCentsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountCentsMeta);
+    }
+    if (data.containsKey('method')) {
+      context.handle(_methodMeta, method.isAcceptableOrUnknown(data['method']!, _methodMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(_notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TaxPayment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TaxPayment(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      taxYear: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}tax_year'])!,
+      quarter: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}quarter'])!,
+      date: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}date'])!,
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_cents'],
+      )!,
+      method: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}method'])!,
+      notes: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
+    );
+  }
+
+  @override
+  $TaxPaymentsTable createAlias(String alias) {
+    return $TaxPaymentsTable(attachedDatabase, alias);
+  }
+}
+
+class TaxPayment extends DataClass implements Insertable<TaxPayment> {
+  final int id;
+  final int taxYear;
+  final String quarter;
+  final String date;
+  final int amountCents;
+  final String method;
+  final String notes;
+  const TaxPayment({
+    required this.id,
+    required this.taxYear,
+    required this.quarter,
+    required this.date,
+    required this.amountCents,
+    required this.method,
+    required this.notes,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['tax_year'] = Variable<int>(taxYear);
+    map['quarter'] = Variable<String>(quarter);
+    map['date'] = Variable<String>(date);
+    map['amount_cents'] = Variable<int>(amountCents);
+    map['method'] = Variable<String>(method);
+    map['notes'] = Variable<String>(notes);
+    return map;
+  }
+
+  TaxPaymentsCompanion toCompanion(bool nullToAbsent) {
+    return TaxPaymentsCompanion(
+      id: Value(id),
+      taxYear: Value(taxYear),
+      quarter: Value(quarter),
+      date: Value(date),
+      amountCents: Value(amountCents),
+      method: Value(method),
+      notes: Value(notes),
+    );
+  }
+
+  factory TaxPayment.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TaxPayment(
+      id: serializer.fromJson<int>(json['id']),
+      taxYear: serializer.fromJson<int>(json['taxYear']),
+      quarter: serializer.fromJson<String>(json['quarter']),
+      date: serializer.fromJson<String>(json['date']),
+      amountCents: serializer.fromJson<int>(json['amountCents']),
+      method: serializer.fromJson<String>(json['method']),
+      notes: serializer.fromJson<String>(json['notes']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'taxYear': serializer.toJson<int>(taxYear),
+      'quarter': serializer.toJson<String>(quarter),
+      'date': serializer.toJson<String>(date),
+      'amountCents': serializer.toJson<int>(amountCents),
+      'method': serializer.toJson<String>(method),
+      'notes': serializer.toJson<String>(notes),
+    };
+  }
+
+  TaxPayment copyWith({
+    int? id,
+    int? taxYear,
+    String? quarter,
+    String? date,
+    int? amountCents,
+    String? method,
+    String? notes,
+  }) => TaxPayment(
+    id: id ?? this.id,
+    taxYear: taxYear ?? this.taxYear,
+    quarter: quarter ?? this.quarter,
+    date: date ?? this.date,
+    amountCents: amountCents ?? this.amountCents,
+    method: method ?? this.method,
+    notes: notes ?? this.notes,
+  );
+  TaxPayment copyWithCompanion(TaxPaymentsCompanion data) {
+    return TaxPayment(
+      id: data.id.present ? data.id.value : this.id,
+      taxYear: data.taxYear.present ? data.taxYear.value : this.taxYear,
+      quarter: data.quarter.present ? data.quarter.value : this.quarter,
+      date: data.date.present ? data.date.value : this.date,
+      amountCents: data.amountCents.present ? data.amountCents.value : this.amountCents,
+      method: data.method.present ? data.method.value : this.method,
+      notes: data.notes.present ? data.notes.value : this.notes,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaxPayment(')
+          ..write('id: $id, ')
+          ..write('taxYear: $taxYear, ')
+          ..write('quarter: $quarter, ')
+          ..write('date: $date, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('method: $method, ')
+          ..write('notes: $notes')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, taxYear, quarter, date, amountCents, method, notes);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TaxPayment &&
+          other.id == this.id &&
+          other.taxYear == this.taxYear &&
+          other.quarter == this.quarter &&
+          other.date == this.date &&
+          other.amountCents == this.amountCents &&
+          other.method == this.method &&
+          other.notes == this.notes);
+}
+
+class TaxPaymentsCompanion extends UpdateCompanion<TaxPayment> {
+  final Value<int> id;
+  final Value<int> taxYear;
+  final Value<String> quarter;
+  final Value<String> date;
+  final Value<int> amountCents;
+  final Value<String> method;
+  final Value<String> notes;
+  const TaxPaymentsCompanion({
+    this.id = const Value.absent(),
+    this.taxYear = const Value.absent(),
+    this.quarter = const Value.absent(),
+    this.date = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.method = const Value.absent(),
+    this.notes = const Value.absent(),
+  });
+  TaxPaymentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int taxYear,
+    this.quarter = const Value.absent(),
+    required String date,
+    required int amountCents,
+    this.method = const Value.absent(),
+    this.notes = const Value.absent(),
+  }) : taxYear = Value(taxYear),
+       date = Value(date),
+       amountCents = Value(amountCents);
+  static Insertable<TaxPayment> custom({
+    Expression<int>? id,
+    Expression<int>? taxYear,
+    Expression<String>? quarter,
+    Expression<String>? date,
+    Expression<int>? amountCents,
+    Expression<String>? method,
+    Expression<String>? notes,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (taxYear != null) 'tax_year': taxYear,
+      if (quarter != null) 'quarter': quarter,
+      if (date != null) 'date': date,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (method != null) 'method': method,
+      if (notes != null) 'notes': notes,
+    });
+  }
+
+  TaxPaymentsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? taxYear,
+    Value<String>? quarter,
+    Value<String>? date,
+    Value<int>? amountCents,
+    Value<String>? method,
+    Value<String>? notes,
+  }) {
+    return TaxPaymentsCompanion(
+      id: id ?? this.id,
+      taxYear: taxYear ?? this.taxYear,
+      quarter: quarter ?? this.quarter,
+      date: date ?? this.date,
+      amountCents: amountCents ?? this.amountCents,
+      method: method ?? this.method,
+      notes: notes ?? this.notes,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (taxYear.present) {
+      map['tax_year'] = Variable<int>(taxYear.value);
+    }
+    if (quarter.present) {
+      map['quarter'] = Variable<String>(quarter.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<int>(amountCents.value);
+    }
+    if (method.present) {
+      map['method'] = Variable<String>(method.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaxPaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('taxYear: $taxYear, ')
+          ..write('quarter: $quarter, ')
+          ..write('date: $date, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('method: $method, ')
+          ..write('notes: $notes')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TripsTable extends Trips with TableInfo<$TripsTable, Trip> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TripsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 10, maxTextLength: 10),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _milesTenthsMeta = const VerificationMeta('milesTenths');
+  @override
+  late final GeneratedColumn<int> milesTenths = GeneratedColumn<int>(
+    'miles_tenths',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _purposeMeta = const VerificationMeta('purpose');
+  @override
+  late final GeneratedColumn<String> purpose = GeneratedColumn<String>(
+    'purpose',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _routeMeta = const VerificationMeta('route');
+  @override
+  late final GeneratedColumn<String> route = GeneratedColumn<String>(
+    'route',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, date, milesTenths, purpose, route];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'trips';
+  @override
+  VerificationContext validateIntegrity(Insertable<Trip> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('date')) {
+      context.handle(_dateMeta, date.isAcceptableOrUnknown(data['date']!, _dateMeta));
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('miles_tenths')) {
+      context.handle(
+        _milesTenthsMeta,
+        milesTenths.isAcceptableOrUnknown(data['miles_tenths']!, _milesTenthsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_milesTenthsMeta);
+    }
+    if (data.containsKey('purpose')) {
+      context.handle(_purposeMeta, purpose.isAcceptableOrUnknown(data['purpose']!, _purposeMeta));
+    }
+    if (data.containsKey('route')) {
+      context.handle(_routeMeta, route.isAcceptableOrUnknown(data['route']!, _routeMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Trip map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Trip(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      date: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}date'])!,
+      milesTenths: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}miles_tenths'],
+      )!,
+      purpose: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}purpose'])!,
+      route: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}route'])!,
+    );
+  }
+
+  @override
+  $TripsTable createAlias(String alias) {
+    return $TripsTable(attachedDatabase, alias);
+  }
+}
+
+class Trip extends DataClass implements Insertable<Trip> {
+  final int id;
+  final String date;
+  final int milesTenths;
+  final String purpose;
+  final String route;
+  const Trip({
+    required this.id,
+    required this.date,
+    required this.milesTenths,
+    required this.purpose,
+    required this.route,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['date'] = Variable<String>(date);
+    map['miles_tenths'] = Variable<int>(milesTenths);
+    map['purpose'] = Variable<String>(purpose);
+    map['route'] = Variable<String>(route);
+    return map;
+  }
+
+  TripsCompanion toCompanion(bool nullToAbsent) {
+    return TripsCompanion(
+      id: Value(id),
+      date: Value(date),
+      milesTenths: Value(milesTenths),
+      purpose: Value(purpose),
+      route: Value(route),
+    );
+  }
+
+  factory Trip.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Trip(
+      id: serializer.fromJson<int>(json['id']),
+      date: serializer.fromJson<String>(json['date']),
+      milesTenths: serializer.fromJson<int>(json['milesTenths']),
+      purpose: serializer.fromJson<String>(json['purpose']),
+      route: serializer.fromJson<String>(json['route']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'date': serializer.toJson<String>(date),
+      'milesTenths': serializer.toJson<int>(milesTenths),
+      'purpose': serializer.toJson<String>(purpose),
+      'route': serializer.toJson<String>(route),
+    };
+  }
+
+  Trip copyWith({int? id, String? date, int? milesTenths, String? purpose, String? route}) => Trip(
+    id: id ?? this.id,
+    date: date ?? this.date,
+    milesTenths: milesTenths ?? this.milesTenths,
+    purpose: purpose ?? this.purpose,
+    route: route ?? this.route,
+  );
+  Trip copyWithCompanion(TripsCompanion data) {
+    return Trip(
+      id: data.id.present ? data.id.value : this.id,
+      date: data.date.present ? data.date.value : this.date,
+      milesTenths: data.milesTenths.present ? data.milesTenths.value : this.milesTenths,
+      purpose: data.purpose.present ? data.purpose.value : this.purpose,
+      route: data.route.present ? data.route.value : this.route,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Trip(')
+          ..write('id: $id, ')
+          ..write('date: $date, ')
+          ..write('milesTenths: $milesTenths, ')
+          ..write('purpose: $purpose, ')
+          ..write('route: $route')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, date, milesTenths, purpose, route);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Trip &&
+          other.id == this.id &&
+          other.date == this.date &&
+          other.milesTenths == this.milesTenths &&
+          other.purpose == this.purpose &&
+          other.route == this.route);
+}
+
+class TripsCompanion extends UpdateCompanion<Trip> {
+  final Value<int> id;
+  final Value<String> date;
+  final Value<int> milesTenths;
+  final Value<String> purpose;
+  final Value<String> route;
+  const TripsCompanion({
+    this.id = const Value.absent(),
+    this.date = const Value.absent(),
+    this.milesTenths = const Value.absent(),
+    this.purpose = const Value.absent(),
+    this.route = const Value.absent(),
+  });
+  TripsCompanion.insert({
+    this.id = const Value.absent(),
+    required String date,
+    required int milesTenths,
+    this.purpose = const Value.absent(),
+    this.route = const Value.absent(),
+  }) : date = Value(date),
+       milesTenths = Value(milesTenths);
+  static Insertable<Trip> custom({
+    Expression<int>? id,
+    Expression<String>? date,
+    Expression<int>? milesTenths,
+    Expression<String>? purpose,
+    Expression<String>? route,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (date != null) 'date': date,
+      if (milesTenths != null) 'miles_tenths': milesTenths,
+      if (purpose != null) 'purpose': purpose,
+      if (route != null) 'route': route,
+    });
+  }
+
+  TripsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? date,
+    Value<int>? milesTenths,
+    Value<String>? purpose,
+    Value<String>? route,
+  }) {
+    return TripsCompanion(
+      id: id ?? this.id,
+      date: date ?? this.date,
+      milesTenths: milesTenths ?? this.milesTenths,
+      purpose: purpose ?? this.purpose,
+      route: route ?? this.route,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (milesTenths.present) {
+      map['miles_tenths'] = Variable<int>(milesTenths.value);
+    }
+    if (purpose.present) {
+      map['purpose'] = Variable<String>(purpose.value);
+    }
+    if (route.present) {
+      map['route'] = Variable<String>(route.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TripsCompanion(')
+          ..write('id: $id, ')
+          ..write('date: $date, ')
+          ..write('milesTenths: $milesTenths, ')
+          ..write('purpose: $purpose, ')
+          ..write('route: $route')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $Forms1099Table extends Forms1099 with TableInfo<$Forms1099Table, Form1099> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $Forms1099Table(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+    'year',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payerMeta = const VerificationMeta('payer');
+  @override
+  late final GeneratedColumn<String> payer = GeneratedColumn<String>(
+    'payer',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta('amountCents');
+  @override
+  late final GeneratedColumn<int> amountCents = GeneratedColumn<int>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _attachmentIdMeta = const VerificationMeta('attachmentId');
+  @override
+  late final GeneratedColumn<int> attachmentId = GeneratedColumn<int>(
+    'attachment_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES attachments (id) ON DELETE SET NULL'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, year, kind, payer, amountCents, attachmentId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'forms1099';
+  @override
+  VerificationContext validateIntegrity(Insertable<Form1099> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('year')) {
+      context.handle(_yearMeta, year.isAcceptableOrUnknown(data['year']!, _yearMeta));
+    } else if (isInserting) {
+      context.missing(_yearMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(_kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('payer')) {
+      context.handle(_payerMeta, payer.isAcceptableOrUnknown(data['payer']!, _payerMeta));
+    } else if (isInserting) {
+      context.missing(_payerMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(data['amount_cents']!, _amountCentsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountCentsMeta);
+    }
+    if (data.containsKey('attachment_id')) {
+      context.handle(
+        _attachmentIdMeta,
+        attachmentId.isAcceptableOrUnknown(data['attachment_id']!, _attachmentIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Form1099 map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Form1099(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      year: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}year'])!,
+      kind: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      payer: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}payer'])!,
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_cents'],
+      )!,
+      attachmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attachment_id'],
+      ),
+    );
+  }
+
+  @override
+  $Forms1099Table createAlias(String alias) {
+    return $Forms1099Table(attachedDatabase, alias);
+  }
+}
+
+class Form1099 extends DataClass implements Insertable<Form1099> {
+  final int id;
+  final int year;
+  final String kind;
+  final String payer;
+  final int amountCents;
+  final int? attachmentId;
+  const Form1099({
+    required this.id,
+    required this.year,
+    required this.kind,
+    required this.payer,
+    required this.amountCents,
+    this.attachmentId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['year'] = Variable<int>(year);
+    map['kind'] = Variable<String>(kind);
+    map['payer'] = Variable<String>(payer);
+    map['amount_cents'] = Variable<int>(amountCents);
+    if (!nullToAbsent || attachmentId != null) {
+      map['attachment_id'] = Variable<int>(attachmentId);
+    }
+    return map;
+  }
+
+  Forms1099Companion toCompanion(bool nullToAbsent) {
+    return Forms1099Companion(
+      id: Value(id),
+      year: Value(year),
+      kind: Value(kind),
+      payer: Value(payer),
+      amountCents: Value(amountCents),
+      attachmentId: attachmentId == null && nullToAbsent ? const Value.absent() : Value(attachmentId),
+    );
+  }
+
+  factory Form1099.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Form1099(
+      id: serializer.fromJson<int>(json['id']),
+      year: serializer.fromJson<int>(json['year']),
+      kind: serializer.fromJson<String>(json['kind']),
+      payer: serializer.fromJson<String>(json['payer']),
+      amountCents: serializer.fromJson<int>(json['amountCents']),
+      attachmentId: serializer.fromJson<int?>(json['attachmentId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'year': serializer.toJson<int>(year),
+      'kind': serializer.toJson<String>(kind),
+      'payer': serializer.toJson<String>(payer),
+      'amountCents': serializer.toJson<int>(amountCents),
+      'attachmentId': serializer.toJson<int?>(attachmentId),
+    };
+  }
+
+  Form1099 copyWith({
+    int? id,
+    int? year,
+    String? kind,
+    String? payer,
+    int? amountCents,
+    Value<int?> attachmentId = const Value.absent(),
+  }) => Form1099(
+    id: id ?? this.id,
+    year: year ?? this.year,
+    kind: kind ?? this.kind,
+    payer: payer ?? this.payer,
+    amountCents: amountCents ?? this.amountCents,
+    attachmentId: attachmentId.present ? attachmentId.value : this.attachmentId,
+  );
+  Form1099 copyWithCompanion(Forms1099Companion data) {
+    return Form1099(
+      id: data.id.present ? data.id.value : this.id,
+      year: data.year.present ? data.year.value : this.year,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      payer: data.payer.present ? data.payer.value : this.payer,
+      amountCents: data.amountCents.present ? data.amountCents.value : this.amountCents,
+      attachmentId: data.attachmentId.present ? data.attachmentId.value : this.attachmentId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Form1099(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('kind: $kind, ')
+          ..write('payer: $payer, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('attachmentId: $attachmentId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, year, kind, payer, amountCents, attachmentId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Form1099 &&
+          other.id == this.id &&
+          other.year == this.year &&
+          other.kind == this.kind &&
+          other.payer == this.payer &&
+          other.amountCents == this.amountCents &&
+          other.attachmentId == this.attachmentId);
+}
+
+class Forms1099Companion extends UpdateCompanion<Form1099> {
+  final Value<int> id;
+  final Value<int> year;
+  final Value<String> kind;
+  final Value<String> payer;
+  final Value<int> amountCents;
+  final Value<int?> attachmentId;
+  const Forms1099Companion({
+    this.id = const Value.absent(),
+    this.year = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.payer = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.attachmentId = const Value.absent(),
+  });
+  Forms1099Companion.insert({
+    this.id = const Value.absent(),
+    required int year,
+    required String kind,
+    required String payer,
+    required int amountCents,
+    this.attachmentId = const Value.absent(),
+  }) : year = Value(year),
+       kind = Value(kind),
+       payer = Value(payer),
+       amountCents = Value(amountCents);
+  static Insertable<Form1099> custom({
+    Expression<int>? id,
+    Expression<int>? year,
+    Expression<String>? kind,
+    Expression<String>? payer,
+    Expression<int>? amountCents,
+    Expression<int>? attachmentId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (year != null) 'year': year,
+      if (kind != null) 'kind': kind,
+      if (payer != null) 'payer': payer,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (attachmentId != null) 'attachment_id': attachmentId,
+    });
+  }
+
+  Forms1099Companion copyWith({
+    Value<int>? id,
+    Value<int>? year,
+    Value<String>? kind,
+    Value<String>? payer,
+    Value<int>? amountCents,
+    Value<int?>? attachmentId,
+  }) {
+    return Forms1099Companion(
+      id: id ?? this.id,
+      year: year ?? this.year,
+      kind: kind ?? this.kind,
+      payer: payer ?? this.payer,
+      amountCents: amountCents ?? this.amountCents,
+      attachmentId: attachmentId ?? this.attachmentId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (payer.present) {
+      map['payer'] = Variable<String>(payer.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<int>(amountCents.value);
+    }
+    if (attachmentId.present) {
+      map['attachment_id'] = Variable<int>(attachmentId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Forms1099Companion(')
+          ..write('id: $id, ')
+          ..write('year: $year, ')
+          ..write('kind: $kind, ')
+          ..write('payer: $payer, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('attachmentId: $attachmentId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SettingsTable settings = $SettingsTable(this);
   late final $LedgerEntriesTable ledgerEntries = $LedgerEntriesTable(this);
   late final $AttachmentsTable attachments = $AttachmentsTable(this);
+  late final $TaxPaymentsTable taxPayments = $TaxPaymentsTable(this);
+  late final $TripsTable trips = $TripsTable(this);
+  late final $Forms1099Table forms1099 = $Forms1099Table(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [settings, ledgerEntries, attachments];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    settings,
+    ledgerEntries,
+    attachments,
+    taxPayments,
+    trips,
+    forms1099,
+  ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
     WritePropagation(
       on: TableUpdateQuery.onTableName('ledger_entries', limitUpdateKind: UpdateKind.delete),
       result: [TableUpdate('attachments', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('attachments', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('forms1099', kind: UpdateKind.update)],
     ),
   ]);
 }
@@ -1389,6 +2474,7 @@ typedef $$LedgerEntriesTableCreateCompanionBuilder = LedgerEntriesCompanion Func
   Value<String> party,
   Value<String> platform,
   Value<String> notes,
+  Value<bool> paid,
   Value<DateTime> createdAt,
 });
 typedef $$LedgerEntriesTableUpdateCompanionBuilder = LedgerEntriesCompanion Function({
@@ -1402,6 +2488,7 @@ typedef $$LedgerEntriesTableUpdateCompanionBuilder = LedgerEntriesCompanion Func
   Value<String> party,
   Value<String> platform,
   Value<String> notes,
+  Value<bool> paid,
   Value<DateTime> createdAt,
 });
 
@@ -1460,6 +2547,9 @@ class $$LedgerEntriesTableFilterComposer extends Composer<_$AppDatabase, $Ledger
 
   ColumnFilters<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get paid =>
+      $composableBuilder(column: $table.paid, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -1521,6 +2611,9 @@ class $$LedgerEntriesTableOrderingComposer extends Composer<_$AppDatabase, $Ledg
   ColumnOrderings<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get paid =>
+      $composableBuilder(column: $table.paid, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 }
@@ -1558,6 +2651,8 @@ class $$LedgerEntriesTableAnnotationComposer extends Composer<_$AppDatabase, $Le
       $composableBuilder(column: $table.platform, builder: (column) => column);
 
   GeneratedColumn<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<bool> get paid => $composableBuilder(column: $table.paid, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1618,6 +2713,7 @@ class $$LedgerEntriesTableTableManager
                 Value<String> party = const Value.absent(),
                 Value<String> platform = const Value.absent(),
                 Value<String> notes = const Value.absent(),
+                Value<bool> paid = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => LedgerEntriesCompanion(
                 id: id,
@@ -1630,6 +2726,7 @@ class $$LedgerEntriesTableTableManager
                 party: party,
                 platform: platform,
                 notes: notes,
+                paid: paid,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -1644,6 +2741,7 @@ class $$LedgerEntriesTableTableManager
                 Value<String> party = const Value.absent(),
                 Value<String> platform = const Value.absent(),
                 Value<String> notes = const Value.absent(),
+                Value<bool> paid = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => LedgerEntriesCompanion.insert(
                 id: id,
@@ -1656,6 +2754,7 @@ class $$LedgerEntriesTableTableManager
                 party: party,
                 platform: platform,
                 notes: notes,
+                paid: paid,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -1753,6 +2852,19 @@ final class $$AttachmentsTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
   }
+
+  static MultiTypedResultKey<$Forms1099Table, List<Form1099>> _forms1099RefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.forms1099, aliasName: 'attachments__id__forms1099__attachment_id');
+
+  $$Forms1099TableProcessedTableManager get forms1099Refs {
+    final manager = $$Forms1099TableTableManager(
+      $_db,
+      $_db.forms1099,
+    ).filter((f) => f.attachmentId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_forms1099RefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$AttachmentsTableFilterComposer extends Composer<_$AppDatabase, $AttachmentsTable> {
@@ -1806,6 +2918,24 @@ class $$AttachmentsTableFilterComposer extends Composer<_$AppDatabase, $Attachme
           ),
     );
     return composer;
+  }
+
+  Expression<bool> forms1099Refs(Expression<bool> Function($$Forms1099TableFilterComposer f) f) {
+    final $$Forms1099TableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.forms1099,
+      getReferencedColumn: (t) => t.attachmentId,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$Forms1099TableFilterComposer(
+            $db: $db,
+            $table: $db.forms1099,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -1911,6 +3041,26 @@ class $$AttachmentsTableAnnotationComposer extends Composer<_$AppDatabase, $Atta
     );
     return composer;
   }
+
+  Expression<T> forms1099Refs<T extends Object>(
+    Expression<T> Function($$Forms1099TableAnnotationComposer a) f,
+  ) {
+    final $$Forms1099TableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.forms1099,
+      getReferencedColumn: (t) => t.attachmentId,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$Forms1099TableAnnotationComposer(
+            $db: $db,
+            $table: $db.forms1099,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AttachmentsTableTableManager
@@ -1926,7 +3076,7 @@ class $$AttachmentsTableTableManager
           $$AttachmentsTableUpdateCompanionBuilder,
           (Attachment, $$AttachmentsTableReferences),
           Attachment,
-          PrefetchHooks Function({bool entryId})
+          PrefetchHooks Function({bool entryId, bool forms1099Refs})
         > {
   $$AttachmentsTableTableManager(_$AppDatabase db, $AttachmentsTable table)
     : super(
@@ -1992,10 +3142,10 @@ class $$AttachmentsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({entryId = false}) {
+          prefetchHooksCallback: ({entryId = false, forms1099Refs = false}) {
             return PrefetchHooks(
               db: db,
-              explicitlyWatchedTables: [],
+              explicitlyWatchedTables: [if (forms1099Refs) db.forms1099],
               addJoins:
                   <
                     T extends TableManagerState<
@@ -2024,7 +3174,23 @@ class $$AttachmentsTableTableManager
                     return state;
                   },
               getPrefetchedDataCallback: (items) async {
-                return [];
+                return [
+                  if (forms1099Refs)
+                    await $_getPrefetchedDataByColumns<
+                      Attachment,
+                      $AttachmentsTable,
+                      Form1099,
+                      $Forms1099Table
+                    >(
+                      currentTable: table,
+                      referencedTable: $$AttachmentsTableReferences._forms1099RefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$AttachmentsTableReferences(db, table, p0).forms1099Refs,
+                      currentColumn: 'id',
+                      referencedColumn: 'attachment_id',
+                      typedResults: items,
+                    ),
+                ];
               },
             );
           },
@@ -2044,7 +3210,626 @@ typedef $$AttachmentsTableProcessedTableManager =
       $$AttachmentsTableUpdateCompanionBuilder,
       (Attachment, $$AttachmentsTableReferences),
       Attachment,
-      PrefetchHooks Function({bool entryId})
+      PrefetchHooks Function({bool entryId, bool forms1099Refs})
+    >;
+typedef $$TaxPaymentsTableCreateCompanionBuilder = TaxPaymentsCompanion Function({
+  Value<int> id,
+  required int taxYear,
+  Value<String> quarter,
+  required String date,
+  required int amountCents,
+  Value<String> method,
+  Value<String> notes,
+});
+typedef $$TaxPaymentsTableUpdateCompanionBuilder = TaxPaymentsCompanion Function({
+  Value<int> id,
+  Value<int> taxYear,
+  Value<String> quarter,
+  Value<String> date,
+  Value<int> amountCents,
+  Value<String> method,
+  Value<String> notes,
+});
+
+class $$TaxPaymentsTableFilterComposer extends Composer<_$AppDatabase, $TaxPaymentsTable> {
+  $$TaxPaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get taxYear =>
+      $composableBuilder(column: $table.taxYear, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get quarter =>
+      $composableBuilder(column: $table.quarter, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => ColumnFilters(column));
+}
+
+class $$TaxPaymentsTableOrderingComposer extends Composer<_$AppDatabase, $TaxPaymentsTable> {
+  $$TaxPaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get taxYear =>
+      $composableBuilder(column: $table.taxYear, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get quarter =>
+      $composableBuilder(column: $table.quarter, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => ColumnOrderings(column));
+}
+
+class $$TaxPaymentsTableAnnotationComposer extends Composer<_$AppDatabase, $TaxPaymentsTable> {
+  $$TaxPaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get taxYear => $composableBuilder(column: $table.taxYear, builder: (column) => column);
+
+  GeneratedColumn<String> get quarter =>
+      $composableBuilder(column: $table.quarter, builder: (column) => column);
+
+  GeneratedColumn<String> get date => $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => column);
+
+  GeneratedColumn<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => column);
+
+  GeneratedColumn<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => column);
+}
+
+class $$TaxPaymentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TaxPaymentsTable,
+          TaxPayment,
+          $$TaxPaymentsTableFilterComposer,
+          $$TaxPaymentsTableOrderingComposer,
+          $$TaxPaymentsTableAnnotationComposer,
+          $$TaxPaymentsTableCreateCompanionBuilder,
+          $$TaxPaymentsTableUpdateCompanionBuilder,
+          (TaxPayment, BaseReferences<_$AppDatabase, $TaxPaymentsTable, TaxPayment>),
+          TaxPayment,
+          PrefetchHooks Function()
+        > {
+  $$TaxPaymentsTableTableManager(_$AppDatabase db, $TaxPaymentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$TaxPaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$TaxPaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$TaxPaymentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> taxYear = const Value.absent(),
+                Value<String> quarter = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<int> amountCents = const Value.absent(),
+                Value<String> method = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+              }) => TaxPaymentsCompanion(
+                id: id,
+                taxYear: taxYear,
+                quarter: quarter,
+                date: date,
+                amountCents: amountCents,
+                method: method,
+                notes: notes,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int taxYear,
+                Value<String> quarter = const Value.absent(),
+                required String date,
+                required int amountCents,
+                Value<String> method = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+              }) => TaxPaymentsCompanion.insert(
+                id: id,
+                taxYear: taxYear,
+                quarter: quarter,
+                date: date,
+                amountCents: amountCents,
+                method: method,
+                notes: notes,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TaxPaymentsTable, TaxPayment>(table),
+                  BaseReferences<_$AppDatabase, $TaxPaymentsTable, TaxPayment>(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TaxPaymentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TaxPaymentsTable,
+      TaxPayment,
+      $$TaxPaymentsTableFilterComposer,
+      $$TaxPaymentsTableOrderingComposer,
+      $$TaxPaymentsTableAnnotationComposer,
+      $$TaxPaymentsTableCreateCompanionBuilder,
+      $$TaxPaymentsTableUpdateCompanionBuilder,
+      (TaxPayment, BaseReferences<_$AppDatabase, $TaxPaymentsTable, TaxPayment>),
+      TaxPayment,
+      PrefetchHooks Function()
+    >;
+typedef $$TripsTableCreateCompanionBuilder = TripsCompanion Function({
+  Value<int> id,
+  required String date,
+  required int milesTenths,
+  Value<String> purpose,
+  Value<String> route,
+});
+typedef $$TripsTableUpdateCompanionBuilder = TripsCompanion Function({
+  Value<int> id,
+  Value<String> date,
+  Value<int> milesTenths,
+  Value<String> purpose,
+  Value<String> route,
+});
+
+class $$TripsTableFilterComposer extends Composer<_$AppDatabase, $TripsTable> {
+  $$TripsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get milesTenths =>
+      $composableBuilder(column: $table.milesTenths, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get purpose =>
+      $composableBuilder(column: $table.purpose, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get route =>
+      $composableBuilder(column: $table.route, builder: (column) => ColumnFilters(column));
+}
+
+class $$TripsTableOrderingComposer extends Composer<_$AppDatabase, $TripsTable> {
+  $$TripsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get milesTenths =>
+      $composableBuilder(column: $table.milesTenths, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get purpose =>
+      $composableBuilder(column: $table.purpose, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get route =>
+      $composableBuilder(column: $table.route, builder: (column) => ColumnOrderings(column));
+}
+
+class $$TripsTableAnnotationComposer extends Composer<_$AppDatabase, $TripsTable> {
+  $$TripsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get date => $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<int> get milesTenths =>
+      $composableBuilder(column: $table.milesTenths, builder: (column) => column);
+
+  GeneratedColumn<String> get purpose =>
+      $composableBuilder(column: $table.purpose, builder: (column) => column);
+
+  GeneratedColumn<String> get route => $composableBuilder(column: $table.route, builder: (column) => column);
+}
+
+class $$TripsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TripsTable,
+          Trip,
+          $$TripsTableFilterComposer,
+          $$TripsTableOrderingComposer,
+          $$TripsTableAnnotationComposer,
+          $$TripsTableCreateCompanionBuilder,
+          $$TripsTableUpdateCompanionBuilder,
+          (Trip, BaseReferences<_$AppDatabase, $TripsTable, Trip>),
+          Trip,
+          PrefetchHooks Function()
+        > {
+  $$TripsTableTableManager(_$AppDatabase db, $TripsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$TripsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$TripsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$TripsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> date = const Value.absent(),
+            Value<int> milesTenths = const Value.absent(),
+            Value<String> purpose = const Value.absent(),
+            Value<String> route = const Value.absent(),
+          }) => TripsCompanion(id: id, date: date, milesTenths: milesTenths, purpose: purpose, route: route),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String date,
+                required int milesTenths,
+                Value<String> purpose = const Value.absent(),
+                Value<String> route = const Value.absent(),
+              }) => TripsCompanion.insert(
+                id: id,
+                date: date,
+                milesTenths: milesTenths,
+                purpose: purpose,
+                route: route,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TripsTable, Trip>(table),
+                  BaseReferences<_$AppDatabase, $TripsTable, Trip>(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TripsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TripsTable,
+      Trip,
+      $$TripsTableFilterComposer,
+      $$TripsTableOrderingComposer,
+      $$TripsTableAnnotationComposer,
+      $$TripsTableCreateCompanionBuilder,
+      $$TripsTableUpdateCompanionBuilder,
+      (Trip, BaseReferences<_$AppDatabase, $TripsTable, Trip>),
+      Trip,
+      PrefetchHooks Function()
+    >;
+typedef $$Forms1099TableCreateCompanionBuilder = Forms1099Companion Function({
+  Value<int> id,
+  required int year,
+  required String kind,
+  required String payer,
+  required int amountCents,
+  Value<int?> attachmentId,
+});
+typedef $$Forms1099TableUpdateCompanionBuilder = Forms1099Companion Function({
+  Value<int> id,
+  Value<int> year,
+  Value<String> kind,
+  Value<String> payer,
+  Value<int> amountCents,
+  Value<int?> attachmentId,
+});
+
+final class $$Forms1099TableReferences extends BaseReferences<_$AppDatabase, $Forms1099Table, Form1099> {
+  $$Forms1099TableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $AttachmentsTable _attachmentIdTable(_$AppDatabase db) =>
+      db.attachments.createAlias('forms1099__attachment_id__attachments__id');
+
+  $$AttachmentsTableProcessedTableManager? get attachmentId {
+    final $_column = $_itemColumn<int>('attachment_id');
+    if ($_column == null) return null;
+    final manager = $$AttachmentsTableTableManager(
+      $_db,
+      $_db.attachments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_attachmentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$Forms1099TableFilterComposer extends Composer<_$AppDatabase, $Forms1099Table> {
+  $$Forms1099TableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get payer =>
+      $composableBuilder(column: $table.payer, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => ColumnFilters(column));
+
+  $$AttachmentsTableFilterComposer get attachmentId {
+    final $$AttachmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attachmentId,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$AttachmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$Forms1099TableOrderingComposer extends Composer<_$AppDatabase, $Forms1099Table> {
+  $$Forms1099TableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get payer =>
+      $composableBuilder(column: $table.payer, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => ColumnOrderings(column));
+
+  $$AttachmentsTableOrderingComposer get attachmentId {
+    final $$AttachmentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attachmentId,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$AttachmentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$Forms1099TableAnnotationComposer extends Composer<_$AppDatabase, $Forms1099Table> {
+  $$Forms1099TableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get year => $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<String> get kind => $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get payer => $composableBuilder(column: $table.payer, builder: (column) => column);
+
+  GeneratedColumn<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => column);
+
+  $$AttachmentsTableAnnotationComposer get attachmentId {
+    final $$AttachmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attachmentId,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$AttachmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$Forms1099TableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $Forms1099Table,
+          Form1099,
+          $$Forms1099TableFilterComposer,
+          $$Forms1099TableOrderingComposer,
+          $$Forms1099TableAnnotationComposer,
+          $$Forms1099TableCreateCompanionBuilder,
+          $$Forms1099TableUpdateCompanionBuilder,
+          (Form1099, $$Forms1099TableReferences),
+          Form1099,
+          PrefetchHooks Function({bool attachmentId})
+        > {
+  $$Forms1099TableTableManager(_$AppDatabase db, $Forms1099Table table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$Forms1099TableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$Forms1099TableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$Forms1099TableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> year = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> payer = const Value.absent(),
+                Value<int> amountCents = const Value.absent(),
+                Value<int?> attachmentId = const Value.absent(),
+              }) => Forms1099Companion(
+                id: id,
+                year: year,
+                kind: kind,
+                payer: payer,
+                amountCents: amountCents,
+                attachmentId: attachmentId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int year,
+                required String kind,
+                required String payer,
+                required int amountCents,
+                Value<int?> attachmentId = const Value.absent(),
+              }) => Forms1099Companion.insert(
+                id: id,
+                year: year,
+                kind: kind,
+                payer: payer,
+                amountCents: amountCents,
+                attachmentId: attachmentId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) =>
+                    (e.readTable<$Forms1099Table, Form1099>(table), $$Forms1099TableReferences(db, table, e)),
+              )
+              .toList(),
+          prefetchHooksCallback: ({attachmentId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (attachmentId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.attachmentId,
+                        referencedTable: $$Forms1099TableReferences._attachmentIdTable(db),
+                        referencedColumn: $$Forms1099TableReferences._attachmentIdTable(db).id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$Forms1099TableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $Forms1099Table,
+      Form1099,
+      $$Forms1099TableFilterComposer,
+      $$Forms1099TableOrderingComposer,
+      $$Forms1099TableAnnotationComposer,
+      $$Forms1099TableCreateCompanionBuilder,
+      $$Forms1099TableUpdateCompanionBuilder,
+      (Form1099, $$Forms1099TableReferences),
+      Form1099,
+      PrefetchHooks Function({bool attachmentId})
     >;
 
 class $AppDatabaseManager {
@@ -2054,4 +3839,7 @@ class $AppDatabaseManager {
   $$LedgerEntriesTableTableManager get ledgerEntries =>
       $$LedgerEntriesTableTableManager(_db, _db.ledgerEntries);
   $$AttachmentsTableTableManager get attachments => $$AttachmentsTableTableManager(_db, _db.attachments);
+  $$TaxPaymentsTableTableManager get taxPayments => $$TaxPaymentsTableTableManager(_db, _db.taxPayments);
+  $$TripsTableTableManager get trips => $$TripsTableTableManager(_db, _db.trips);
+  $$Forms1099TableTableManager get forms1099 => $$Forms1099TableTableManager(_db, _db.forms1099);
 }

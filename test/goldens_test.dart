@@ -64,6 +64,7 @@ List<LedgerEntry> fixtureEntries() {
         businessPct: r['businessPct'] as int? ?? 100,
         category: r['category'] as String,
         party: r['party'] as String? ?? '',
+        paid: true,
         platform: r['platform'] as String? ?? '',
         notes: '',
         createdAt: DateTime(2026),

@@ -11,6 +11,9 @@ class EntryData {
   final int businessPct; // expenses only, 0..100
   final String category;
 
+  /// Income only: false = invoiced, not received yet. Cash basis: not counted until paid.
+  final bool paid;
+
   const EntryData({
     required this.isIncome,
     required this.date,
@@ -18,6 +21,7 @@ class EntryData {
     this.feeCents = 0,
     this.businessPct = 100,
     required this.category,
+    this.paid = true,
   });
 }
 
@@ -84,6 +88,8 @@ LedgerSummary summarize(
   TaxRules rules, {
   double? setAsidePct,
   int w2WagesCents = 0,
+  int mileageCents = 0,
+  int homeOfficeCents = 0,
 }) {
   final lines = <String, double>{};
   final monthly = <int, (double, double)>{};
@@ -91,6 +97,7 @@ LedgerSummary summarize(
 
   for (final e in entries) {
     if (e.date.year != rules.year) continue;
+    if (e.isIncome && !e.paid) continue; // invoiced, not received: cash basis
     final (mi, me) = monthly[e.date.month] ?? (0.0, 0.0);
     if (e.isIncome) {
       final line = rules.category(e.category)?.line ?? '6';
@@ -105,12 +112,18 @@ LedgerSummary summarize(
       monthly[e.date.month] = (mi, me + d);
     }
   }
-  // Lines 9 (mileage) and 30 (home office) arrive with M6.
+  if (mileageCents > 0) add('9', mileageCents.toDouble());
   final gross = (lines['1'] ?? 0) - (lines['2'] ?? 0) + (lines['6'] ?? 0);
   final expenses = lines.entries
       .where((e) => !const {'1', '2', '6'}.contains(e.key))
       .fold(0.0, (a, e) => a + e.value);
-  final net = gross - expenses;
+  // Line 30 (home office, simplified method) can't create or increase a loss.
+  final tentative = gross - expenses;
+  final office = homeOfficeCents <= 0 || tentative <= 0
+      ? 0.0
+      : (homeOfficeCents < tentative ? homeOfficeCents.toDouble() : tentative);
+  if (office > 0) lines['30'] = office;
+  final net = tentative - office;
   final seTax = seTaxFor(net, rules, w2WagesCents: w2WagesCents);
   final pct = setAsidePct ?? rules.defaultSetAsidePct;
   return LedgerSummary(
@@ -119,7 +132,7 @@ LedgerSummary summarize(
         if (e.value != 0) e.key: _r(e.value),
     },
     grossCents: _r(gross),
-    expensesCents: _r(expenses),
+    expensesCents: _r(expenses + office),
     netCents: _r(net),
     seTaxCents: _r(seTax < 0 ? 0 : seTax),
     setAsideCents: _r((net < 0 ? 0 : net) * pct / 100),
