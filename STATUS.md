@@ -25,12 +25,17 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   biometric reset, optional security questions, encrypted backups; no email/SMS codes (would need internet).
   allowBackup=false set. Setup screen's "no recovery" checkbox replaced with a "you can always get back in" note.
 
-## Next: M1b recovery (SPEC §1 "Account recovery"), then M2
-- Vault v2: multiple wrapped copies of the data key (password, recoveryKey, biometric, questions), migrate v1.
-- Recovery key screen + confirm step + printable Emergency Kit; "Forgot password?" on unlock; questions setup.
-- Biometrics: local_auth + Android Keystore (vet packages for networking; ask owner before anything paid).
-- Then M2 (design system, golden screenshots for owner review). Still open: FLAG_SECURE toggle, auto-lock
-  setting UI, Argon2id tuning on a real phone.
+- M1b DONE (2026-11-01): vault v2 = data key wrapped per slot (password, recovery, questions, biometric); v1
+  vaults migrate on unlock. Recovery key (30 chars, must retype last 2 groups; saved only after confirm), biometric
+  reset via biometric_storage (Keystore, auth-bound; plugin vetted), 3 security questions (Argon2id 64 MiB, t=3),
+  Forgot-password flow, temporary RecoveryPanel ("recovery health"). 21 tests pass. Verified on emulator with an
+  enrolled fake fingerprint: all 3 recovery paths, M1→v2 migration, old password rejected, DB untouched.
+
+## Next: M2 design system and app shell (SPEC §5, §8)
+- Theme, components, bottom nav, year switcher; golden screenshots for owner review. Restyle lock + recovery
+  screens; RecoveryPanel moves into Settings. Then M3.
+- Still open: Emergency Kit PDF (with M6 pdf), custom security questions, backup-age banner (M9), FLAG_SECURE
+  toggle, auto-lock setting UI, Argon2id tuning on a real phone.
 
 ## Gotchas
 - PATH is not set globally: use `export PATH=$HOME/flutter/bin:$HOME/Android/Sdk/platform-tools:$PATH`.
@@ -44,3 +49,9 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   user_defines: sqlite3: source: sqlcipher` in pubspec.yaml. No sqlcipher_flutter_libs needed.
 - After editing drift tables: `dart run build_runner build`. Generated database.g.dart is committed.
 - Emulator image is rootable: `adb root` then pull /data/data/com.darkdev.ledgerlock/files/* to inspect.
+- android/settings.gradle.kts has the foojay toolchain resolver (Gradle fetches JDK 17 for biometric_storage at
+  build time). android/build.gradle.kts raises old plugins' compileSdk to 36 via finalizeDsl (AGP 9 locks it early).
+- MainActivity is a FlutterFragmentActivity (biometric_storage needs it).
+- Emulator has screen PIN 1234 and a fake fingerprint: `adb emu finger touch 1`. BiometricPrompt screenshots
+  come out black (Android secures them). `adb input text` needs %s for spaces; escape ? in grep patterns.
+- UI-driving helpers used this session: dump/tap/field/shot functions over `uiautomator dump` (rewrite as needed).

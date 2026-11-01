@@ -29,21 +29,20 @@ class KdfParams {
   });
 
   /// OWASP minimum for Argon2id (19 MiB, t=2, p=1); retune on devices (SPEC §1: ~0.5 s).
-  factory KdfParams.generate({int memoryKiB = 19456, int iterations = 2, int parallelism = 1}) =>
-      KdfParams(
-        memoryKiB: memoryKiB,
-        iterations: iterations,
-        parallelism: parallelism,
-        salt: LedgerCrypto.randomBytes(16),
-      );
+  factory KdfParams.generate({int memoryKiB = 19456, int iterations = 2, int parallelism = 1}) => KdfParams(
+    memoryKiB: memoryKiB,
+    iterations: iterations,
+    parallelism: parallelism,
+    salt: LedgerCrypto.randomBytes(16),
+  );
 
   Map<String, Object> toJson() => {
-        'alg': 'argon2id',
-        'm': memoryKiB,
-        't': iterations,
-        'p': parallelism,
-        'salt': base64.encode(salt),
-      };
+    'alg': 'argon2id',
+    'm': memoryKiB,
+    't': iterations,
+    'p': parallelism,
+    'salt': base64.encode(salt),
+  };
 
   factory KdfParams.fromJson(Map<String, dynamic> j) {
     if (j['alg'] != 'argon2id') throw const FormatException('unknown kdf');
@@ -65,12 +64,14 @@ class LedgerCrypto {
   static final _aes = AesGcm.with256bits();
   static final _rng = Random.secure();
 
-  static Uint8List randomBytes(int n) =>
-      Uint8List.fromList(List<int>.generate(n, (_) => _rng.nextInt(256)));
+  static Uint8List randomBytes(int n) => Uint8List.fromList(List<int>.generate(n, (_) => _rng.nextInt(256)));
 
   /// Argon2id, run in a background isolate so the UI stays responsive.
-  static Future<Uint8List> deriveKey(String password, KdfParams p) {
-    final pw = utf8.encode(password);
+  static Future<Uint8List> deriveKey(String password, KdfParams p) =>
+      deriveKeyBytes(utf8.encode(password), p);
+
+  static Future<Uint8List> deriveKeyBytes(List<int> secret, KdfParams p) {
+    final pw = Uint8List.fromList(secret);
     final salt = p.salt;
     final m = p.memoryKiB, t = p.iterations, par = p.parallelism;
     return Isolate.run(() async {
@@ -105,8 +106,12 @@ class LedgerCrypto {
   static Future<Uint8List> decrypt(Uint8List sealed, Uint8List key, {List<int> aad = const []}) async {
     if (sealed.length < nonceLength + macLength) throw const DecryptionFailed();
     try {
-      final box = SecretBox.fromConcatenation(sealed,
-          nonceLength: nonceLength, macLength: macLength, copy: true);
+      final box = SecretBox.fromConcatenation(
+        sealed,
+        nonceLength: nonceLength,
+        macLength: macLength,
+        copy: true,
+      );
       return Uint8List.fromList(await _aes.decrypt(box, secretKey: SecretKey(key), aad: aad));
     } on SecretBoxAuthenticationError {
       throw const DecryptionFailed();

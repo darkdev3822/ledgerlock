@@ -11,22 +11,36 @@ import 'vault.dart';
 class Session {
   final AppDatabase db;
   final EncryptedFileStore files;
+  final Vault vault;
+
+  /// Kept while unlocked so recovery methods can be (re)configured.
+  final Uint8List dataKey;
   final List<Uint8List> _keys;
 
-  Session._(this.db, this.files, this._keys);
+  Session._(this.db, this.files, this.vault, this.dataKey, this._keys);
 
-  /// Unlocks (or, on first launch, creates) the vault in [dir].
+  /// Unlocks (or, on first launch, creates) the vault with the master password.
   static Future<Session> open(Directory dir, String password, {Vault? vault}) async {
     final v = vault ?? Vault(dir);
     final dataKey = v.exists ? await v.unlock(password) : await v.create(password);
+    return fromDataKey(dir, dataKey, v);
+  }
+
+  /// Opens the encrypted stores with a data key from any vault slot. Takes ownership of [dataKey].
+  static Future<Session> fromDataKey(Directory dir, Uint8List dataKey, Vault vault) async {
     try {
       final dbKey = await LedgerCrypto.subkey(dataKey, 'db');
       final fileKey = await LedgerCrypto.subkey(dataKey, 'files');
       final db = AppDatabase.open(File('${dir.path}/ledger.db'), dbKey);
       await db.customSelect('SELECT 1').get(); // surface key errors now
-      return Session._(db, EncryptedFileStore(Directory('${dir.path}/files'), fileKey), [dbKey, fileKey]);
-    } finally {
+      return Session._(db, EncryptedFileStore(Directory('${dir.path}/files'), fileKey), vault, dataKey, [
+        dbKey,
+        fileKey,
+        dataKey,
+      ]);
+    } catch (_) {
       LedgerCrypto.zero(dataKey);
+      rethrow;
     }
   }
 

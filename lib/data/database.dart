@@ -28,19 +28,21 @@ class AppDatabase extends _$AppDatabase {
   /// A wrong key surfaces as an error on the first query.
   factory AppDatabase.open(File file, Uint8List key) {
     final hex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-    return AppDatabase(NativeDatabase.createInBackground(
-      file,
-      setup: (db) {
-        final v = db.select('PRAGMA cipher_version');
-        if (v.isEmpty || (v.first.values.first as String?)?.isEmpty != false) {
-          throw NotEncrypted();
-        }
-        db.execute("PRAGMA key = \"x'$hex'\"");
-        // Verifies the key now (throws "file is not a database" if wrong).
-        db.select('SELECT count(*) FROM sqlite_master');
-        db.execute('PRAGMA foreign_keys = ON');
-      },
-    ));
+    return AppDatabase(
+      NativeDatabase.createInBackground(
+        file,
+        setup: (db) {
+          final v = db.select('PRAGMA cipher_version');
+          if (v.isEmpty || (v.first.values.first as String?)?.isEmpty != false) {
+            throw NotEncrypted();
+          }
+          db.execute("PRAGMA key = \"x'$hex'\"");
+          // Verifies the key now (throws "file is not a database" if wrong).
+          db.select('SELECT count(*) FROM sqlite_master');
+          db.execute('PRAGMA foreign_keys = ON');
+        },
+      ),
+    );
   }
 
   @override

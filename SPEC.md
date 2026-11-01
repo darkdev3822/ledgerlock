@@ -35,13 +35,13 @@ better design and search.** Lead with privacy in every store listing and screens
 - **Account recovery: several independent ways back in, all offline** (owner decision 2026-11-01: users must
   never lose their data). The random data key is wrapped separately by each method, so any one of them unlocks it
   and then lets the user set a new master password (re-wrap only; data is not re-encrypted):
-  1. **Recovery key** (required at setup): a random 128-bit code shown once as 6 groups of letters/digits plus a
-     printable "Emergency Kit" page. The user must re-type part of it to confirm they saved it. Can be regenerated
+  1. **Recovery key** (required at setup): a random 150-bit code (30 Crockford base32 chars, 6 groups of 5) shown
+     once, plus a printable "Emergency Kit" page (added with the PDF work in M6). The user must re-type part of it to confirm they saved it. Can be regenerated
      in Settings (the old one stops working).
   2. **Biometric reset** (offered at setup): a Keystore / Secure Enclave key, gated by biometrics and invalidated
      when new fingerprints/faces are enrolled, wraps the data key. "Forgot password?" → biometric → new password.
      Only works on the same phone.
-  3. **Security questions** (optional, only after 1 is set up): 3 questions from a list plus 1 custom; answers are
+  3. **Security questions** (optional, only after 1 is set up): 3 different questions from a list (custom questions later); answers are
      normalised (case, spaces, punctuation) and all 3 are needed. They feed Argon2id with heavier parameters.
      The UI warns that answers must not be findable online. Never the only method.
   4. **Encrypted backups** (below) are the answer to a lost, stolen or broken phone: monthly reminders, a banner

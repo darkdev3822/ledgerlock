@@ -10,7 +10,7 @@ class AutoLock with WidgetsBindingObserver {
   DateTime? _backgroundedAt;
 
   AutoLock({required this.onLock, this.timeout = const Duration(minutes: 1), DateTime Function()? now})
-      : _now = now ?? DateTime.now;
+    : _now = now ?? DateTime.now;
 
   void attach() => WidgetsBinding.instance.addObserver(this);
   void detach() => WidgetsBinding.instance.removeObserver(this);

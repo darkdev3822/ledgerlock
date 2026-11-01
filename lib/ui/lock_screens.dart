@@ -16,11 +16,18 @@ int passwordStrength(String pw) {
 
 const _strengthLabels = ['Too short', 'Weak', 'Fair', 'Good', 'Strong'];
 
-class _Shell extends StatelessWidget {
+class LockShell extends StatelessWidget {
+  final IconData icon;
   final String title;
   final String subtitle;
   final List<Widget> children;
-  const _Shell({required this.title, required this.subtitle, required this.children});
+  const LockShell({
+    super.key,
+    this.icon = Icons.lock_rounded,
+    required this.title,
+    required this.subtitle,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -32,15 +39,18 @@ class _Shell extends StatelessWidget {
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Icon(Icons.lock_rounded, size: 48, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 16),
-                Text(title, style: t.headlineMedium, textAlign: TextAlign.center),
-                const SizedBox(height: 8),
-                Text(subtitle, style: t.bodyMedium, textAlign: TextAlign.center),
-                const SizedBox(height: 32),
-                ...children,
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(height: 16),
+                  Text(title, style: t.headlineMedium, textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
+                  Text(subtitle, style: t.bodyMedium, textAlign: TextAlign.center),
+                  const SizedBox(height: 32),
+                  ...children,
+                ],
+              ),
             ),
           ),
         ),
@@ -51,7 +61,18 @@ class _Shell extends StatelessWidget {
 
 class SetupScreen extends StatefulWidget {
   final Future<void> Function(String password) onSubmit;
-  const SetupScreen({super.key, required this.onSubmit});
+  final String title;
+  final String subtitle;
+  final String buttonLabel;
+  final bool showRecoveryNote;
+  const SetupScreen({
+    super.key,
+    required this.onSubmit,
+    this.title = 'Create your master password',
+    this.subtitle = 'Everything stays on this phone, encrypted with this password.',
+    this.buttonLabel = 'Create encrypted vault',
+    this.showRecoveryNote = true,
+  });
   @override
   State<SetupScreen> createState() => _SetupScreenState();
 }
@@ -73,9 +94,9 @@ class _SetupScreenState extends State<SetupScreen> {
     final score = passwordStrength(_pw.text);
     final cs = Theme.of(context).colorScheme;
     final ok = score >= 2 && _pw.text == _confirm.text && !_busy;
-    return _Shell(
-      title: 'Create your master password',
-      subtitle: 'Everything stays on this phone, encrypted with this password.',
+    return LockShell(
+      title: widget.title,
+      subtitle: widget.subtitle,
       children: [
         TextField(
           key: const Key('pw'),
@@ -107,26 +128,31 @@ class _SetupScreenState extends State<SetupScreen> {
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 16),
-        Card(
-          color: cs.secondaryContainer,
-          child: const ListTile(
-            leading: Icon(Icons.health_and_safety_outlined),
-            title: Text('You can always get back in'),
-            subtitle: Text('Next you\'ll save a recovery key and can turn on fingerprint reset, so a '
-                'forgotten password never means lost records.'),
+        if (widget.showRecoveryNote)
+          Card(
+            color: cs.secondaryContainer,
+            child: const ListTile(
+              leading: Icon(Icons.health_and_safety_outlined),
+              title: Text('You can always get back in'),
+              subtitle: Text(
+                'Next you\'ll save a recovery key and can turn on fingerprint reset, so a '
+                'forgotten password never means lost records.',
+              ),
+            ),
           ),
-        ),
         const SizedBox(height: 24),
         FilledButton(
           onPressed: ok
               ? () async {
                   setState(() => _busy = true);
-                  await widget.onSubmit(_pw.text);
+                  try {
+                    await widget.onSubmit(_pw.text);
+                  } finally {
+                    if (mounted) setState(() => _busy = false);
+                  }
                 }
               : null,
-          child: _busy
-              ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Create encrypted vault'),
+          child: _busy ? const BusyDot() : Text(widget.buttonLabel),
         ),
       ],
     );
@@ -135,7 +161,8 @@ class _SetupScreenState extends State<SetupScreen> {
 
 class UnlockScreen extends StatefulWidget {
   final Future<void> Function(String password) onSubmit;
-  const UnlockScreen({super.key, required this.onSubmit});
+  final VoidCallback? onForgot;
+  const UnlockScreen({super.key, required this.onSubmit, this.onForgot});
   @override
   State<UnlockScreen> createState() => _UnlockScreenState();
 }
@@ -167,38 +194,50 @@ class _UnlockScreenState extends State<UnlockScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => _Shell(
-        title: 'LedgerLock',
-        subtitle: 'Enter your master password to unlock.',
-        children: [
-          TextField(
-            key: const Key('unlock'),
-            controller: _pw,
-            obscureText: true,
-            autofocus: true,
-            decoration: InputDecoration(
-                labelText: 'Master password', border: const OutlineInputBorder(), errorText: _error),
-            onSubmitted: (_) => _submit(),
-          ),
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _busy ? null : _submit,
-            child: _busy
-                ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Unlock'),
-          ),
-        ],
-      );
+  Widget build(BuildContext context) => LockShell(
+    title: 'LedgerLock',
+    subtitle: 'Enter your master password to unlock.',
+    children: [
+      TextField(
+        key: const Key('unlock'),
+        controller: _pw,
+        obscureText: true,
+        autofocus: true,
+        decoration: InputDecoration(
+          labelText: 'Master password',
+          border: const OutlineInputBorder(),
+          errorText: _error,
+        ),
+        onSubmitted: (_) => _submit(),
+      ),
+      const SizedBox(height: 24),
+      FilledButton(onPressed: _busy ? null : _submit, child: _busy ? const BusyDot() : const Text('Unlock')),
+      if (widget.onForgot != null)
+        TextButton(onPressed: widget.onForgot, child: const Text('Forgot password?')),
+    ],
+  );
 }
 
 class UnlockedPlaceholder extends StatelessWidget {
   final VoidCallback onLock;
-  const UnlockedPlaceholder({super.key, required this.onLock});
+  final Widget? recoveryPanel;
+  const UnlockedPlaceholder({super.key, required this.onLock, this.recoveryPanel});
 
   @override
-  Widget build(BuildContext context) => _Shell(
-        title: 'Vault unlocked',
-        subtitle: 'Encrypted database and file store are open. The ledger arrives in M3.',
-        children: [OutlinedButton.icon(onPressed: onLock, icon: const Icon(Icons.lock), label: const Text('Lock now'))],
-      );
+  Widget build(BuildContext context) => LockShell(
+    title: 'Vault unlocked',
+    subtitle: 'Encrypted database and file store are open. The ledger arrives in M3.',
+    children: [
+      ?recoveryPanel,
+      const SizedBox(height: 16),
+      OutlinedButton.icon(onPressed: onLock, icon: const Icon(Icons.lock), label: const Text('Lock now')),
+    ],
+  );
+}
+
+class BusyDot extends StatelessWidget {
+  const BusyDot({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2));
 }
