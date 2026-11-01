@@ -75,6 +75,9 @@ void main() {
         expect(r.incomeLimitCents.keys.every(TaxRules.supportedYears.contains), isTrue, reason: r.id);
       }
       expect(all.any((r) => r.id == 'disaster_relief' && r.when.contains('always')), isTrue);
+      for (final r in all.where((r) => !r.isGovernment)) {
+        expect(r.siteNote, isNotEmpty, reason: '${r.id}: non-government sites need a privacy note');
+      }
     });
 
     test('unverified resources are never suggested', () {
@@ -156,6 +159,31 @@ void main() {
       );
     });
 
+    test('a non-government site without a privacy note is never shown', () {
+      final r = Resource(
+        id: 's',
+        name: 's',
+        purpose: 'p',
+        url: 'https://www.score.org/',
+        when: const ['always'],
+        verified: 'x',
+      );
+      expect(suggestResources([r], f), isEmpty);
+    });
+
+    test('an "unpublished" limit never matches', () {
+      final r = Resource.fromJson({
+        'id': 'ff',
+        'name': 'ff',
+        'purpose': 'p',
+        'url': 'https://www.irs.gov/x',
+        'when': ['incomeUnderLimit'],
+        'incomeLimitCents': {'2026': 'unpublished'},
+        'verified': 'x',
+      });
+      expect(suggestResources([r], f), isEmpty);
+    });
+
     test('opt-ins and vault letters; first year', () {
       const g = UserFacts(year: 2026, hasIncome: true, hasIrsLetter: true, age60OptIn: true);
       final s = suggestResources([
@@ -174,7 +202,9 @@ void main() {
       expect(s.first.why!.toLowerCase(), isNot(contains('qualify')));
       expect(s.first.why!.toLowerCase(), isNot(contains('eligible')));
       const old = UserFacts(year: 2026, age60OptIn: true);
-      final w = suggestResources([_r('tce', ['age60'])], old).single.why!.toLowerCase();
+      final w = suggestResources([
+        _r('tce', ['age60']),
+      ], old).single.why!.toLowerCase();
       expect(w, isNot(contains('told us')), reason: 'never imply the answer was shared');
     });
   });
@@ -219,7 +249,7 @@ void main() {
         rules(2026, meals: 1, seRate: .16, k1099: 2500),
         netCents: 1000000,
         expenseByCategory: {'meals': 40000},
-        platformIncomeCents: 300000,
+        largestPlatformIncomeCents: 300000,
       );
       expect(c.map((x) => x.title), [
         'Self-employment tax rate',
@@ -231,6 +261,24 @@ void main() {
       expect(c[1].forYou, contains(r'$200'));
       expect(c[2].detail, r'$5,000 → $2,500');
       expect(c[2].forYou, contains('expect a 1099-K'));
+    });
+
+    test('1099-K: two-part threshold shown, judged on the biggest single platform', () {
+      KeyFigure k(num v) => KeyFigure(
+        id: 'form_1099k_threshold',
+        name: '1099-K threshold',
+        unit: 'dollars',
+        value: v,
+        detail: 'in more than 200 transactions, per platform',
+        verified: 'x',
+      );
+      TaxRules r(int y, num v) =>
+          TaxRules(year: y, quarterlyDue: const [], verified: 'x', keyFigures: [k(v)]);
+      final over = whatChanged(r(2025, 5000), r(2026, 20000), largestPlatformIncomeCents: 2500000).single;
+      expect(over.detail, contains('200 transactions'));
+      expect(over.forYou, contains('if you also meet the rest'));
+      final under = whatChanged(r(2025, 5000), r(2026, 20000), largestPlatformIncomeCents: 1500000).single;
+      expect(under.forYou, contains('under it'));
     });
 
     test('unverified key figures are ignored', () {

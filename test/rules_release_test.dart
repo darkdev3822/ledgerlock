@@ -27,8 +27,11 @@ void main() {
       final r = Resource.fromJson(j as Map<String, dynamic>);
       if (r.verified == null) missing.add('resources.json: ${r.id}');
       if (r.when.contains('incomeUnderLimit')) {
+        final raw = (j['incomeLimitCents'] as Map<String, dynamic>? ?? const {});
         for (final y in TaxRules.supportedYears) {
-          if (r.incomeLimitCents[y] == null) missing.add('resources.json: ${r.id} limit $y');
+          // A number, or "unpublished" when the owner checked and the IRS hasn't released it yet.
+          final v = raw['$y'];
+          if (v is! int && v != 'unpublished') missing.add('resources.json: ${r.id} limit $y');
         }
       }
     }

@@ -55,6 +55,9 @@ class Resource {
   final List<String> when;
   final Map<int, int?> incomeLimitCents;
   final String? verified;
+
+  /// Privacy note shown before leaving for a non-government site (cookies, ad partners, location).
+  final String siteNote;
   const Resource({
     required this.id,
     required this.name,
@@ -63,7 +66,11 @@ class Resource {
     required this.when,
     this.incomeLimitCents = const {},
     this.verified,
+    this.siteNote = '',
   });
+
+  /// Government sites (*.gov) need no extra note; every other host must carry a [siteNote].
+  bool get isGovernment => Uri.parse(url).host.endsWith('.gov');
 
   factory Resource.fromJson(Map<String, dynamic> j) => Resource(
     id: j['id'] as String,
@@ -73,13 +80,18 @@ class Resource {
     when: [for (final w in j['when'] as List) w as String],
     incomeLimitCents: {
       for (final e in (j['incomeLimitCents'] as Map<String, dynamic>? ?? const {}).entries)
-        int.parse(e.key): e.value as int?,
+        int.parse(e.key): e.value is int ? e.value as int : null, // "unpublished" -> null
     },
     verified: j['verified'] as String?,
+    siteNote: j['siteNote'] as String? ?? '',
   );
 
   /// Shown only when the owner has verified it and the link passes the allowlist.
-  bool get usable => verified != null && isAllowedLink(url) && when.every(conditionRank.containsKey);
+  bool get usable =>
+      verified != null &&
+      isAllowedLink(url) &&
+      when.every(conditionRank.containsKey) &&
+      (isGovernment || siteNote.isNotEmpty);
 
   static Future<List<Resource>> load({AssetBundle? bundle}) async {
     final s = await (bundle ?? rootBundle).loadString('assets/tax_rules/resources.json');
@@ -138,8 +150,8 @@ List<Suggestion> suggestResources(List<Resource> all, UserFacts f) {
         'irsProblem' when f.irsProblemOptIn => 'You said you have an IRS problem that isn’t solved.',
         'incomeUnderLimit' => switch (r.incomeLimitCents[f.year]) {
           final limit? when f.hasIncome && f.netCents < limit =>
-            'Your business profit so far (${_money(f.netCents)}) is under its ${_money(limit)} limit. '
-                'The limit counts all your income, so check the details.',
+            'Your business profit so far (${_money(f.netCents)}) is under the ${_money(limit)} income level it lists. '
+                'It counts all your income, so check the details.',
           _ => null,
         },
         'age60' when f.age60OptIn => 'You said you’re 60 or older.',
@@ -181,19 +193,20 @@ String _pct(double v) {
 
 String _figure(KeyFigure k) => switch (k.unit) {
   'cents_per_mile' => '${k.value}¢ a mile',
-  'dollars' => _money((k.value! * 100).round()),
+  'dollars' => [_money((k.value! * 100).round()), if (k.detail.isNotEmpty) k.detail].join(' '),
   _ => '${k.value}',
 };
 
 /// Differences between last year's and this year's rules, applied to the user's numbers.
 /// [expenseByCategory]: this year's business-share spend per category id, in cents.
+/// [largestPlatformIncomeCents]: income through the user's biggest single platform (1099-K counts per platform).
 /// Empty unless BOTH files passed the owner-led review.
 List<RuleChange> whatChanged(
   TaxRules prev,
   TaxRules cur, {
   int netCents = 0,
   Map<String, int> expenseByCategory = const {},
-  int platformIncomeCents = 0,
+  int largestPlatformIncomeCents = 0,
 }) {
   if (prev.verified == null || cur.verified == null) return const [];
   final out = <RuleChange>[];
@@ -239,11 +252,13 @@ List<RuleChange> whatChanged(
     final old = before[k.id];
     if (old == null || old.value == k.value) continue;
     String? forYou;
-    if (k.id == 'form_1099k_threshold' && platformIncomeCents > 0) {
-      forYou = platformIncomeCents >= k.value! * 100
-          ? 'Your platform income (${_money(platformIncomeCents)}) is over it: expect a 1099-K.'
-          : 'Your platform income (${_money(platformIncomeCents)}) is under it so far. '
-                'Report the income either way.';
+    if (k.id == 'form_1099k_threshold' && largestPlatformIncomeCents > 0) {
+      final top = _money(largestPlatformIncomeCents);
+      forYou = largestPlatformIncomeCents > k.value! * 100
+          ? 'Your biggest platform ($top) is over the amount: expect a 1099-K'
+                '${k.detail.isEmpty ? '' : ' if you also meet the rest (${k.detail})'}. Report all income either way.'
+          : 'Your biggest platform ($top) is under it so far. Card payments can still bring a 1099-K, '
+                'and all income is reported either way.';
     }
     out.add(RuleChange(k.name, '${_figure(old)} → ${_figure(k)}', forYou: forYou));
   }

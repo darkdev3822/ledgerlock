@@ -291,9 +291,10 @@
       "id": "form_1099k_threshold",
       "name": "Form 1099-K reporting threshold",
       "unit": "dollars",
-      "value": null,
-      "source": "",
-      "verified": null
+      "value": 20000,
+      "source": "https://www.irs.gov/businesses/understanding-your-form-1099-k (Reporting threshold; page updated 2026-10-28)",
+      "verified": "2026-11-01",
+      "detail": "in more than 200 transactions, per platform"
     }
   ]
 }

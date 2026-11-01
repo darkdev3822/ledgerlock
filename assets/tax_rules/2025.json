@@ -293,7 +293,8 @@
       "unit": "dollars",
       "value": null,
       "source": "",
-      "verified": null
+      "verified": null,
+      "detail": "in more than 200 transactions, per platform"
     }
   ]
 }

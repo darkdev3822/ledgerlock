@@ -53,7 +53,7 @@ class GuidanceSection extends ConsumerWidget {
             prev,
             cur,
             netCents: facts.netCents,
-            platformIncomeCents: facts.platformIncomeCents,
+            largestPlatformIncomeCents: _largestPlatform(entries),
             expenseByCategory: _businessSpend(entries),
           );
     final suggestions = suggestResources(ref.watch(resourcesProvider).value ?? const [], facts);
@@ -145,6 +145,10 @@ Future<void> _confirmOpen(BuildContext context, Resource r) async {
               'the link carries no information about you.',
               style: c.text.bodyMedium,
             ),
+            if (r.siteNote.isNotEmpty) ...[
+              const SizedBox(height: Space.sm),
+              Text(r.siteNote, style: c.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+            ],
             const SizedBox(height: Space.lg),
             FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Open in browser')),
             TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
@@ -171,4 +175,13 @@ Map<String, int> _businessSpend(List<LedgerEntry> entries) {
     );
   }
   return m;
+}
+
+/// Income through the user's biggest single payment platform (the 1099-K threshold counts per platform).
+int _largestPlatform(List<LedgerEntry> entries) {
+  final m = <String, int>{};
+  for (final e in entries.where((e) => e.isIncome && isPaymentPlatform(e.platform))) {
+    m.update(e.platform.trim().toLowerCase(), (v) => v + e.amountCents, ifAbsent: () => e.amountCents);
+  }
+  return m.values.fold(0, (a, v) => v > a ? v : a);
 }

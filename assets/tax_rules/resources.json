@@ -3,8 +3,8 @@
   "resources": [
     {
       "id": "disaster_relief",
-      "name": "IRS disaster relief and deadline extensions",
-      "purpose": "Check whether your area has extra time to file or pay.",
+      "name": "IRS: Tax relief in disaster situations",
+      "purpose": "Check, by state, whether your area has extra time to file or pay.",
       "url": "https://www.irs.gov/newsroom/tax-relief-in-disaster-situations",
       "when": [
         "always"
@@ -13,12 +13,12 @@
         "2025": null,
         "2026": null
       },
-      "verified": null
+      "verified": "2026-11-01"
     },
     {
       "id": "taxpayer_advocate",
       "name": "Taxpayer Advocate Service",
-      "purpose": "Free, independent help when an IRS problem isn’t getting solved.",
+      "purpose": "An independent organization within the IRS that helps with tax problems you can’t resolve on your own.",
       "url": "https://www.taxpayeradvocate.irs.gov/",
       "when": [
         "irsLetter",
@@ -28,40 +28,40 @@
         "2025": null,
         "2026": null
       },
-      "verified": null
+      "verified": "2026-11-01"
     },
     {
       "id": "free_file",
       "name": "IRS Free File",
-      "purpose": "File your federal return free with brand-name software, under an income limit.",
-      "url": "https://www.irs.gov/filing/free-file-do-your-federal-taxes-for-free",
+      "purpose": "Free guided tax software under an income limit (Fillable Forms at any income). Open during filing season, from January.",
+      "url": "https://www.irs.gov/e-file-do-your-taxes-for-free",
       "when": [
         "incomeUnderLimit"
       ],
       "incomeLimitCents": {
-        "2025": null,
-        "2026": null
+        "2025": 9500000,
+        "2026": "unpublished"
       },
-      "verified": null
+      "verified": "2026-11-01"
     },
     {
       "id": "vita",
       "name": "VITA free tax preparation",
-      "purpose": "IRS-certified volunteers prepare your return free, under an income limit.",
+      "purpose": "Free basic tax return preparation by IRS-certified volunteers, generally for people under an income guideline, people with disabilities, and limited English speakers. Sites may set their own limits.",
       "url": "https://www.irs.gov/individuals/free-tax-return-preparation-for-qualifying-taxpayers",
       "when": [
         "incomeUnderLimit"
       ],
       "incomeLimitCents": {
-        "2025": null,
-        "2026": null
+        "2025": 7024400,
+        "2026": "unpublished"
       },
-      "verified": null
+      "verified": "2026-11-01"
     },
     {
       "id": "tce",
       "name": "Tax Counseling for the Elderly (TCE)",
-      "purpose": "Free tax help focused on people 60 and older.",
+      "purpose": "Free tax help, particularly for people 60 and older, with a focus on pensions and retirement questions.",
       "url": "https://www.irs.gov/individuals/free-tax-return-preparation-for-qualifying-taxpayers",
       "when": [
         "age60"
@@ -70,13 +70,13 @@
         "2025": null,
         "2026": null
       },
-      "verified": null
+      "verified": "2026-11-01"
     },
     {
       "id": "litc",
       "name": "Low Income Taxpayer Clinics",
-      "purpose": "Free or low-cost help with IRS disputes, under an income limit.",
-      "url": "https://www.taxpayeradvocate.irs.gov/about-us/low-income-taxpayer-clinics-litc/",
+      "purpose": "Independent clinics that help people whose income is below a certain level resolve IRS problems, free or for a small fee.",
+      "url": "https://www.taxpayeradvocate.irs.gov/litc/",
       "when": [
         "irsLetter",
         "irsProblem"
@@ -85,12 +85,12 @@
         "2025": null,
         "2026": null
       },
-      "verified": null
+      "verified": "2026-11-01"
     },
     {
       "id": "payment_plans",
-      "name": "IRS payment plans",
-      "purpose": "Options if you can’t pay what you owe all at once.",
+      "name": "IRS payment plans (installment agreements)",
+      "purpose": "An agreement with the IRS to pay what you owe over a longer time. Setup fees may apply; interest and penalties keep adding up until it’s paid.",
       "url": "https://www.irs.gov/payments/payment-plans-installment-agreements",
       "when": [
         "taxDue"
@@ -99,12 +99,12 @@
         "2025": null,
         "2026": null
       },
-      "verified": null
+      "verified": "2026-11-01"
     },
     {
       "id": "se_tax_center",
       "name": "IRS Self-Employed Individuals Tax Center",
-      "purpose": "The IRS’s starting point for side-hustle and freelance taxes.",
+      "purpose": "Who counts as self-employed, what you owe, quarterly payments and filing: the IRS’s starting point.",
       "url": "https://www.irs.gov/businesses/small-businesses-self-employed/self-employed-individuals-tax-center",
       "when": [
         "firstYear",
@@ -114,12 +114,12 @@
         "2025": null,
         "2026": null
       },
-      "verified": null
+      "verified": "2026-11-01"
     },
     {
       "id": "form_1099k",
       "name": "IRS: Understanding your Form 1099-K",
-      "purpose": "What the 1099-K from payment apps and marketplaces means for you.",
+      "purpose": "The report of payments you got for goods or services through cards, payment apps or online marketplaces, and how to use it on your return.",
       "url": "https://www.irs.gov/businesses/understanding-your-form-1099-k",
       "when": [
         "platformIncome"
@@ -128,12 +128,12 @@
         "2025": null,
         "2026": null
       },
-      "verified": null
+      "verified": "2026-11-01"
     },
     {
       "id": "score",
       "name": "SCORE free business mentoring",
-      "purpose": "Free mentoring from experienced business volunteers.",
+      "purpose": "Free mentoring from experienced business mentors, plus business training.",
       "url": "https://www.score.org/",
       "when": [
         "selfEmployed"
@@ -142,7 +142,8 @@
         "2025": null,
         "2026": null
       },
-      "verified": null
+      "verified": "2026-11-01",
+      "siteNote": "This is not a government site. It asks for your location and may share usage data with advertising and analytics partners."
     }
   ]
 }

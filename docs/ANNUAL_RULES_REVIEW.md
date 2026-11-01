@@ -35,4 +35,7 @@ relief page, SCORE.
 ## Log
 | Year file | Reviewed on | Notes |
 |---|---|---|
-| (none yet) | | Data drafted 2026-11-01 in M6 part 1: resources.json (10 candidates, all unverified, limits null); mileage_rate + form_1099k_threshold placeholders (null) in 2025/2026.json. First review = next session. |
+| resources.json | 2026-11-01 | All 10 checked with the owner (screenshots). Moved URLs fixed (LITC, Free File). Free File $95,000 and VITA ~$70,244 recorded as 2025 (season just closed; page names no year: owner to confirm); 2026 limits "unpublished" (Free File reopens Jan 2027). Payment plans: fees noted. SCORE: owner chose keep + privacy note (location, ad partners). Candidate for next review: IRS "Gig economy tax center". |
+| 2026.json form_1099k_threshold | 2026-11-01 | $20,000 in more than 200 transactions, per platform (page updated 2026-10-28). |
+| (still open) | | Year files: quarterly dates, SE numbers, meals %, mileage 2025/2026, 1099-K 2025. |
+| (old row) | | Data drafted 2026-11-01 in M6 part 1: resources.json (10 candidates, all unverified, limits null); mileage_rate + form_1099k_threshold placeholders (null) in 2025/2026.json. First review = next session. |

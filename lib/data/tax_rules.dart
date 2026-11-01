@@ -44,12 +44,16 @@ class Category {
 class KeyFigure {
   final String id, name, unit, source;
   final num? value;
+
+  /// Extra condition shown with the value, e.g. "in more than 200 transactions".
+  final String detail;
   final String? verified;
   const KeyFigure({
     required this.id,
     required this.name,
     required this.unit,
     this.source = '',
+    this.detail = '',
     this.value,
     this.verified,
   });
@@ -60,6 +64,7 @@ class KeyFigure {
     name: j['name'] as String,
     unit: j['unit'] as String? ?? '',
     source: j['source'] as String? ?? '',
+    detail: j['detail'] as String? ?? '',
     value: j['value'] as num?,
     verified: j['verified'] as String?,
   );
