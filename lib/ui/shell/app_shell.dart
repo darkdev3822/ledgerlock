@@ -9,6 +9,7 @@ import '../../data/tax_rules.dart';
 import '../design/theme.dart';
 import '../settings_screen.dart';
 import '../ledger/entry_screen.dart';
+import '../search/search_screen.dart';
 import '../vault/capture_screen.dart';
 import '../vault/vault_screens.dart';
 import 'tabs.dart';
@@ -52,6 +53,11 @@ class _AppShellState extends ConsumerState<AppShell> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Search',
+            icon: const Icon(Icons.search_rounded),
+            onPressed: () => openSearch(context),
+          ),
           IconButton(
             tooltip: 'Add a record',
             icon: const Icon(Icons.add_rounded),

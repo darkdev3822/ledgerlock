@@ -31,7 +31,8 @@ Updated every milestone. The final security phase (SPEC §8, M9.5) attacks every
 | T3 | M4 review | Auto-lock used the wall clock; setting the time back skipped the lock | Medium | **Fixed**: monotonic Stopwatch. security_test |
 | T4 | M4 review | Tampered vault.json Argon2 params (e.g. 4 GiB) = crash on every unlock | Medium | **Fixed**: range-checked params (m <= 256 MiB, t <= 10, p <= 4, salt 16-64 B). hardening_test |
 | T5 | M4 review | Keyboards could learn passwords, recovery keys, answers, payees | Medium | **Fixed**: enableIMEPersonalizedLearning/suggestions/autocorrect off on secret fields; learning off on entry fields |
-| T6 | M4 review | FTS5 MATCH syntax from user search text (crash / query errors) | Medium | **To do in M5**: search terms tokenised and quoted, never passed raw |
+| T6 | M4 review | FTS5 MATCH syntax from user search text (crash / query errors) | Medium | **Fixed (M5)**: terms reduced to letters/digits, each quoted + prefix-starred, AND/OR joined by us; all filters are bound parameters. search_test "hostile input" + "ftsMatch only ever contains quoted word tokens" |
+| T7 | M5 review | Pasted wall of text -> thousands of FTS terms (SQLite expression limit, UI jank, unhandled error) | Low | **Fixed**: 200-char field cap, 24-word parser cap, search errors caught in the screen. search_test "hostile input" |
 
 ## Accepted risks (revisit in M9.5)
 - **Security questions** are low-entropy: anyone with the files (attacker B) can guess offline. Mitigations:

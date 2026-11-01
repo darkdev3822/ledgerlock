@@ -61,10 +61,16 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   (AttemptGuard in Vault), T2 image bombs (safeDecode, 40 MP cap), T3 monotonic auto-lock, T4 KDF param ranges,
   T5 keyboard learning off on secret/financial fields. hardening_test.dart (6 tests). SPEC §8 gains M9.5
   (AI-assisted white-hat phase); CLAUDE.md rule 6: security checklist every milestone. Device-verified lockout.
-- M5 (part): FTS5 search_fts table + triggers + backfill (schema v4), migrated on device. Parser/UI next.
+- M5 DONE (2026-11-01): lib/search/query_parser.dart (local NL parser: amounts/ranges, months, years, last
+  month/year, income/expenses, fees, receipt yes/no, category synonyms; caps 200 chars / 24 words),
+  search_service.dart (FTS5 + bound filters, docs by name), lib/ui/search/search_screen.dart (top-bar search
+  icon + Records search field open it; "understood" pills, grouped records/documents, highlights). Category
+  keywords also match as text ("ad" -> advertising OR Adobe). Schema v5 = attachments(entry_id) index.
+  10k seeded records: every SPEC example <= 3 ms. SECURITY T6 + T7 fixed. 82 tests, 30 goldens.
 
-## Next: finish M5 search (SPEC §4)
-- Query parser + search service + screen; quote/escape FTS terms (SECURITY.md T6); <50 ms on 10k records.
+## Next: M6 (see SPEC §8), plus M5 leftovers
+- M5 leftovers: tappable/removable filter chips (date range, platform, tag, tax line, business %), pull-down-
+  to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.
 - Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
   (only tested on synthetic + emulator scene); PDF preview (M6); iOS document picker channel (M10).
 - Still open: Emergency Kit PDF (M6), custom security questions, backup-age banner (M9), FLAG_SECURE toggle,
@@ -97,4 +103,5 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - Pressing back on the root screen closes the activity -> lifecycle detached -> app locks (intended).
 - Isolate.run closures must not sit next to closures that capture `this` (State): the shared context makes them
   unsendable and the future fails silently. Keep isolate work in top-level functions (lib/media/receipt_image.dart).
+- Golden failure images go to test/failures/ (gitignored now). SearchScreen takes searchOverride for goldens.
 - On-device plaintext audit: adb root, pull /data/data/com.darkdev.ledgerlock, scan for FF D8 FF / %PDF / 89 PNG.

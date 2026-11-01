@@ -14,6 +14,7 @@ import '../design/components.dart';
 import '../design/theme.dart';
 import '../ledger/category_icons.dart';
 import '../ledger/entry_screen.dart';
+import '../search/search_screen.dart';
 
 const _pad = EdgeInsets.fromLTRB(Space.gutter, Space.sm, Space.gutter, Space.xxl);
 
@@ -343,7 +344,10 @@ class _Legend extends StatelessWidget {
 class EntryTile extends StatelessWidget {
   final LedgerEntry entry;
   final TaxRules rules;
-  const EntryTile({super.key, required this.entry, required this.rules});
+
+  /// Search terms to highlight in the title.
+  final List<String> highlight;
+  const EntryTile({super.key, required this.entry, required this.rules, this.highlight = const []});
 
   @override
   Widget build(BuildContext context) {
@@ -364,7 +368,7 @@ class EntryTile extends StatelessWidget {
         foregroundColor: entry.isIncome ? ll.accent : ll.muted,
         child: Icon(categoryIcon(entry.category), size: 20),
       ),
-      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: HighlightText(title, highlight, maxLines: 1),
       subtitle: Text(
         [
           if (entry.party.isNotEmpty) cat?.name ?? '',
@@ -395,31 +399,10 @@ class RecordsTab extends ConsumerStatefulWidget {
 enum _Filter { all, income, expenses }
 
 class _RecordsTabState extends ConsumerState<RecordsTab> {
-  final _search = TextEditingController();
   _Filter _filter = _Filter.all;
 
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
-
-  bool _matches(LedgerEntry e, TaxRules rules) {
-    if (_filter == _Filter.income && !e.isIncome) return false;
-    if (_filter == _Filter.expenses && e.isIncome) return false;
-    final q = _search.text.trim().toLowerCase();
-    if (q.isEmpty) return true;
-    final hay = [
-      e.party,
-      e.platform,
-      e.notes,
-      rules.category(e.category)?.name ?? '',
-      formatCents(e.amountCents),
-      (e.amountCents / 100).toStringAsFixed(2),
-      DateFormat.yMMMMd().format(e.day),
-    ].join(' ').toLowerCase();
-    return q.split(RegExp(r'\s+')).every(hay.contains);
-  }
+  bool _matches(LedgerEntry e, TaxRules rules) =>
+      _filter == _Filter.all || (_filter == _Filter.income) == e.isIncome;
 
   Future<void> _delete(LedgerEntry e) async {
     final db = ref.read(appControllerProvider).db;
@@ -452,18 +435,11 @@ class _RecordsTabState extends ConsumerState<RecordsTab> {
       padding: _pad,
       children: [
         TextField(
-          controller: _search,
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.search_rounded),
-            hintText: 'Search payee, amount, category…',
-            suffixIcon: _search.text.isEmpty
-                ? null
-                : IconButton(
-                    tooltip: 'Clear',
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => setState(_search.clear),
-                  ),
+          readOnly: true,
+          onTap: () => openSearch(context),
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search_rounded),
+            hintText: 'Search everything: "meals over 50", "no receipt"…',
           ),
         ),
         const SizedBox(height: Space.md),
@@ -667,6 +643,42 @@ class TaxesTab extends ConsumerWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Text with case-insensitive prefix matches of [terms] in bold accent colour.
+class HighlightText extends StatelessWidget {
+  final String text;
+  final List<String> terms;
+  final int? maxLines;
+  const HighlightText(this.text, this.terms, {super.key, this.maxLines});
+
+  @override
+  Widget build(BuildContext context) {
+    final words = [
+      for (final t in terms)
+        if (t.trim().isNotEmpty) RegExp.escape(t.trim()),
+    ];
+    if (words.isEmpty) return Text(text, maxLines: maxLines, overflow: TextOverflow.ellipsis);
+    final re = RegExp('(?:^|(?<=[^\\p{L}\\p{N}]))(${words.join('|')})', caseSensitive: false, unicode: true);
+    final spans = <TextSpan>[];
+    var last = 0;
+    for (final m in re.allMatches(text)) {
+      if (m.start > last) spans.add(TextSpan(text: text.substring(last, m.start)));
+      spans.add(
+        TextSpan(
+          text: m[0],
+          style: TextStyle(fontWeight: FontWeight.w700, color: context.ll.accent),
+        ),
+      );
+      last = m.end;
+    }
+    if (last < text.length) spans.add(TextSpan(text: text.substring(last)));
+    return Text.rich(
+      TextSpan(children: spans),
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }

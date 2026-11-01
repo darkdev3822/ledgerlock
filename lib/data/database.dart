@@ -98,7 +98,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -107,6 +107,7 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('CREATE INDEX entries_date ON ledger_entries(date)');
       await customStatement('CREATE INDEX attachments_year ON attachments(year, folder)');
       await _createSearchIndex();
+      await customStatement('CREATE INDEX attachments_entry ON attachments(entry_id)');
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
@@ -118,6 +119,7 @@ class AppDatabase extends _$AppDatabase {
         await customStatement('CREATE INDEX attachments_year ON attachments(year, folder)');
       }
       if (from < 4) await _createSearchIndex();
+      if (from < 5) await customStatement('CREATE INDEX attachments_entry ON attachments(entry_id)');
     },
   );
 

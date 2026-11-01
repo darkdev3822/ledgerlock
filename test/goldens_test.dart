@@ -16,6 +16,8 @@ import 'package:ledgerlock/ui/design/theme.dart';
 import 'package:ledgerlock/ui/ledger/entry_screen.dart';
 import 'package:ledgerlock/ui/lock_screens.dart';
 import 'package:ledgerlock/ui/recovery_screens.dart';
+import 'package:ledgerlock/search/search_service.dart';
+import 'package:ledgerlock/ui/search/search_screen.dart';
 import 'package:ledgerlock/ui/settings_screen.dart';
 import 'package:ledgerlock/ui/shell/app_shell.dart';
 
@@ -131,6 +133,26 @@ void main() {
     testWidgets('records ${b.name}', (t) => shoot(t, 'records', const AppShell(initialTab: 1), b));
     testWidgets('vault ${b.name}', (t) => shoot(t, 'vault', const AppShell(initialTab: 2), b));
     testWidgets('taxes ${b.name}', (t) => shoot(t, 'taxes', const AppShell(initialTab: 3), b));
+    testWidgets('search ${b.name}', (t) => shoot(t, 'search', const SearchScreen(), b));
+    testWidgets(
+      'search_results ${b.name}',
+      (t) => shoot(
+        t,
+        'search_results',
+        SearchScreen(
+          initialText: 'over 20 in 2026',
+          searchOverride: (q) async => SearchResults(
+            [
+              for (final e in fixtureEntries())
+                if (e.date.startsWith('2026') && !e.isIncome && e.amountCents >= q.minCents!) e,
+            ].take(6).toList(),
+            const [],
+            const Duration(milliseconds: 3),
+          ),
+        ),
+        b,
+      ),
+    );
     testWidgets('settings ${b.name}', (t) => shoot(t, 'settings', const SettingsScreen(), b));
     testWidgets(
       'unlock ${b.name}',
