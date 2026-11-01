@@ -98,6 +98,9 @@ class TaxRules {
   final Map<String, String> lineNames;
   final double seNetEarningsFactor;
   final double seRate;
+
+  /// Social Security part of [seRate] (Schedule SE line 10); the rest is Medicare (line 11).
+  final double seSocialSecurityRate;
   final int seMinimumNetEarningsCents;
   final double defaultSetAsidePct;
 
@@ -113,6 +116,7 @@ class TaxRules {
     this.lineNames = const {},
     this.seNetEarningsFactor = 0,
     this.seRate = 0,
+    this.seSocialSecurityRate = 0,
     this.seMinimumNetEarningsCents = 0,
     this.defaultSetAsidePct = 25,
     this.verified,
@@ -136,6 +140,7 @@ class TaxRules {
       lineNames: {for (final l in j['scheduleCLines'] as List? ?? const []) l[0] as String: l[1] as String},
       seNetEarningsFactor: (se['netEarningsFactor'] as num?)?.toDouble() ?? 0,
       seRate: (se['rate'] as num?)?.toDouble() ?? 0,
+      seSocialSecurityRate: (se['socialSecurityRate'] as num?)?.toDouble() ?? 0,
       seMinimumNetEarningsCents: (((se['minimumNetEarnings'] as num?) ?? 0) * 100).round(),
       defaultSetAsidePct: (j['defaultSetAsidePct'] as num?)?.toDouble() ?? 25,
       verified: (j['review'] as Map<String, dynamic>?)?['verified'] as String?,
@@ -143,6 +148,14 @@ class TaxRules {
         for (final k in j['keyFigures'] as List? ?? const []) KeyFigure.fromJson(k as Map<String, dynamic>),
       ],
     );
+  }
+
+  /// Social Security wage base in cents, only once verified (null = no cap applied; overstates for high earners).
+  int? get ssWageBaseCents {
+    for (final k in keyFigures) {
+      if (k.id == 'ss_wage_base' && k.usable) return (k.value! * 100).round();
+    }
+    return null;
   }
 
   List<Category> categories(bool income) => income ? incomeCategories : expenseCategories;

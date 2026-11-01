@@ -81,11 +81,14 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   resources, mileage (2026 mid-year change), SE tax, wage base, quarterly dates + periods, meals 2025, 1099-K 2026.
   **STILL OPEN, due Dec 1 - Jan 31 window:** 2026 92.35% + meals % (new forms), Free File/VITA 2026 limits, 2025
   1099-K threshold. Walk the owner through these first thing in the window; then set review.verified + release gate.
-- M6 accuracy gaps found in review: SE tax ignores wage base + 0.9% Additional Medicare (needs optional W-2 wages
-  field); mileage rate must be applied by trip date (KeyFigure.valueOn); per-platform 1099-K logic done.
+- M6 part 2 DONE (2026-11-01): Schedule SE maths (seTaxFor: 92.35%, $400 floor, 12.4% capped at the verified
+  wage base minus optional W-2 wages, 2.9% uncapped; flat rate if base unverified). W-2 wages per year in Taxes tab
+  (encrypted setting). 0.9% Additional Medicare shown as a note only. se_tax_test; 107 tests. SECURITY T10.
+- SPEC §3 "Draft return base" (owner decision): fill official Schedule C/SE/1040-ES PDFs + carry-over sheet, for
+  review; no e-file, no full 1040, no state. Owner must get lawyer review + PDF library license before it ships (M7).
+- M6 remaining: payment log, quarterly reminders + check-ins (§2.13, vet notifications plugin), mileage log (use
+  KeyFigure.valueOn per trip date), home office, 1099 tracker, CSV export, invoiced status.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
-- M6 remaining: payment log, quarterly reminders (vet a notifications plugin), mileage, home office, 1099 tracker,
-  CSV export.
 - M5 leftovers: tappable/removable filter chips (date range, platform, tag, tax line, business %), pull-down-
   to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.
 - Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
@@ -122,5 +125,6 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   unsendable and the future fails silently. Keep isolate work in top-level functions (lib/media/receipt_image.dart).
 - Owner shares screenshots via claude-shot ("look" = newest in ~/Pictures/claude-shots); open review links with
   `setsid chromium <url>`; PDFs the owner downloads land in ~/Downloads (read with pdftotext).
+- Don't Read goldens while --update-goldens runs in the background: you'll see the old image.
 - Golden failure images go to test/failures/ (gitignored now). SearchScreen takes searchOverride for goldens.
 - On-device plaintext audit: adb root, pull /data/data/com.darkdev.ledgerlock, scan for FF D8 FF / %PDF / 89 PNG.

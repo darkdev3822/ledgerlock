@@ -46,6 +46,9 @@ class AppController extends ChangeNotifier {
   /// Opt-ins for resource matching (SPEC §2.12). We never infer age or problems; the user says so.
   bool age60OptIn = false, irsProblemOptIn = false;
 
+  /// Optional W-2 Social Security wages per tax year (cents), for the SE tax wage-base cap.
+  Map<int, int> w2WagesCents = {};
+
   AppController({
     required this.dataDir,
     required this.biometrics,
@@ -120,6 +123,11 @@ class AppController extends ChangeNotifier {
     setAsidePct = double.tryParse(await db.getSetting('setAsidePct') ?? '');
     age60OptIn = await db.getSetting('age60OptIn') == 'true';
     irsProblemOptIn = await db.getSetting('irsProblemOptIn') == 'true';
+    w2WagesCents = {};
+    for (final y in TaxRules.supportedYears) {
+      final v = int.tryParse(await db.getSetting('w2Wages:$y') ?? '');
+      if (v != null) w2WagesCents[y] = v;
+    }
     slots = await vault.enabledSlots();
     _session = s;
     // Every vault must have a confirmed recovery key; resume setup if it was interrupted.
@@ -138,7 +146,8 @@ class AppController extends ChangeNotifier {
     _session = null;
     _documents = null;
     pendingCode = null;
-    age60OptIn = irsProblemOptIn = false; // sensitive answers: reload from the encrypted DB on unlock
+    age60OptIn = irsProblemOptIn = false;
+    w2WagesCents = {}; // sensitive answers: reload from the encrypted DB on unlock
     stage = Stage.locked;
     notifyListeners();
     s.lock();
@@ -252,6 +261,12 @@ class AppController extends ChangeNotifier {
     await _session?.db.setSetting('irsProblemOptIn', '$irsProblemOptIn');
   }
 
+  Future<void> setW2Wages(int year, int cents) async {
+    w2WagesCents = {...w2WagesCents, year: cents};
+    notifyListeners();
+    await _session?.db.setSetting('w2Wages:$year', '$cents');
+  }
+
   Future<void> setYear(int y) async {
     selectedYear = y;
     notifyListeners();
@@ -278,8 +293,9 @@ final summaryProvider = Provider.family<LedgerSummary, int>((ref, year) {
   final rules = ref.watch(taxRulesProvider(year)).value;
   final entries = ref.watch(entriesProvider(year)).value ?? const [];
   final pct = ref.watch(appControllerProvider.select((a) => a.setAsidePct));
+  final w2 = ref.watch(appControllerProvider.select((a) => a.w2WagesCents[year] ?? 0));
   if (rules == null) return LedgerSummary.empty;
-  return summarize(entries.map((e) => e.data), rules, setAsidePct: pct);
+  return summarize(entries.map((e) => e.data), rules, setAsidePct: pct, w2WagesCents: w2);
 });
 
 /// Bundled free-help list (SPEC §2.12). Overridable in tests.

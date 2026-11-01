@@ -64,7 +64,27 @@ double deductibleCents(EntryData e, TaxRules rules) {
 /// Half-up rounding (the IRS allows whole dollars; we keep cents).
 int _r(double cents) => cents.isNegative ? -((-cents) + 0.5).floor() : (cents + 0.5).floor();
 
-LedgerSummary summarize(Iterable<EntryData> entries, TaxRules rules, {double? setAsidePct}) {
+/// Schedule SE, lines 4a-12. [w2WagesCents]: Social Security wages already taxed (W-2 box 3 + 7), which use up
+/// the wage base before self-employment earnings do. The 12.4% part stops at the wage base; 2.9% has no cap.
+/// The 0.9% Additional Medicare Tax is separate (Form 8959) and not included.
+double seTaxFor(double netCents, TaxRules rules, {int w2WagesCents = 0}) {
+  final earnings = netCents * rules.seNetEarningsFactor; // line 4a
+  if (earnings < rules.seMinimumNetEarningsCents) return 0; // line 4c
+  final ss = rules.seSocialSecurityRate;
+  final base = rules.ssWageBaseCents;
+  // No verified split/base: flat rate (conservative: can only overstate).
+  if (ss <= 0 || base == null) return earnings * rules.seRate;
+  final room = (base - w2WagesCents).clamp(0, base).toDouble(); // line 9
+  final ssTax = (earnings < room ? earnings : room) * ss; // line 10
+  return ssTax + earnings * (rules.seRate - ss); // + line 11
+}
+
+LedgerSummary summarize(
+  Iterable<EntryData> entries,
+  TaxRules rules, {
+  double? setAsidePct,
+  int w2WagesCents = 0,
+}) {
   final lines = <String, double>{};
   final monthly = <int, (double, double)>{};
   void add(String line, double v) => lines[line] = (lines[line] ?? 0) + v;
@@ -91,8 +111,7 @@ LedgerSummary summarize(Iterable<EntryData> entries, TaxRules rules, {double? se
       .where((e) => !const {'1', '2', '6'}.contains(e.key))
       .fold(0.0, (a, e) => a + e.value);
   final net = gross - expenses;
-  final netEarnings = net * rules.seNetEarningsFactor;
-  final seTax = netEarnings >= rules.seMinimumNetEarningsCents ? netEarnings * rules.seRate : 0.0;
+  final seTax = seTaxFor(net, rules, w2WagesCents: w2WagesCents);
   final pct = setAsidePct ?? rules.defaultSetAsidePct;
   return LedgerSummary(
     lines: {

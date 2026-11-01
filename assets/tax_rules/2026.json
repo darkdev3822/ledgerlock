@@ -30,6 +30,7 @@
   "selfEmployment": {
     "netEarningsFactor": 0.9235,
     "rate": 0.153,
+    "socialSecurityRate": 0.124,
     "minimumNetEarnings": 400,
     "verified": null,
     "reviewNote": "2026-11-01: rate 15.3% and $400 confirmed on the IRS SE tax page. 92.35% NOT yet confirmed for 2026 (2026 Schedule SE unpublished): recheck in January."

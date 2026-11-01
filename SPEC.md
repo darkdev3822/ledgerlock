@@ -120,6 +120,15 @@ better design and search.** Lead with privacy in every store listing and screens
   duplicate detection and a review queue.
 - **Tax packet PDF:** Schedule C summary, the readiness checklist, category breakdown, mileage log,
   1099 reconciliation, plus a receipts appendix (zip). Hand it to a preparer or H&R Block.
+- **Draft return base** (owner decision 2026-11-01), part of the tax packet: fills the **official IRS PDFs** for
+  Schedule C, Schedule SE and 1040-ES vouchers from the user's records, asks for anything missing (business name,
+  accounting method, home office…), plus a line-by-line **carry-over sheet** ("Schedule C line 1: $X") for any
+  software or preparer. Purpose: a clean, reviewable starting point, **not** a finished or "near-perfect" return.
+  Firm limits: **no e-filing** (needs IRS e-file provider status and internet), **no full 1040, no state returns**.
+  Wording: "a draft for you to review, or to take to a tax professional; you sign and file it yourself. Not tax,
+  legal or financial advice. LedgerLock is not a tax preparer." Never "we file your taxes", "free filing",
+  "guaranteed accurate", "max refund". Before shipping (owner): lawyer review of terms/disclaimers, LLC/E&O
+  insurance decision, and the PDF form-filling library's license (many are commercial).
 - **1099 reconciliation:** enter the forms you receive and compare them with your recorded gross per platform.
 - **Mileage log:** manual entries, with optional GPS trip detection (on-device only; Pro). Rate per year
   editable (never hard-coded).

@@ -548,6 +548,25 @@ class TaxesTab extends ConsumerWidget {
                           'Income tax comes on top and depends on your whole return.',
                 style: context.text.bodySmall,
               ),
+              const Divider(height: Space.lg),
+              InkWell(
+                onTap: () => _editW2(context, app, year),
+                child: Row(
+                  children: [
+                    Expanded(child: Text('W-2 wages this year (optional)', style: context.text.bodyMedium)),
+                    Text(
+                      app.w2WagesCents[year] == null ? 'Add' : formatCents(app.w2WagesCents[year]!),
+                      style: context.text.bodyMedium?.copyWith(color: ll.accent, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Wages from a job use up the Social Security limit first, which can lower this estimate. '
+                'At high incomes a separate 0.9% Medicare tax may also apply (Form 8959).',
+                style: context.text.bodySmall,
+              ),
             ],
           ),
         ),
@@ -683,4 +702,37 @@ class HighlightText extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
     );
   }
+}
+
+Future<void> _editW2(BuildContext context, AppController app, int year) async {
+  final c = TextEditingController(
+    text: app.w2WagesCents[year] == null ? '' : (app.w2WagesCents[year]! / 100).toStringAsFixed(0),
+  );
+  final v = await showDialog<int>(
+    context: context,
+    builder: (d) => AlertDialog(
+      title: Text('W-2 wages for $year'),
+      content: TextField(
+        controller: c,
+        autofocus: true,
+        enableIMEPersonalizedLearning: false,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(9)],
+        decoration: const InputDecoration(
+          prefixText: '\$',
+          helperText: 'Social Security wages (W-2 box 3), all jobs. Stays on this phone.',
+          helperMaxLines: 2,
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(d), child: const Text('Cancel')),
+        FilledButton(
+          onPressed: () => Navigator.pop(d, (int.tryParse(c.text) ?? 0) * 100),
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+  c.dispose();
+  if (v != null) await app.setW2Wages(year, v);
 }
