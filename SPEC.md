@@ -76,6 +76,27 @@ better design and search.** Lead with privacy in every store listing and screens
 10. **Light and dark themes,** an app lock, auto-lock, biometrics. **Security is never paywalled.**
 11. **Free limits** (generous, so free users love it and recommend it): unlimited transactions; **50 receipts
     per year**; 1 business profile; basic search filters.
+12. **"What changed for you" + free help, tailored on the device** (owner decision 2026-11-01). Firm rules:
+    - **No internet, ever.** No news feed, no fetching, no scraping, no AI summaries. Rule changes arrive in
+      `assets/tax_rules/<year>.json` through normal app updates (federal only; state/local out of scope).
+    - **What changed:** compare this year's rules file with last year's and apply the differences to the user's
+      own records, on the device: "Mileage rate X -> Y: about $Z more deduction for you", "1099-K threshold is
+      now N: expect a form from PayPal", new due dates. Every item names its official source.
+    - **Free resources, matched to who needs them most:** a curated list stored as data in the rules file (name,
+      one-line purpose, official https URL, and *who it's for* as conditions on the ledger/profile). Ranked by
+      fit, with a short line on why it's shown ("Your net profit is under the VITA limit"). Starter set (verify
+      every name, URL and limit when writing the year file; never from memory):
+      IRS Free File (income limit), VITA free tax prep (income limit), TCE (age 60+, user opts in; we never
+      infer age), Taxpayer Advocate Service (IRS notice/letter in the vault, or the user says they have a
+      problem), IRS payment plans (estimated tax owed is more than set aside), Low Income Taxpayer Clinics
+      (disputes, income limit), IRS Self-Employed Tax Center (first year with self-employment income),
+      IRS 1099-K page (any platform income), IRS disaster relief / extensions page (**always shown**, because
+      app updates lag behind local disasters), SCORE free small-business mentoring.
+    - **Links open the user's browser** through our own MainActivity channel (ACTION_VIEW intent; no
+      url_launcher, no `<queries>` beyond https VIEW). URLs are fixed strings from the rules file with **no user
+      data, no query parameters, no tracking codes**. A sheet says "Opens irs.gov in your browser" before leaving.
+    - **Wording:** "information from official sources, not tax advice", on the screen and in store copy. Never
+      call it a representative, advisor or preparer. No "you qualify" claims: say "may be worth checking".
 
 ## 3. PRO features
 - **On-device OCR** (Google ML Kit text recognition / Apple Vision, both offline): scan a receipt and it fills in
@@ -164,7 +185,7 @@ Store fees: Apple Small Business Program and Google Play are 15% on the first $1
 | M3 | Ledger: add/edit/list, Schedule C categories, dashboard | 3-tap add works; dashboard maths matches the desktop Tax Keeper |
 | M4 | Receipts and vault: capture, crop, encrypt, attach, documents per year | Photos never appear unencrypted on disk |
 | M5 | Search: FTS5, chips, natural-language parser | <50 ms on 10k seeded records |
-| M6 | Taxes tab: quarterly reminders, payments, 1099s, mileage, home office, CSV export | Matches the desktop Tax Keeper on the same data |
+| M6 | Taxes tab: quarterly reminders, payments, 1099s, mileage, home office, CSV export, "What changed for you" + free resources (§2.12) | Matches the desktop Tax Keeper on the same data |
 | M7 | Pro: OCR, rules, imports, PDF packet, paywall, purchases, trial | Purchases work in Play test mode |
 | M8 | Polish: motion, haptics, accessibility, onboarding, empty states, app icon | The owner's sign-off on video walkthroughs |
 | M9 | Backups and resilience: encrypted export/restore, migration tests | Restore on a fresh install works |

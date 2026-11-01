@@ -69,6 +69,7 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   10k seeded records: every SPEC example <= 3 ms. SECURITY T6 + T7 fixed. 82 tests, 30 goldens.
 
 ## Next: M6 (see SPEC §8), plus M5 leftovers
+- M6 now includes SPEC §2.12 ("What changed for you" + tailored free resources). Offline only, decided.
 - M5 leftovers: tappable/removable filter chips (date range, platform, tag, tax line, business %), pull-down-
   to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.
 - Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
