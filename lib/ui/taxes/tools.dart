@@ -1,14 +1,17 @@
 // Taxes tab tools (M6): payment log, mileage log, home office, 1099 tracker. All data in the encrypted DB.
 import 'package:drift/drift.dart' show Value;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/app_controller.dart';
+import '../../data/csv_export.dart';
 import '../../data/database.dart';
 import '../../data/ledger.dart';
 import '../../data/tax_rules.dart';
+import '../../platform/save_file.dart';
 import '../design/components.dart';
 import '../design/theme.dart';
 
@@ -625,4 +628,73 @@ class Forms1099Screen extends ConsumerWidget {
       ),
     );
   }
+}
+
+// ============================== CSV export ==============================
+
+Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) async {
+  final db = ref.read(appControllerProvider).db;
+  final rules = ref.read(taxRulesProvider(year)).value;
+  if (db == null || rules == null) return;
+  Future<void> export(String name, Future<String> Function() build) async {
+    try {
+      final ok = await saveWithPicker(name, Uint8List.fromList(csvBytes(await build())));
+      if (ok && context.mounted) _toast(context, 'Saved $name');
+    } on PlatformException {
+      if (context.mounted) _toast(context, 'Couldn’t save the file.');
+    } on MissingPluginException {
+      if (context.mounted) _toast(context, 'Export isn’t available here yet.');
+    }
+  }
+
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (c) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Space.gutter),
+            child: Text(
+              'Exported files are NOT encrypted. Anyone with the file can read it. Save it somewhere you trust '
+              'and delete it when you’re done.',
+              style: c.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(height: Space.sm),
+          for (final (icon, label, name, build) in <(IconData, String, String, Future<String> Function())>[
+            (
+              Icons.list_alt_rounded,
+              'Records',
+              'ledgerlock-$year-records.csv',
+              () async => entriesCsv(await db.watchYear(year).first, rules),
+            ),
+            (
+              Icons.directions_car_outlined,
+              'Mileage log',
+              'ledgerlock-$year-mileage.csv',
+              () async => tripsCsv(await db.watchTrips(year).first),
+            ),
+            (
+              Icons.payments_outlined,
+              'Tax payments',
+              'ledgerlock-$year-payments.csv',
+              () async => paymentsCsv(await db.watchPayments(year).first),
+            ),
+          ])
+            ListTile(
+              leading: Icon(icon),
+              title: Text('$label ($year)'),
+              trailing: const Icon(Icons.download_rounded),
+              onTap: () {
+                Navigator.pop(c);
+                export(name, build);
+              },
+            ),
+        ],
+      ),
+    ),
+  );
 }

@@ -18,6 +18,27 @@ import io.flutter.plugin.common.MethodChannel
  */
 class MainActivity : FlutterFragmentActivity() {
     private var pending: MethodChannel.Result? = null
+    private var pendingSave: Pair<MethodChannel.Result, ByteArray>? = null
+
+    // "Save as" via the system picker: the user chooses where the (plaintext) export goes; nothing is
+    // written into app storage first.
+    private val createDocument = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri: Uri? ->
+        val (result, bytes) = pendingSave ?: return@registerForActivityResult
+        pendingSave = null
+        if (uri == null) {
+            result.success(false)
+            return@registerForActivityResult
+        }
+        Thread {
+            try {
+                contentResolver.openOutputStream(uri, "wt")?.use { it.write(bytes) }
+                    ?: throw IllegalStateException("no stream")
+                runOnUiThread { result.success(true) }
+            } catch (e: Exception) {
+                runOnUiThread { result.error("write_failed", e.message, null) }
+            }
+        }.start()
+    }
     private val maxBytes = 30L * 1024 * 1024
 
     private val openDocument = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
@@ -68,6 +89,16 @@ class MainActivity : FlutterFragmentActivity() {
                     @Suppress("UNCHECKED_CAST")
                     val types = (call.argument<List<String>>("mimeTypes") ?: listOf("*/*")).toTypedArray()
                     openDocument.launch(types)
+                }
+                "save" -> {
+                    val bytes = call.argument<ByteArray>("bytes")
+                    val name = call.argument<String>("name") ?: "export.csv"
+                    if (bytes == null || pendingSave != null || pending != null) {
+                        result.error("busy", "A picker is already open", null)
+                        return@setMethodCallHandler
+                    }
+                    pendingSave = result to bytes
+                    createDocument.launch(name)
                 }
                 "openUrl" -> {
                     // Hands an https link to the user's browser. This app has no INTERNET permission and

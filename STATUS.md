@@ -91,7 +91,9 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   office (simplified; OFF until home_office_rate/max_sqft verified -> line 30, can't create a loss), 1099 tracker
   (matches payer to platform/party, explains mismatches). Entry screen "Received" switch (invoiced = not counted,
   cash basis), "Invoiced, unpaid" in lists, search keyword "unpaid". 119 tests, goldens mileage/forms1099.
-- M6 remaining: CSV export (SAF create-document channel, warn: leaves encryption), notifications plugin vetting
+- M6 part 4 DONE: CSV export (records / mileage / payments) via MainActivity "save" (CreateDocument picker),
+  not-encrypted warning, CSV-injection guard (SECURITY T11). Release APK still no INTERNET. 121 tests.
+- M6 remaining: notifications plugin vetting
   -> quarterly reminders + check-ins (§2.13), emulator check of all M6 screens (FAB black outline seen in goldens:
   likely test focus highlight, confirm on device). Review adds: home_office_rate + home_office_max_sqft (both years).
 - After the review: device-check a link opening in the browser (none visible until items are verified).

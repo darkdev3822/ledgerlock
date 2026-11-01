@@ -674,6 +674,13 @@ class TaxesTab extends ConsumerWidget {
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen)),
               ),
+            ListTile(
+              leading: const Icon(Icons.ios_share_rounded),
+              title: const Text('Export CSV'),
+              subtitle: const Text('Records, mileage or payments for a spreadsheet or preparer'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => showExportSheet(context, ref, year),
+            ),
           ],
         ),
       ],
