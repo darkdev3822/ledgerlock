@@ -33,6 +33,25 @@ class LedgerEntries extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+/// Receipts and vault documents. Bytes live encrypted in EncryptedFileStore; only ids and metadata here.
+@DataClassName('Attachment')
+class Attachments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// 'receipt', 'tax_form' (W-2/1099), 'prior_return', 'letter', 'other'.
+  TextColumn get folder => text()();
+  IntColumn get year => integer()();
+
+  /// Linked ledger entry (receipts); null = unmatched.
+  IntColumn get entryId => integer().nullable().references(LedgerEntries, #id, onDelete: KeyAction.setNull)();
+  TextColumn get fileId => text()();
+  TextColumn get thumbId => text().nullable()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  TextColumn get mime => text()();
+  IntColumn get sizeBytes => integer()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 extension LedgerEntryMaths on LedgerEntry {
   DateTime get day => DateTime.parse(date);
   EntryData get data => EntryData(
@@ -53,7 +72,7 @@ class NotEncrypted implements Exception {
   String toString() => 'SQLCipher not available: refusing to open an unencrypted database';
 }
 
-@DriftDatabase(tables: [Settings, LedgerEntries])
+@DriftDatabase(tables: [Settings, LedgerEntries, Attachments])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -79,21 +98,58 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
       await customStatement('CREATE INDEX entries_date ON ledger_entries(date)');
+      await customStatement('CREATE INDEX attachments_year ON attachments(year, folder)');
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.createTable(ledgerEntries);
         await customStatement('CREATE INDEX entries_date ON ledger_entries(date)');
       }
+      if (from < 3) {
+        await m.createTable(attachments);
+        await customStatement('CREATE INDEX attachments_year ON attachments(year, folder)');
+      }
     },
   );
+
+  // ---------- attachments ----------
+
+  Stream<List<Attachment>> watchAttachments(int year, {String? folder}) {
+    final q = select(attachments)..where((a) => a.year.equals(year));
+    if (folder != null) q.where((a) => a.folder.equals(folder));
+    q.orderBy([(a) => OrderingTerm.desc(a.createdAt), (a) => OrderingTerm.desc(a.id)]);
+    return q.watch();
+  }
+
+  Stream<List<Attachment>> watchEntryAttachments(int entryId) =>
+      (select(attachments)..where((a) => a.entryId.equals(entryId))).watch();
+
+  Future<int> addAttachment(AttachmentsCompanion a) => into(attachments).insert(a);
+
+  Future<void> linkAttachment(int id, int? entryId) => (update(
+    attachments,
+  )..where((a) => a.id.equals(id))).write(AttachmentsCompanion(entryId: Value(entryId)));
+
+  Future<Attachment?> attachment(int id) =>
+      (select(attachments)..where((a) => a.id.equals(id))).getSingleOrNull();
+
+  Future<void> deleteAttachmentRow(int id) => (delete(attachments)..where((a) => a.id.equals(id))).go();
+
+  /// Receipts stored for a year (the free tier allows 50; enforced in M7).
+  Future<int> receiptCount(int year) async {
+    final c = attachments.id.count();
+    final q = selectOnly(attachments)
+      ..addColumns([c])
+      ..where(attachments.year.equals(year) & attachments.folder.equals('receipt'));
+    return (await q.getSingle()).read(c) ?? 0;
+  }
 
   // ---------- ledger ----------
 

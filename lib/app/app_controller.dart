@@ -10,6 +10,8 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../data/database.dart';
 import '../data/ledger.dart';
 import '../data/tax_rules.dart';
+import '../media/documents.dart';
+import '../platform/document_picker.dart';
 import '../security/auto_lock.dart';
 import '../security/biometric_reset.dart';
 import '../security/crypto.dart';
@@ -22,6 +24,10 @@ class AppController extends ChangeNotifier {
   final Directory dataDir;
   final Vault vault;
   final BiometricSecretStore biometrics;
+  final DocumentPicker picker;
+
+  /// Platform temp/cache dir: wiped on start and lock so no stray plaintext survives.
+  final Directory? tempDir;
   late final AutoLock autoLock = AutoLock(onLock: lock);
 
   Session? _session;
@@ -36,9 +42,16 @@ class AppController extends ChangeNotifier {
   /// Percent of profit to set aside for taxes; null = the year's default.
   double? setAsidePct;
 
-  AppController({required this.dataDir, required this.biometrics, Vault? vault, int? year})
-    : vault = vault ?? Vault(dataDir),
-      selectedYear = year ?? _defaultYear();
+  AppController({
+    required this.dataDir,
+    required this.biometrics,
+    DocumentPicker? picker,
+    this.tempDir,
+    Vault? vault,
+    int? year,
+  }) : vault = vault ?? Vault(dataDir),
+       picker = picker ?? ChannelDocumentPicker(),
+       selectedYear = year ?? _defaultYear();
 
   static int _defaultYear() {
     final y = DateTime.now().year;
@@ -49,6 +62,14 @@ class AppController extends ChangeNotifier {
 
   /// The open encrypted database, or null while locked.
   AppDatabase? get db => _session?.db;
+
+  /// Receipts and vault documents, or null while locked.
+  Documents? get documents {
+    final s = _session;
+    return s == null ? null : (_documents ??= Documents(s.db, s.files));
+  }
+
+  Documents? _documents;
   bool get vaultExists => vault.exists;
 
   /// For golden/widget tests: show the unlocked shell without a real session.
@@ -61,6 +82,7 @@ class AppController extends ChangeNotifier {
 
   Future<void> init() async {
     autoLock.attach();
+    await wipeTemp();
     try {
       biometricsAvailable = await biometrics.isAvailable();
     } catch (_) {
@@ -108,10 +130,23 @@ class AppController extends ChangeNotifier {
     final s = _session;
     if (s == null) return;
     _session = null;
+    _documents = null;
     pendingCode = null;
     stage = Stage.locked;
     notifyListeners();
     s.lock();
+    wipeTemp();
+  }
+
+  /// Deletes everything in the temp/cache dir (plugins may leave files there).
+  Future<void> wipeTemp() async {
+    final d = tempDir;
+    if (d == null || !await d.exists()) return;
+    await for (final e in d.list()) {
+      try {
+        await e.delete(recursive: true);
+      } catch (_) {}
+    }
   }
 
   // ---------- onboarding ----------

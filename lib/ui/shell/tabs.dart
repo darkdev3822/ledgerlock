@@ -536,57 +536,6 @@ class _RecordsTabState extends ConsumerState<RecordsTab> {
   }
 }
 
-// ============================== Vault ==============================
-
-class VaultTab extends StatelessWidget {
-  const VaultTab({super.key});
-
-  static const _folders = [
-    (Icons.work_outline_rounded, 'W-2 & 1099s'),
-    (Icons.receipt_rounded, 'Receipts'),
-    (Icons.history_edu_rounded, 'Prior returns'),
-    (Icons.mail_outline_rounded, 'Letters'),
-  ];
-
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: _pad,
-    children: [
-      GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: Space.md,
-        crossAxisSpacing: Space.md,
-        childAspectRatio: 1.55,
-        children: [
-          for (final (icon, label) in _folders)
-            LLCard(
-              onTap: () => _soon(context, 'The documents vault'),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(icon, color: context.ll.accent),
-                  const Spacer(),
-                  Text(label, style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                  Text('0 files', style: context.text.bodySmall),
-                ],
-              ),
-            ),
-        ],
-      ),
-      const SizedBox(height: Space.lg),
-      const EmptyState(
-        icon: Icons.document_scanner_rounded,
-        title: 'Scan your first receipt',
-        body:
-            'Tap the scan button below. Every photo and document is encrypted on this phone and never '
-            'shows up in your gallery.',
-      ),
-    ],
-  );
-}
-
 // ============================== Taxes ==============================
 
 String _pct(double? f, int digits) => f == null ? '…' : '${(f * 100).toStringAsFixed(digits)}%';

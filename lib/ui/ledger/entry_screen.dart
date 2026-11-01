@@ -11,6 +11,8 @@ import '../../data/database.dart';
 import '../../data/tax_rules.dart';
 import '../design/components.dart';
 import '../design/theme.dart';
+import '../vault/capture_screen.dart';
+import '../vault/vault_screens.dart';
 import 'category_icons.dart';
 
 /// Opens the entry screen. Pass [existing] to edit.
@@ -47,6 +49,9 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   bool _userPickedCategory = false;
   List<String> _recentParties = const [];
   List<String> _recentPlatforms = const [];
+
+  /// Receipts captured before a new entry is saved; linked on save.
+  final List<int> _pendingReceipts = [];
 
   bool get _editing => widget.existing != null;
 
@@ -122,7 +127,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
         ),
       );
     } else {
-      await db.addEntry(
+      final newId = await db.addEntry(
         LedgerEntriesCompanion.insert(
           isIncome: _income,
           date: isoDay(_date),
@@ -135,6 +140,9 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           notes: Value(_notes.text.trim()),
         ),
       );
+      for (final r in _pendingReceipts) {
+        await db.linkAttachment(r, newId);
+      }
     }
     HapticFeedback.mediumImpact();
     if (mounted) Navigator.of(context).pop();
@@ -326,6 +334,20 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                           ),
                         ),
                       _Field(controller: _notes, icon: Icons.notes_rounded, label: 'Notes'),
+                      _ReceiptRow(
+                        entryId: widget.existing?.id,
+                        pending: _pendingReceipts,
+                        onAdd: () async {
+                          final id = await captureReceipt(context, year: _date.year);
+                          if (id == null) return;
+                          final db = ref.read(appControllerProvider).db!;
+                          if (_editing) {
+                            await db.linkAttachment(id, widget.existing!.id);
+                          } else {
+                            setState(() => _pendingReceipts.add(id));
+                          }
+                        },
+                      ),
                     ],
                   ),
                   if (_income)
@@ -516,4 +538,41 @@ class _AutoFieldState extends State<_AutoField> {
       ],
     ),
   );
+}
+
+class _ReceiptRow extends ConsumerWidget {
+  final int? entryId;
+  final List<int> pending;
+  final VoidCallback onAdd;
+  const _ReceiptRow({required this.entryId, required this.pending, required this.onAdd});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final linked = entryId == null
+        ? const <Attachment>[]
+        : ref.watch(entryAttachmentsProvider(entryId!)).value ?? const [];
+    final count = linked.length + pending.length;
+    return ListTile(
+      leading: const Icon(Icons.receipt_long_outlined),
+      title: Text(count == 0 ? 'Receipt' : '$count ${count == 1 ? 'receipt' : 'receipts'} attached'),
+      subtitle: count == 0 ? const Text('Scan or import; stored encrypted') : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final a in linked.take(3))
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ViewerScreen(a))),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(width: 36, height: 44, child: EncryptedThumb(a, size: 44)),
+                ),
+              ),
+            ),
+          IconButton(tooltip: 'Add receipt', icon: const Icon(Icons.add_a_photo_outlined), onPressed: onAdd),
+        ],
+      ),
+    );
+  }
 }

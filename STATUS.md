@@ -47,13 +47,22 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   with per-quarter hint, monthly chart, recent), Taxes (SE tax, set-aside slider, Schedule C so far).
   55 tests pass; 26 goldens. Verified on emulator (add expense/income, fee, undo delete, edit, v1->v2 DB).
 
-## Next: M4 receipts and vault (SPEC §2.4, §2.8)
-- Owner to review M2/M3 screenshots; apply feedback.
-- camera + file picker (vet packages; no gallery writes), crop/deskew, EncryptedFileStore for photos and
-  thumbnails, attach to entries or keep unmatched, documents per year. "Done when": photos never appear
-  unencrypted on disk (check app cache dirs too).
+- M4 DONE (2026-11-01): receipts + documents vault. Camera frames come from the image stream into memory
+  (never takePicture(), which writes a JPEG to cache); lib/media/receipt_image.dart = YUV->RGB, Otsu + largest
+  blob corner detection, perspective rectify, JPEG + 320px thumb, all in isolates. Import uses our own
+  MainActivity "ledgerlock/files" channel (SAF URI -> bytes, no cache copy; file_picker would copy). attachments
+  table (schema v3, FK set-null so deleting a record leaves an unmatched receipt), lib/media/documents.dart,
+  Vault tab (folders per year, receipts to match, encrypted thumbs, viewer, attach to record), receipt row on the
+  entry screen, Scan button live. Temp/cache dir wiped on start and lock. Manifest strips RECORD_AUDIO,
+  READ/WRITE_EXTERNAL_STORAGE. "Done when" verified on emulator as root: no JPEG/PNG/PDF signatures anywhere in
+  /data/data/<pkg> (cache too) after scan + PDF import; MediaStore image count unchanged (0). 61 tests pass.
+
+## Next: M5 search (SPEC §4)
+- FTS5 over entries + attachment names, chips, natural-language parser; <50 ms on 10k seeded records.
+- Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
+  (only tested on synthetic + emulator scene); PDF preview (M6); iOS document picker channel (M10).
 - Still open: Emergency Kit PDF (M6), custom security questions, backup-age banner (M9), FLAG_SECURE toggle,
-  Argon2id tuning on a real phone, templates for frequent entries (§5), 50-receipt free limit (M7).
+  Argon2id tuning on a real phone, templates for frequent entries, 50-receipt free limit (M7).
 
 ## Gotchas
 - PATH is not set globally: use `export PATH=$HOME/flutter/bin:$HOME/Android/Sdk/platform-tools:$PATH`.
@@ -80,3 +89,6 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - Riverpod Stream overrides in widget tests need a real event-loop turn: t.runAsync(delay) then pumpAndSettle.
 - dart format reflows code: re-grep before scripted string replacements (a silent no-match bit me once).
 - Pressing back on the root screen closes the activity -> lifecycle detached -> app locks (intended).
+- Isolate.run closures must not sit next to closures that capture `this` (State): the shared context makes them
+  unsendable and the future fails silently. Keep isolate work in top-level functions (lib/media/receipt_image.dart).
+- On-device plaintext audit: adb root, pull /data/data/com.darkdev.ledgerlock, scan for FF D8 FF / %PDF / 89 PNG.

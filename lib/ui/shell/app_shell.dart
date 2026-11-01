@@ -6,10 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/app_controller.dart';
 import '../../data/tax_rules.dart';
-import '../design/components.dart';
 import '../design/theme.dart';
 import '../settings_screen.dart';
 import '../ledger/entry_screen.dart';
+import '../vault/capture_screen.dart';
+import '../vault/vault_screens.dart';
 import 'tabs.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -24,18 +25,15 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   static const _titles = ['Home', 'Records', 'Vault', 'Taxes'];
 
-  void _scan() {
+  Future<void> _scan() async {
     HapticFeedback.mediumImpact();
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (_) => const Padding(
-        padding: EdgeInsets.fromLTRB(Space.gutter, 0, Space.gutter, Space.xxl),
-        child: EmptyState(
-          icon: Icons.document_scanner_outlined,
-          title: 'Receipt scanning is coming',
-          body: 'The camera opens right here in M4. Photos are encrypted the moment they\'re taken.',
-        ),
-      ),
+    final app = ref.read(appControllerProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    final id = await captureReceipt(context, year: app.selectedYear);
+    if (id == null) return;
+    setState(() => _tab = 2);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Receipt saved encrypted. Tap it to attach to a record.')),
     );
   }
 

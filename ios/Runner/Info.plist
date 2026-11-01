@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>The camera scans receipts. Photos are encrypted immediately and never saved to your library.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Face ID lets you reset your LedgerLock password if you forget it.</string>
 	<key>CFBundleDisplayName</key>

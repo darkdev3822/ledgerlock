@@ -15,7 +15,11 @@ import 'ui/shell/app_shell.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final Directory dir = await getApplicationSupportDirectory();
-  final app = AppController(dataDir: dir, biometrics: PlatformBiometricSecretStore());
+  final app = AppController(
+    dataDir: dir,
+    biometrics: PlatformBiometricSecretStore(),
+    tempDir: await getTemporaryDirectory(),
+  );
   await app.init();
   runApp(
     ProviderScope(
