@@ -93,7 +93,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   cash basis), "Invoiced, unpaid" in lists, search keyword "unpaid". 119 tests, goldens mileage/forms1099.
 - M6 part 4 DONE: CSV export (records / mileage / payments) via MainActivity "save" (CreateDocument picker),
   not-encrypted warning, CSV-injection guard (SECURITY T11). Release APK still no INTERNET. 121 tests.
-- M6 remaining: notifications plugin vetting
+- M6 part 5a: flutter_local_notifications REJECTED (pulls package:http transitively; rule 4). Own Reminders.kt
+  (AlarmManager + NotificationManager, boot re-arm, POST_NOTIFICATIONS request) via "ledgerlock/files" channel.
+  lib/tax/checkin.dart: checkInQuestions() (7 data-driven questions, max 5, dismissable) + planReminders(). Tests.
+- M6 remaining (5b): Dart channel wrapper, Settings (quarterly reminders on/off, check-in frequency), check-in screen
+  + Home card, schedule on unlock/settings change; then
   -> quarterly reminders + check-ins (§2.13), emulator check of all M6 screens (FAB black outline seen in goldens:
   likely test focus highlight, confirm on device). Review adds: home_office_rate + home_office_max_sqft (both years).
 - After the review: device-check a link opening in the browser (none visible until items are verified).

@@ -19,6 +19,12 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterFragmentActivity() {
     private var pending: MethodChannel.Result? = null
     private var pendingSave: Pair<MethodChannel.Result, ByteArray>? = null
+    private var pendingPerm: MethodChannel.Result? = null
+
+    private val requestPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        pendingPerm?.success(granted)
+        pendingPerm = null
+    }
 
     // "Save as" via the system picker: the user chooses where the (plaintext) export goes; nothing is
     // written into app storage first.
@@ -99,6 +105,29 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                     pendingSave = result to bytes
                     createDocument.launch(name)
+                }
+                "requestNotifications" -> {
+                    if (android.os.Build.VERSION.SDK_INT < 33 ||
+                        checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+                        android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        result.success(true)
+                    } else if (pendingPerm != null) {
+                        result.error("busy", "Already asking", null)
+                    } else {
+                        pendingPerm = result
+                        requestPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
+                "scheduleReminders" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val items = call.argument<List<Map<String, Any?>>>("items") ?: emptyList()
+                    Reminders.ensureChannel(this)
+                    Reminders.scheduleAll(this, items)
+                    result.success(true)
+                }
+                "cancelReminders" -> {
+                    Reminders.cancelAll(this)
+                    result.success(true)
                 }
                 "openUrl" -> {
                     // Hands an https link to the user's browser. This app has no INTERNET permission and
