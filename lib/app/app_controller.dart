@@ -17,6 +17,7 @@ import '../security/biometric_reset.dart';
 import '../security/crypto.dart';
 import '../security/session.dart';
 import '../security/vault.dart';
+import '../tax/guidance.dart';
 
 enum Stage { locked, recoveryKey, biometricOffer, ready }
 
@@ -41,6 +42,9 @@ class AppController extends ChangeNotifier {
 
   /// Percent of profit to set aside for taxes; null = the year's default.
   double? setAsidePct;
+
+  /// Opt-ins for resource matching (SPEC §2.12). We never infer age or problems; the user says so.
+  bool age60OptIn = false, irsProblemOptIn = false;
 
   AppController({
     required this.dataDir,
@@ -114,6 +118,8 @@ class AppController extends ChangeNotifier {
     final y = int.tryParse(await db.getSetting('selectedYear') ?? '');
     if (y != null && TaxRules.supportedYears.contains(y)) selectedYear = y;
     setAsidePct = double.tryParse(await db.getSetting('setAsidePct') ?? '');
+    age60OptIn = await db.getSetting('age60OptIn') == 'true';
+    irsProblemOptIn = await db.getSetting('irsProblemOptIn') == 'true';
     slots = await vault.enabledSlots();
     _session = s;
     // Every vault must have a confirmed recovery key; resume setup if it was interrupted.
@@ -132,6 +138,7 @@ class AppController extends ChangeNotifier {
     _session = null;
     _documents = null;
     pendingCode = null;
+    age60OptIn = irsProblemOptIn = false; // sensitive answers: reload from the encrypted DB on unlock
     stage = Stage.locked;
     notifyListeners();
     s.lock();
@@ -237,6 +244,14 @@ class AppController extends ChangeNotifier {
     await _session?.db.setSetting('setAsidePct', '$pct');
   }
 
+  Future<void> setOptIns({bool? age60, bool? irsProblem}) async {
+    age60OptIn = age60 ?? age60OptIn;
+    irsProblemOptIn = irsProblem ?? irsProblemOptIn;
+    notifyListeners();
+    await _session?.db.setSetting('age60OptIn', '$age60OptIn');
+    await _session?.db.setSetting('irsProblemOptIn', '$irsProblemOptIn');
+  }
+
   Future<void> setYear(int y) async {
     selectedYear = y;
     notifyListeners();
@@ -265,4 +280,14 @@ final summaryProvider = Provider.family<LedgerSummary, int>((ref, year) {
   final pct = ref.watch(appControllerProvider.select((a) => a.setAsidePct));
   if (rules == null) return LedgerSummary.empty;
   return summarize(entries.map((e) => e.data), rules, setAsidePct: pct);
+});
+
+/// Bundled free-help list (SPEC §2.12). Overridable in tests.
+final resourcesProvider = FutureProvider<List<Resource>>((ref) => Resource.load());
+
+/// Whether the year's vault holds an IRS letter.
+final hasIrsLetterProvider = StreamProvider.family<bool, int>((ref, year) {
+  final db = ref.watch(appControllerProvider.select((a) => a.db));
+  if (db == null) return Stream.value(false);
+  return db.watchAttachments(year, folder: 'letter').map((l) => l.isNotEmpty);
 });

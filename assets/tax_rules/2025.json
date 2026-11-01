@@ -1,277 +1,299 @@
 {
- "year": 2025,
- "source": "IRS Form 1040-ES (2025). Jun 15 2025 fell on a Sunday, so Q2 moved to Jun 16.",
- "quarterlyDue": [
-  {
-   "quarter": "Q1",
-   "covers": "Jan 1 - Mar 31",
-   "due": "2025-04-15"
+  "year": 2025,
+  "source": "IRS Form 1040-ES (2025). Jun 15 2025 fell on a Sunday, so Q2 moved to Jun 16.",
+  "review": {
+    "verified": null,
+    "note": "Owner-led review: docs/ANNUAL_RULES_REVIEW.md. null = not checked, must not ship."
   },
-  {
-   "quarter": "Q2",
-   "covers": "Apr 1 - May 31",
-   "due": "2025-06-16"
+  "quarterlyDue": [
+    {
+      "quarter": "Q1",
+      "covers": "Jan 1 - Mar 31",
+      "due": "2025-04-15"
+    },
+    {
+      "quarter": "Q2",
+      "covers": "Apr 1 - May 31",
+      "due": "2025-06-16"
+    },
+    {
+      "quarter": "Q3",
+      "covers": "Jun 1 - Aug 31",
+      "due": "2025-09-15"
+    },
+    {
+      "quarter": "Q4",
+      "covers": "Sep 1 - Dec 31",
+      "due": "2026-01-15"
+    }
+  ],
+  "selfEmployment": {
+    "netEarningsFactor": 0.9235,
+    "rate": 0.153,
+    "minimumNetEarnings": 400
   },
-  {
-   "quarter": "Q3",
-   "covers": "Jun 1 - Aug 31",
-   "due": "2025-09-15"
-  },
-  {
-   "quarter": "Q4",
-   "covers": "Sep 1 - Dec 31",
-   "due": "2026-01-15"
-  }
- ],
- "selfEmployment": {
-  "netEarningsFactor": 0.9235,
-  "rate": 0.153,
-  "minimumNetEarnings": 400
- },
- "defaultSetAsidePct": 25,
- "scheduleCLines": [
-  [
-   "1",
-   "Gross receipts"
+  "defaultSetAsidePct": 25,
+  "scheduleCLines": [
+    [
+      "1",
+      "Gross receipts"
+    ],
+    [
+      "2",
+      "Returns and allowances"
+    ],
+    [
+      "6",
+      "Other income"
+    ],
+    [
+      "8",
+      "Advertising"
+    ],
+    [
+      "9",
+      "Car and truck expenses"
+    ],
+    [
+      "10",
+      "Commissions and fees"
+    ],
+    [
+      "11",
+      "Contract labor"
+    ],
+    [
+      "13",
+      "Depreciation / Sec. 179"
+    ],
+    [
+      "15",
+      "Insurance"
+    ],
+    [
+      "17",
+      "Legal and professional services"
+    ],
+    [
+      "18",
+      "Office expense"
+    ],
+    [
+      "20b",
+      "Rent or lease (other)"
+    ],
+    [
+      "22",
+      "Supplies"
+    ],
+    [
+      "23",
+      "Taxes and licenses"
+    ],
+    [
+      "24a",
+      "Travel"
+    ],
+    [
+      "24b",
+      "Deductible meals"
+    ],
+    [
+      "25",
+      "Utilities"
+    ],
+    [
+      "27a",
+      "Other expenses"
+    ],
+    [
+      "30",
+      "Business use of home"
+    ]
   ],
-  [
-   "2",
-   "Returns and allowances"
+  "incomeCategories": [
+    {
+      "id": "product_sales",
+      "name": "Product sales",
+      "line": "1",
+      "hint": "Digital or physical products (itch.io, Etsy, Gumroad)",
+      "desktopName": "Asset sales"
+    },
+    {
+      "id": "services",
+      "name": "Services & gigs",
+      "line": "1",
+      "hint": "Fiverr orders, rides, deliveries, commissions",
+      "desktopName": "Freelance services"
+    },
+    {
+      "id": "tips",
+      "name": "Tips & donations",
+      "line": "1",
+      "hint": "Pay-what-you-want extras, tips",
+      "desktopName": "Tips & donations"
+    },
+    {
+      "id": "refunds_given",
+      "name": "Refunds given",
+      "line": "2",
+      "hint": "Money you refunded to buyers (enter as a positive amount)",
+      "desktopName": "Refunds given"
+    },
+    {
+      "id": "other_income",
+      "name": "Other business income",
+      "line": "6",
+      "hint": "Anything else",
+      "desktopName": "Other business income"
+    }
   ],
-  [
-   "6",
-   "Other income"
+  "expenseCategories": [
+    {
+      "id": "advertising",
+      "name": "Advertising & marketing",
+      "line": "8",
+      "deductibleShare": 1.0,
+      "hint": "Ads, promoted posts, store featuring",
+      "desktopName": "Advertising & marketing"
+    },
+    {
+      "id": "platform_fees",
+      "name": "Commissions & platform fees",
+      "line": "10",
+      "deductibleShare": 1.0,
+      "hint": "Platform cuts, payment processing fees",
+      "desktopName": "Commissions & platform fees"
+    },
+    {
+      "id": "contract_labor",
+      "name": "Contract labor",
+      "line": "11",
+      "deductibleShare": 1.0,
+      "hint": "People you paid for work (may need a 1099-NEC from you)",
+      "desktopName": "Contract labor"
+    },
+    {
+      "id": "equipment",
+      "name": "Equipment & computers",
+      "line": "13",
+      "deductibleShare": 1.0,
+      "hint": "Hardware. Large items may need depreciation; ask a pro",
+      "desktopName": "Equipment & computers"
+    },
+    {
+      "id": "insurance",
+      "name": "Insurance",
+      "line": "15",
+      "deductibleShare": 1.0,
+      "hint": "Business insurance (not health)",
+      "desktopName": "Insurance"
+    },
+    {
+      "id": "legal_professional",
+      "name": "Legal & professional",
+      "line": "17",
+      "deductibleShare": 1.0,
+      "hint": "Tax prep, lawyers, accountants",
+      "desktopName": "Legal & professional"
+    },
+    {
+      "id": "office",
+      "name": "Office expense",
+      "line": "18",
+      "deductibleShare": 1.0,
+      "hint": "Small office items, postage",
+      "desktopName": "Office expense"
+    },
+    {
+      "id": "rent",
+      "name": "Rent or lease",
+      "line": "20b",
+      "deductibleShare": 1.0,
+      "hint": "Renting equipment, studio space",
+      "desktopName": "Rent or lease"
+    },
+    {
+      "id": "supplies",
+      "name": "Supplies",
+      "line": "22",
+      "deductibleShare": 1.0,
+      "hint": "Consumables used for the business",
+      "desktopName": "Supplies"
+    },
+    {
+      "id": "taxes_licenses",
+      "name": "Taxes & licenses",
+      "line": "23",
+      "deductibleShare": 1.0,
+      "hint": "Business licenses, permits",
+      "desktopName": "Taxes & licenses"
+    },
+    {
+      "id": "travel",
+      "name": "Travel",
+      "line": "24a",
+      "deductibleShare": 1.0,
+      "hint": "Business trips (not commuting)",
+      "desktopName": "Travel"
+    },
+    {
+      "id": "meals",
+      "name": "Meals",
+      "line": "24b",
+      "deductibleShare": 0.5,
+      "hint": "Business meals: only half is deductible",
+      "desktopName": "Meals (50%)"
+    },
+    {
+      "id": "utilities",
+      "name": "Phone & internet",
+      "line": "25",
+      "deductibleShare": 1.0,
+      "hint": "Set business use % to the work share",
+      "desktopName": "Utilities (phone/internet share)"
+    },
+    {
+      "id": "software",
+      "name": "Software & subscriptions",
+      "line": "27a",
+      "deductibleShare": 1.0,
+      "hint": "Apps, plugins, cloud storage",
+      "desktopName": "Software & subscriptions"
+    },
+    {
+      "id": "education",
+      "name": "Education & training",
+      "line": "27a",
+      "deductibleShare": 1.0,
+      "hint": "Courses and books for your business skills",
+      "desktopName": "Education & training"
+    },
+    {
+      "id": "other_expense",
+      "name": "Other business expense",
+      "line": "27a",
+      "deductibleShare": 1.0,
+      "hint": "Anything else ordinary and necessary",
+      "desktopName": "Other business expense"
+    }
   ],
-  [
-   "8",
-   "Advertising"
-  ],
-  [
-   "9",
-   "Car and truck expenses"
-  ],
-  [
-   "10",
-   "Commissions and fees"
-  ],
-  [
-   "11",
-   "Contract labor"
-  ],
-  [
-   "13",
-   "Depreciation / Sec. 179"
-  ],
-  [
-   "15",
-   "Insurance"
-  ],
-  [
-   "17",
-   "Legal and professional services"
-  ],
-  [
-   "18",
-   "Office expense"
-  ],
-  [
-   "20b",
-   "Rent or lease (other)"
-  ],
-  [
-   "22",
-   "Supplies"
-  ],
-  [
-   "23",
-   "Taxes and licenses"
-  ],
-  [
-   "24a",
-   "Travel"
-  ],
-  [
-   "24b",
-   "Deductible meals"
-  ],
-  [
-   "25",
-   "Utilities"
-  ],
-  [
-   "27a",
-   "Other expenses"
-  ],
-  [
-   "30",
-   "Business use of home"
+  "keyFigures": [
+    {
+      "id": "mileage_rate",
+      "name": "Standard mileage rate (business)",
+      "unit": "cents_per_mile",
+      "value": null,
+      "source": "",
+      "verified": null
+    },
+    {
+      "id": "form_1099k_threshold",
+      "name": "Form 1099-K reporting threshold",
+      "unit": "dollars",
+      "value": null,
+      "source": "",
+      "verified": null
+    }
   ]
- ],
- "incomeCategories": [
-  {
-   "id": "product_sales",
-   "name": "Product sales",
-   "line": "1",
-   "hint": "Digital or physical products (itch.io, Etsy, Gumroad)",
-   "desktopName": "Asset sales"
-  },
-  {
-   "id": "services",
-   "name": "Services & gigs",
-   "line": "1",
-   "hint": "Fiverr orders, rides, deliveries, commissions",
-   "desktopName": "Freelance services"
-  },
-  {
-   "id": "tips",
-   "name": "Tips & donations",
-   "line": "1",
-   "hint": "Pay-what-you-want extras, tips",
-   "desktopName": "Tips & donations"
-  },
-  {
-   "id": "refunds_given",
-   "name": "Refunds given",
-   "line": "2",
-   "hint": "Money you refunded to buyers (enter as a positive amount)",
-   "desktopName": "Refunds given"
-  },
-  {
-   "id": "other_income",
-   "name": "Other business income",
-   "line": "6",
-   "hint": "Anything else",
-   "desktopName": "Other business income"
-  }
- ],
- "expenseCategories": [
-  {
-   "id": "advertising",
-   "name": "Advertising & marketing",
-   "line": "8",
-   "deductibleShare": 1.0,
-   "hint": "Ads, promoted posts, store featuring",
-   "desktopName": "Advertising & marketing"
-  },
-  {
-   "id": "platform_fees",
-   "name": "Commissions & platform fees",
-   "line": "10",
-   "deductibleShare": 1.0,
-   "hint": "Platform cuts, payment processing fees",
-   "desktopName": "Commissions & platform fees"
-  },
-  {
-   "id": "contract_labor",
-   "name": "Contract labor",
-   "line": "11",
-   "deductibleShare": 1.0,
-   "hint": "People you paid for work (may need a 1099-NEC from you)",
-   "desktopName": "Contract labor"
-  },
-  {
-   "id": "equipment",
-   "name": "Equipment & computers",
-   "line": "13",
-   "deductibleShare": 1.0,
-   "hint": "Hardware. Large items may need depreciation; ask a pro",
-   "desktopName": "Equipment & computers"
-  },
-  {
-   "id": "insurance",
-   "name": "Insurance",
-   "line": "15",
-   "deductibleShare": 1.0,
-   "hint": "Business insurance (not health)",
-   "desktopName": "Insurance"
-  },
-  {
-   "id": "legal_professional",
-   "name": "Legal & professional",
-   "line": "17",
-   "deductibleShare": 1.0,
-   "hint": "Tax prep, lawyers, accountants",
-   "desktopName": "Legal & professional"
-  },
-  {
-   "id": "office",
-   "name": "Office expense",
-   "line": "18",
-   "deductibleShare": 1.0,
-   "hint": "Small office items, postage",
-   "desktopName": "Office expense"
-  },
-  {
-   "id": "rent",
-   "name": "Rent or lease",
-   "line": "20b",
-   "deductibleShare": 1.0,
-   "hint": "Renting equipment, studio space",
-   "desktopName": "Rent or lease"
-  },
-  {
-   "id": "supplies",
-   "name": "Supplies",
-   "line": "22",
-   "deductibleShare": 1.0,
-   "hint": "Consumables used for the business",
-   "desktopName": "Supplies"
-  },
-  {
-   "id": "taxes_licenses",
-   "name": "Taxes & licenses",
-   "line": "23",
-   "deductibleShare": 1.0,
-   "hint": "Business licenses, permits",
-   "desktopName": "Taxes & licenses"
-  },
-  {
-   "id": "travel",
-   "name": "Travel",
-   "line": "24a",
-   "deductibleShare": 1.0,
-   "hint": "Business trips (not commuting)",
-   "desktopName": "Travel"
-  },
-  {
-   "id": "meals",
-   "name": "Meals",
-   "line": "24b",
-   "deductibleShare": 0.5,
-   "hint": "Business meals: only half is deductible",
-   "desktopName": "Meals (50%)"
-  },
-  {
-   "id": "utilities",
-   "name": "Phone & internet",
-   "line": "25",
-   "deductibleShare": 1.0,
-   "hint": "Set business use % to the work share",
-   "desktopName": "Utilities (phone/internet share)"
-  },
-  {
-   "id": "software",
-   "name": "Software & subscriptions",
-   "line": "27a",
-   "deductibleShare": 1.0,
-   "hint": "Apps, plugins, cloud storage",
-   "desktopName": "Software & subscriptions"
-  },
-  {
-   "id": "education",
-   "name": "Education & training",
-   "line": "27a",
-   "deductibleShare": 1.0,
-   "hint": "Courses and books for your business skills",
-   "desktopName": "Education & training"
-  },
-  {
-   "id": "other_expense",
-   "name": "Other business expense",
-   "line": "27a",
-   "deductibleShare": 1.0,
-   "hint": "Anything else ordinary and necessary",
-   "desktopName": "Other business expense"
-  }
- ]
 }

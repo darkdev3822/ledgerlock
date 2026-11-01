@@ -20,7 +20,9 @@ owner through this, one step at a time, and must not skip it or let it slide to 
    the number/limit/date matches. Claude never fills a number from memory.
 4. **Claude records it:** `"verified": "YYYY-MM-DD"` on the item, plus the source URL. If something has moved or
    ended (a program can be discontinued), Claude removes it or updates it, and tells the owner.
-5. **Claude runs the tests.** The rules test fails if any item for the shipping year has no `verified` date.
+5. **Claude runs the release gate:** `LL_RELEASE=1 flutter test test/rules_release_test.dart`. It lists every
+   unverified item (year files: `review.verified`, `keyFigures`; `resources.json`: each resource + income limits).
+   It must pass before any release. Unverified items are also hidden in the app, so nothing wrong is ever shown.
 6. **Claude logs it** in STATUS.md (date, what changed) and commits: `Rules review <year>: verified by owner`.
 
 ## What gets checked (starter list; SPEC §2.12)
@@ -33,4 +35,4 @@ relief page, SCORE.
 ## Log
 | Year file | Reviewed on | Notes |
 |---|---|---|
-| (none yet: first review happens in M6, when §2.12 is built) | | |
+| (none yet) | | Data drafted 2026-11-01 in M6 part 1: resources.json (10 candidates, all unverified, limits null); mileage_rate + form_1099k_threshold placeholders (null) in 2025/2026.json. First review = next session. |

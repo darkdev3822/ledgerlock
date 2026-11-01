@@ -39,6 +39,32 @@ class Category {
   );
 }
 
+/// A headline number for "What changed for you" (e.g. mileage rate). [value] is null until the owner-led
+/// review (docs/ANNUAL_RULES_REVIEW.md) fills it from the official source; null values are never shown.
+class KeyFigure {
+  final String id, name, unit, source;
+  final num? value;
+  final String? verified;
+  const KeyFigure({
+    required this.id,
+    required this.name,
+    required this.unit,
+    this.source = '',
+    this.value,
+    this.verified,
+  });
+  bool get usable => value != null && verified != null;
+
+  factory KeyFigure.fromJson(Map<String, dynamic> j) => KeyFigure(
+    id: j['id'] as String,
+    name: j['name'] as String,
+    unit: j['unit'] as String? ?? '',
+    source: j['source'] as String? ?? '',
+    value: j['value'] as num?,
+    verified: j['verified'] as String?,
+  );
+}
+
 class TaxRules {
   final int year;
   final List<QuarterDue> quarterlyDue;
@@ -52,6 +78,10 @@ class TaxRules {
   final int seMinimumNetEarningsCents;
   final double defaultSetAsidePct;
 
+  /// Date the owner verified this file's numbers against the IRS (null = not yet; never ship).
+  final String? verified;
+  final List<KeyFigure> keyFigures;
+
   const TaxRules({
     required this.year,
     required this.quarterlyDue,
@@ -62,6 +92,8 @@ class TaxRules {
     this.seRate = 0,
     this.seMinimumNetEarningsCents = 0,
     this.defaultSetAsidePct = 25,
+    this.verified,
+    this.keyFigures = const [],
   });
 
   factory TaxRules.fromJson(Map<String, dynamic> j) {
@@ -83,6 +115,10 @@ class TaxRules {
       seRate: (se['rate'] as num?)?.toDouble() ?? 0,
       seMinimumNetEarningsCents: (((se['minimumNetEarnings'] as num?) ?? 0) * 100).round(),
       defaultSetAsidePct: (j['defaultSetAsidePct'] as num?)?.toDouble() ?? 25,
+      verified: (j['review'] as Map<String, dynamic>?)?['verified'] as String?,
+      keyFigures: [
+        for (final k in j['keyFigures'] as List? ?? const []) KeyFigure.fromJson(k as Map<String, dynamic>),
+      ],
     );
   }
 

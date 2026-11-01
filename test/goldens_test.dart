@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerlock/app/app_controller.dart';
 import 'package:ledgerlock/data/database.dart';
@@ -18,7 +19,9 @@ import 'package:ledgerlock/ui/lock_screens.dart';
 import 'package:ledgerlock/ui/recovery_screens.dart';
 import 'package:ledgerlock/search/search_service.dart';
 import 'package:ledgerlock/ui/search/search_screen.dart';
+import 'package:ledgerlock/tax/guidance.dart';
 import 'package:ledgerlock/ui/settings_screen.dart';
+import 'package:ledgerlock/ui/taxes/guidance_section.dart';
 import 'package:ledgerlock/ui/shell/app_shell.dart';
 
 class FakeBiometrics implements BiometricSecretStore {
@@ -86,6 +89,7 @@ void main() {
     Brightness b, {
     AppController? app,
     bool data = false,
+    List<Override> extra = const [],
   }) async {
     t.view.physicalSize = const Size(390, 844); // logical phone size at 1x: small PNGs
     t.view.devicePixelRatio = 1;
@@ -96,6 +100,7 @@ void main() {
     await t.pumpWidget(
       ProviderScope(
         overrides: [
+          ...extra,
           appControllerProvider.overrideWith((ref) => controller),
           todayProvider.overrideWithValue(DateTime(2026, 11, 1)),
           taxRulesProvider.overrideWith((ref, year) async => rules[year]!),
@@ -133,6 +138,34 @@ void main() {
     testWidgets('records ${b.name}', (t) => shoot(t, 'records', const AppShell(initialTab: 1), b));
     testWidgets('vault ${b.name}', (t) => shoot(t, 'vault', const AppShell(initialTab: 2), b));
     testWidgets('taxes ${b.name}', (t) => shoot(t, 'taxes', const AppShell(initialTab: 3), b));
+    testWidgets(
+      'taxes_guidance ${b.name}',
+      (t) => shoot(
+        t,
+        'taxes_guidance',
+        const Scaffold(
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: GuidanceSection(year: 2026),
+            ),
+          ),
+        ),
+        b,
+        data: true,
+        extra: [
+          // Layout preview only: the shipped list stays unverified until the owner-led review.
+          resourcesProvider.overrideWith(
+            (ref) async => [
+              for (final r in jsonDecode(
+                File('assets/tax_rules/resources.json').readAsStringSync(),
+              )['resources'])
+                Resource.fromJson({...r as Map<String, dynamic>, 'verified': 'preview'}),
+            ],
+          ),
+        ],
+      ),
+    );
     testWidgets('search ${b.name}', (t) => shoot(t, 'search', const SearchScreen(), b));
     testWidgets(
       'search_results ${b.name}',

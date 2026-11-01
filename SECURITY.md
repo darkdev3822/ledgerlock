@@ -33,20 +33,5 @@ Updated every milestone. The final security phase (SPEC §8, M9.5) attacks every
 | T5 | M4 review | Keyboards could learn passwords, recovery keys, answers, payees | Medium | **Fixed**: enableIMEPersonalizedLearning/suggestions/autocorrect off on secret fields; learning off on entry fields |
 | T6 | M4 review | FTS5 MATCH syntax from user search text (crash / query errors) | Medium | **Fixed (M5)**: terms reduced to letters/digits, each quoted + prefix-starred, AND/OR joined by us; all filters are bound parameters. search_test "hostile input" + "ftsMatch only ever contains quoted word tokens" |
 | T7 | M5 review | Pasted wall of text -> thousands of FTS terms (SQLite expression limit, UI jank, unhandled error) | Low | **Fixed**: 200-char field cap, 24-word parser cap, search errors caught in the screen. search_test "hostile input" |
-
-## Accepted risks (revisit in M9.5)
-- **Security questions** are low-entropy: anyone with the files (attacker B) can guess offline. Mitigations:
-  Argon2id 64 MiB/t=3, optional, never the only method, UI warns. Consider dropping them if the pentest shows
-  realistic cracking times.
-- **Biometric reset**: someone who can force your finger onto the sensor can reset the password (owner decision).
-- **AttemptGuard state** is a plain file: root can reset it, but root also means attacker B (offline guessing),
-  where Argon2id is the real defence.
-- **Data key in memory** while unlocked (needed to configure recovery methods); zeroed on lock. A memory dump
-  of an unlocked app is out of scope.
-- **Release signing** currently uses the debug key (fix before store, M10).
-- **iOS**: none of this is verified on iOS yet (M10).
-
-## Per-milestone checklist
-Input parsing and DoS · injection (SQL, FTS, paths) · brute force · plaintext leaks (disk, cache, logs, clipboard,
-IME, screenshots, notifications) · exported components and intents · permissions · key handling and zeroing ·
-new dependencies vetted for networking.
+| T8 | M6 review | Opening an official link: the browser may tell the site the visit came from LedgerLock (Android app referrer) | Low | **Mitigated**: neutral EXTRA_REFERRER; links are allowlisted https, no query/fragment/userinfo (Dart + Kotlin). **Verify on device in M9.5** (check document.referrer) |
+| T9 | M6 review | Sensitive opt-ins (age 60+, IRS problem) | Low | **Fixed**: stored only in the encrypted DB, cleared from memory on lock, never sent anywhere, wording never implies sharing. guidance_test |

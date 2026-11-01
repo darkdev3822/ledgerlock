@@ -15,6 +15,7 @@ import '../design/theme.dart';
 import '../ledger/category_icons.dart';
 import '../ledger/entry_screen.dart';
 import '../search/search_screen.dart';
+import '../taxes/guidance_section.dart';
 
 const _pad = EdgeInsets.fromLTRB(Space.gutter, Space.sm, Space.gutter, Space.xxl);
 
@@ -624,6 +625,7 @@ class TaxesTab extends ConsumerWidget {
             ],
           ),
         ],
+        GuidanceSection(year: year),
         const SectionHeader('Tools'),
         LLGroup(
           children: [

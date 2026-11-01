@@ -1,0 +1,148 @@
+{
+  "note": "Free help shown in the Taxes tab (SPEC §2.12). Draft: every URL, name and limit must be verified by the owner (docs/ANNUAL_RULES_REVIEW.md). verified=null items are never shown.",
+  "resources": [
+    {
+      "id": "disaster_relief",
+      "name": "IRS disaster relief and deadline extensions",
+      "purpose": "Check whether your area has extra time to file or pay.",
+      "url": "https://www.irs.gov/newsroom/tax-relief-in-disaster-situations",
+      "when": [
+        "always"
+      ],
+      "incomeLimitCents": {
+        "2025": null,
+        "2026": null
+      },
+      "verified": null
+    },
+    {
+      "id": "taxpayer_advocate",
+      "name": "Taxpayer Advocate Service",
+      "purpose": "Free, independent help when an IRS problem isn’t getting solved.",
+      "url": "https://www.taxpayeradvocate.irs.gov/",
+      "when": [
+        "irsLetter",
+        "irsProblem"
+      ],
+      "incomeLimitCents": {
+        "2025": null,
+        "2026": null
+      },
+      "verified": null
+    },
+    {
+      "id": "free_file",
+      "name": "IRS Free File",
+      "purpose": "File your federal return free with brand-name software, under an income limit.",
+      "url": "https://www.irs.gov/filing/free-file-do-your-federal-taxes-for-free",
+      "when": [
+        "incomeUnderLimit"
+      ],
+      "incomeLimitCents": {
+        "2025": null,
+        "2026": null
+      },
+      "verified": null
+    },
+    {
+      "id": "vita",
+      "name": "VITA free tax preparation",
+      "purpose": "IRS-certified volunteers prepare your return free, under an income limit.",
+      "url": "https://www.irs.gov/individuals/free-tax-return-preparation-for-qualifying-taxpayers",
+      "when": [
+        "incomeUnderLimit"
+      ],
+      "incomeLimitCents": {
+        "2025": null,
+        "2026": null
+      },
+      "verified": null
+    },
+    {
+      "id": "tce",
+      "name": "Tax Counseling for the Elderly (TCE)",
+      "purpose": "Free tax help focused on people 60 and older.",
+      "url": "https://www.irs.gov/individuals/free-tax-return-preparation-for-qualifying-taxpayers",
+      "when": [
+        "age60"
+      ],
+      "incomeLimitCents": {
+        "2025": null,
+        "2026": null
+      },
+      "verified": null
+    },
+    {
+      "id": "litc",
+      "name": "Low Income Taxpayer Clinics",
+      "purpose": "Free or low-cost help with IRS disputes, under an income limit.",
+      "url": "https://www.taxpayeradvocate.irs.gov/about-us/low-income-taxpayer-clinics-litc/",
+      "when": [
+        "irsLetter",
+        "irsProblem"
+      ],
+      "incomeLimitCents": {
+        "2025": null,
+        "2026": null
+      },
+      "verified": null
+    },
+    {
+      "id": "payment_plans",
+      "name": "IRS payment plans",
+      "purpose": "Options if you can’t pay what you owe all at once.",
+      "url": "https://www.irs.gov/payments/payment-plans-installment-agreements",
+      "when": [
+        "taxDue"
+      ],
+      "incomeLimitCents": {
+        "2025": null,
+        "2026": null
+      },
+      "verified": null
+    },
+    {
+      "id": "se_tax_center",
+      "name": "IRS Self-Employed Individuals Tax Center",
+      "purpose": "The IRS’s starting point for side-hustle and freelance taxes.",
+      "url": "https://www.irs.gov/businesses/small-businesses-self-employed/self-employed-individuals-tax-center",
+      "when": [
+        "firstYear",
+        "selfEmployed"
+      ],
+      "incomeLimitCents": {
+        "2025": null,
+        "2026": null
+      },
+      "verified": null
+    },
+    {
+      "id": "form_1099k",
+      "name": "IRS: Understanding your Form 1099-K",
+      "purpose": "What the 1099-K from payment apps and marketplaces means for you.",
+      "url": "https://www.irs.gov/businesses/understanding-your-form-1099-k",
+      "when": [
+        "platformIncome"
+      ],
+      "incomeLimitCents": {
+        "2025": null,
+        "2026": null
+      },
+      "verified": null
+    },
+    {
+      "id": "score",
+      "name": "SCORE free business mentoring",
+      "purpose": "Free mentoring from experienced business volunteers.",
+      "url": "https://www.score.org/",
+      "when": [
+        "selfEmployed"
+      ],
+      "incomeLimitCents": {
+        "2025": null,
+        "2026": null
+      },
+      "verified": null
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 package com.darkdev.ledgerlock
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
@@ -66,6 +68,25 @@ class MainActivity : FlutterFragmentActivity() {
                     @Suppress("UNCHECKED_CAST")
                     val types = (call.argument<List<String>>("mimeTypes") ?: listOf("*/*")).toTypedArray()
                     openDocument.launch(types)
+                }
+                "openUrl" -> {
+                    // Hands an https link to the user's browser. This app has no INTERNET permission and
+                    // never connects; the browser does, only after the user taps (SPEC §2.12).
+                    val uri = call.argument<String>("url")?.let(Uri::parse)
+                    if (uri == null || uri.scheme != "https" || uri.host.isNullOrEmpty() || uri.query != null) {
+                        result.error("bad_url", "Only plain https links", null)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        // Neutral referrer: don't let the browser tell the site the visit came from this app.
+                        val view = Intent(Intent.ACTION_VIEW, uri)
+                            .addCategory(Intent.CATEGORY_BROWSABLE)
+                            .putExtra(Intent.EXTRA_REFERRER, Uri.parse("android-app://android"))
+                        startActivity(view)
+                        result.success(true)
+                    } catch (e: ActivityNotFoundException) {
+                        result.error("no_browser", "No browser installed", null)
+                    }
                 }
                 else -> result.notImplemented()
             }

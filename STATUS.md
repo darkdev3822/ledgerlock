@@ -68,10 +68,20 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   keywords also match as text ("ad" -> advertising OR Adobe). Schema v5 = attachments(entry_id) index.
   10k seeded records: every SPEC example <= 3 ms. SECURITY T6 + T7 fixed. 82 tests, 30 goldens.
 
+- M6 part 1 DONE (2026-11-01): SPEC §2.12 engine. lib/tax/guidance.dart (link allowlist, resource matching
+  ranked by condition, whatChanged() diff applied to the user's numbers, isPaymentPlatform), lib/ui/taxes/
+  guidance_section.dart (Taxes tab: what changed, free help + reasons, 60+/IRS-problem opt-ins, confirm sheet),
+  lib/platform/open_link.dart + MainActivity "openUrl" (https VIEW, neutral referrer). TaxRules gains review
+  .verified + keyFigures. assets/tax_rules/resources.json = 10 DRAFT resources, all unverified -> app shows none.
+  Release gate test/rules_release_test.dart (LL_RELEASE=1) fails until the owner review. SECURITY T8/T9.
+  96 tests (+1 release gate skipped), 34 goldens. Release APK: still no INTERNET.
+
 ## Next: M6 (see SPEC §8), plus M5 leftovers
-- **Owner-led tax-rules review** (docs/ANNUAL_RULES_REVIEW.md): first one in M6, then every Dec 1 - Jan 31.
-  NEXT ONE DUE: 2026-12-01. Walk the owner through it step by step before other work.
-- M6 now includes SPEC §2.12 ("What changed for you" + tailored free resources). Offline only, decided.
+- **FIRST: owner-led tax-rules review** (docs/ANNUAL_RULES_REVIEW.md). Due NOW (data drafted in M6 part 1, all
+  unverified). Start next session with it, step by step, before other work. Then every Dec 1 - Jan 31.
+- After the review: device-check a link opening in the browser (none visible until items are verified).
+- M6 remaining: payment log, quarterly reminders (vet a notifications plugin), mileage, home office, 1099 tracker,
+  CSV export.
 - M5 leftovers: tappable/removable filter chips (date range, platform, tag, tax line, business %), pull-down-
   to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.
 - Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
