@@ -128,7 +128,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   month net, rounded-square icons, Unpaid pill, staggered month groups, filter crossfade). showSuccess() toast
   (pop-in check + haptic + plain line) on record save, payment logged, check-in done. Warm snackbar colours.
   Golden renderer draws elevation shadows solid black (snackbar, FAB, hero): confirm on device.
-  Next design passes: Taxes/Vault, tab
+- Design pass 3: Taxes (quarter timeline hero: paid from payment log / missed amber / next halo, track fills
+  with the year; SE tax figure with formula folded into "How this is worked out"; set-aside shows per-payment;
+  tools as 2x2 pressable tiles + Export card; staggered sections). taxes_full golden (2300 px tall).
+  Next design passes: Vault, tab
   transitions, empty-state illustrations, onboarding. Device check: shadows render as hard ledges in goldens.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.

@@ -112,8 +112,9 @@ void main() {
     AppController? app,
     bool data = false,
     List<Override> extra = const [],
+    double height = 844,
   }) async {
-    t.view.physicalSize = const Size(390, 844); // logical phone size at 1x: small PNGs
+    t.view.physicalSize = Size(390, height); // logical phone size at 1x: small PNGs
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     final controller = app ?? AppController(dataDir: dir, biometrics: FakeBiometrics(), year: 2026)
@@ -182,7 +183,41 @@ void main() {
     );
     testWidgets(
       'taxes_filled ${b.name}',
-      (t) => shoot(t, 'taxes_filled', const AppShell(initialTab: 3), b, data: true),
+      (t) => shoot(
+        t,
+        'taxes_filled',
+        const AppShell(initialTab: 3),
+        b,
+        data: true,
+        extra: [
+          paymentsProvider.overrideWith(
+            (ref, y) => Stream.value(const [
+              TaxPayment(
+                id: 1,
+                taxYear: 2026,
+                quarter: 'Q1',
+                date: '2026-04-14',
+                amountCents: 40000,
+                method: '',
+                notes: '',
+              ),
+              TaxPayment(
+                id: 2,
+                taxYear: 2026,
+                quarter: 'Q2',
+                date: '2026-06-12',
+                amountCents: 40000,
+                method: '',
+                notes: '',
+              ),
+            ]),
+          ),
+        ],
+      ),
+    );
+    testWidgets(
+      'taxes_full ${b.name}',
+      (t) => shoot(t, 'taxes_full', const AppShell(initialTab: 3), b, data: true, height: 2300),
     );
     testWidgets('records ${b.name}', (t) => shoot(t, 'records', const AppShell(initialTab: 1), b));
     testWidgets('vault ${b.name}', (t) => shoot(t, 'vault', const AppShell(initialTab: 2), b));

@@ -770,149 +770,404 @@ class TaxesTab extends ConsumerWidget {
     final s = ref.watch(summaryProvider(year));
     final today = ref.watch(todayProvider);
     final ll = context.ll;
-    final next = rules?.nextDue(today);
-    return ListView(
-      padding: _pad,
-      children: [
-        LLCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Self-employment tax so far ($year)', style: context.text.bodySmall),
-              const SizedBox(height: 4),
-              MoneyText(s.seTaxCents, style: context.text.headlineMedium),
-              const SizedBox(height: Space.sm),
-              Text(
-                s.netCents <= 0
-                    ? 'No profit yet, so no self-employment tax. Add income to see an estimate.'
-                    : '${formatCents(s.netCents)} profit × ${_pct(rules?.seNetEarningsFactor, 2)} × '
-                          '${_pct(rules?.seRate, 1)}. Half of it is deductible on Schedule 1. '
-                          'Income tax comes on top and depends on your whole return.',
-                style: context.text.bodySmall,
+    final payments = ref.watch(paymentsProvider(year)).value ?? const <TaxPayment>[];
+    final perQuarter = s.setAsideCents ~/ 4;
+    final sections = <Widget>[
+      if (rules != null) _QuarterTimeline(rules: rules, today: today, payments: payments, perQuarterCents: perQuarter),
+      LLCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Self-employment tax so far',
+              style: context.text.titleSmall?.copyWith(
+                fontFamily: Fonts.voice,
+                fontWeight: FontWeight.w600,
+                fontSize: 17,
               ),
-              const Divider(height: Space.lg),
-              InkWell(
-                onTap: () => _editW2(context, app, year),
+            ),
+            const SizedBox(height: Space.sm),
+            AnimatedMoney(s.seTaxCents, style: context.text.displaySmall?.copyWith(fontSize: 34)),
+            const SizedBox(height: Space.xs),
+            Text(
+              s.netCents <= 0
+                  ? 'No profit yet, so no self-employment tax.'
+                  : 'Income tax comes on top and depends on your whole return.',
+              style: context.text.bodySmall,
+            ),
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: Space.sm),
+                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                title: Text('How this is worked out', style: context.text.labelLarge?.copyWith(color: ll.accent)),
+                children: [
+                  Text(
+                    s.netCents <= 0
+                        ? 'Self-employment tax starts once your profit for the year passes a small threshold.'
+                        : '${formatCents(s.netCents)} profit × ${_pct(rules?.seNetEarningsFactor, 2)} × '
+                              '${_pct(rules?.seRate, 1)}. Half of it is deductible on Schedule 1.',
+                    style: context.text.bodySmall,
+                  ),
+                  const SizedBox(height: Space.sm),
+                  Text(
+                    'Wages from a job use up the Social Security limit first, which can lower this estimate. '
+                    'At high incomes a separate 0.9% Medicare tax may also apply (Form 8959).',
+                    style: context.text.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            InkWell(
+              onTap: () => _editW2(context, app, year),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: Space.md),
                 child: Row(
                   children: [
                     Expanded(child: Text('W-2 wages this year (optional)', style: context.text.bodyMedium)),
                     Text(
                       app.w2WagesCents[year] == null ? 'Add' : formatCents(app.w2WagesCents[year]!),
-                      style: context.text.bodyMedium?.copyWith(color: ll.accent, fontWeight: FontWeight.w600),
+                      style: context.text.bodyMedium?.copyWith(color: ll.accent, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Wages from a job use up the Social Security limit first, which can lower this estimate. '
-                'At high incomes a separate 0.9% Medicare tax may also apply (Form 8959).',
-                style: context.text.bodySmall,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: Space.md),
-        LLCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Set aside for taxes',
-                      style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  MoneyText(s.setAsideCents, style: context.text.titleMedium),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${s.setAsidePct.round()}% of profit. A quarter of this per payment is a reasonable rule of thumb.',
-                style: context.text.bodySmall,
-              ),
-              Slider(
-                value: s.setAsidePct.clamp(10, 45),
-                min: 10,
-                max: 45,
-                divisions: 7,
-                label: '${s.setAsidePct.round()}%',
-                onChanged: (v) => app.setSetAsidePct(v),
-              ),
-            ],
-          ),
-        ),
-        const SectionHeader('Quarterly payments (Form 1040-ES)'),
-        if (rules != null)
-          LLGroup(
-            children: [
-              for (final q in rules.quarterlyDue)
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: q == next ? ll.accent : ll.surfaceAlt,
-                    foregroundColor: q == next ? ll.onAccent : ll.muted,
-                    child: Text(q.quarter, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                  ),
-                  title: Text('Due ${DateFormat.yMMMd().format(q.due)}'),
-                  subtitle: Text('Covers ${q.covers}'),
-                  trailing: q == next
-                      ? Pill('Next', color: ll.accent)
-                      : q.due.isBefore(today)
-                      ? Pill('Past', color: ll.muted)
-                      : null,
-                ),
-            ],
-          ),
-        if (rules != null && s.lines.isNotEmpty) ...[
-          const SectionHeader('Schedule C so far'),
-          LLGroup(
-            children: [
-              for (final l in rules.lineNames.entries)
-                if (s.lines[l.key] != null)
-                  ListTile(
-                    dense: true,
-                    leading: SizedBox(
-                      width: 36,
-                      child: Text(
-                        l.key,
-                        style: context.text.labelLarge?.copyWith(color: ll.muted, fontFeatures: tabular),
-                      ),
-                    ),
-                    title: Text(l.value),
-                    trailing: MoneyText(s.lines[l.key]!, style: context.text.bodyMedium),
-                  ),
-            ],
-          ),
-        ],
-        GuidanceSection(year: year),
-        const SectionHeader('Tools'),
-        LLGroup(
-          children: [
-            for (final (icon, title, sub, Widget screen) in [
-              (Icons.payments_outlined, 'Payment log', 'Record what you\'ve paid the IRS', PaymentLogScreen(year)),
-              (Icons.directions_car_outlined, 'Mileage', 'Standard mileage rate, trip by trip', MileageScreen(year)),
-              (Icons.home_work_outlined, 'Home office', 'Simplified method', HomeOfficeScreen(year)),
-              (Icons.description_outlined, '1099 tracker', 'Match forms to your income', Forms1099Screen(year)),
-            ])
-              ListTile(
-                leading: Icon(icon),
-                title: Text(title),
-                subtitle: Text(sub),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen)),
-              ),
-            ListTile(
-              leading: const Icon(Icons.ios_share_rounded),
-              title: const Text('Export CSV'),
-              subtitle: const Text('Records, mileage or payments for a spreadsheet or preparer'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => showExportSheet(context, ref, year),
             ),
           ],
         ),
+      ),
+      LLCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Set aside for taxes', style: context.text.titleSmall),
+                      const SizedBox(height: 2),
+                      Text('${s.setAsidePct.round()}% of profit', style: context.text.bodySmall),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    AnimatedMoney(s.setAsideCents, style: context.text.titleLarge),
+                    if (perQuarter > 0)
+                      Text('≈ ${formatCents(perQuarter)} per payment', style: context.text.labelMedium),
+                  ],
+                ),
+              ],
+            ),
+            Slider(
+              value: s.setAsidePct.clamp(10, 45),
+              min: 10,
+              max: 45,
+              divisions: 7,
+              label: '${s.setAsidePct.round()}%',
+              onChanged: (v) {
+                if (v.round() != s.setAsidePct.round()) tick();
+                app.setSetAsidePct(v);
+              },
+            ),
+            Text('A rule of thumb, not a calculation of what you owe.', style: context.text.bodySmall),
+          ],
+        ),
+      ),
+      if (rules != null && s.lines.isNotEmpty)
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SectionHeader('Schedule C so far'),
+            LLGroup(
+              children: [
+                for (final l in rules.lineNames.entries)
+                  if (s.lines[l.key] != null)
+                    ListTile(
+                      dense: true,
+                      leading: SizedBox(
+                        width: 36,
+                        child: Text(
+                          l.key,
+                          style: context.text.labelLarge?.copyWith(color: ll.muted, fontFeatures: tabular),
+                        ),
+                      ),
+                      title: Text(l.value),
+                      trailing: MoneyText(s.lines[l.key]!, style: context.text.bodyMedium),
+                    ),
+              ],
+            ),
+          ],
+        ),
+      GuidanceSection(year: year),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionHeader('Tools'),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: Space.md,
+            crossAxisSpacing: Space.md,
+            childAspectRatio: 1.45,
+            children: [
+              for (final (icon, title, sub, Widget screen) in [
+                (Icons.payments_outlined, 'Payment log', 'What you\'ve paid', PaymentLogScreen(year)),
+                (Icons.directions_car_outlined, 'Mileage', 'Trip by trip', MileageScreen(year)),
+                (Icons.home_work_outlined, 'Home office', 'Simplified method', HomeOfficeScreen(year)),
+                (Icons.description_outlined, '1099 tracker', 'Match your forms', Forms1099Screen(year)),
+              ])
+                LLCard(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(color: ll.accentSoft, borderRadius: BorderRadius.circular(11)),
+                        child: Icon(icon, size: 19, color: ll.accent),
+                      ),
+                      const Spacer(),
+                      Text(title, style: context.text.titleSmall),
+                      Text(sub, style: context.text.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: Space.md),
+          LLCard(
+            onTap: () => showExportSheet(context, ref, year),
+            child: Row(
+              children: [
+                Icon(Icons.ios_share_rounded, color: ll.muted),
+                const SizedBox(width: Space.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Export', style: context.text.titleSmall),
+                      Text('Tax packet PDF, or CSV for a spreadsheet', style: context.text.bodySmall),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: ll.muted),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ];
+    return ListView(
+      padding: _pad,
+      children: [
+        for (final (i, w) in sections.indexed)
+          Padding(
+            padding: EdgeInsets.only(bottom: i == sections.length - 1 ? 0 : Space.md),
+            child: Reveal(index: i, child: w),
+          ),
       ],
+    );
+  }
+}
+
+/// The year's four estimated-tax quarters on one track. Paid (from the payment log) gets a check, a passed
+/// unpaid quarter turns amber, the next one is highlighted. The track fills with the year.
+class _QuarterTimeline extends StatelessWidget {
+  final TaxRules rules;
+  final DateTime today;
+  final List<TaxPayment> payments;
+  final int perQuarterCents;
+  const _QuarterTimeline({
+    required this.rules,
+    required this.today,
+    required this.payments,
+    required this.perQuarterCents,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ll = context.ll;
+    final qs = rules.quarterlyDue;
+    final d0 = DateTime(today.year, today.month, today.day);
+    final next = rules.nextDue(today);
+    bool paid(QuarterDue q) => payments.any((p) => p.quarter == q.quarter);
+    // Fill: position of today between the first and last due dates, in quarter steps.
+    double fill = 0;
+    if (qs.isNotEmpty) {
+      if (!d0.isBefore(qs.last.due)) {
+        fill = 1;
+      } else {
+        for (var i = 0; i < qs.length; i++) {
+          if (d0.isBefore(qs[i].due)) {
+            final prev = i == 0 ? DateTime(rules.year) : qs[i - 1].due;
+            final span = qs[i].due.difference(prev).inDays;
+            final f = span <= 0 ? 0 : d0.difference(prev).inDays / span;
+            fill = ((i - 1 + f.clamp(0, 1)) / (qs.length - 1)).clamp(0, 1).toDouble();
+            break;
+          }
+        }
+      }
+    }
+    final days = next?.due.difference(d0).inDays;
+    final missed = [
+      for (final q in qs)
+        if (q.due.isBefore(d0) && !paid(q)) q.quarter,
+    ];
+    final missedLine = missed.isEmpty
+        ? ''
+        : ' ${missed.join(' and ')} ${missed.length == 1 ? 'has' : 'have'} no payment logged.';
+    final status = next == null
+        ? 'All ${rules.year} quarters are behind you.$missedLine'
+        : '${next.quarter} is due ${DateFormat.MMMd().format(next.due)}, in $days day${days == 1 ? '' : 's'}'
+              '${perQuarterCents > 0 ? '. About ${formatCents(perQuarterCents)} keeps you on pace.' : '.'}$missedLine';
+    return LLCard(
+      padding: const EdgeInsets.fromLTRB(Space.lg, Space.lg, Space.lg, Space.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Quarterly payments',
+            style: context.text.titleMedium?.copyWith(
+              fontFamily: Fonts.voice,
+              fontWeight: FontWeight.w600,
+              fontSize: 19,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(status, style: context.text.bodySmall),
+          const SizedBox(height: Space.lg),
+          SizedBox(
+            height: 72,
+            child: LayoutBuilder(
+              builder: (context, c) {
+                const dot = 30.0, cell = 56.0;
+                final track = c.maxWidth - cell;
+                return Stack(
+                  children: [
+                    Positioned(
+                      left: cell / 2,
+                      right: cell / 2,
+                      top: dot / 2 - 2,
+                      child: Container(
+                        height: 4,
+                        decoration: BoxDecoration(color: ll.surfaceAlt, borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    Positioned(
+                      left: cell / 2,
+                      top: dot / 2 - 2,
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: fill),
+                        duration: Motion.reduced(context) ? Duration.zero : const Duration(milliseconds: 900),
+                        curve: Motion.enter,
+                        builder: (_, f, _) => Container(
+                          width: track * f,
+                          height: 4,
+                          decoration: BoxDecoration(color: ll.accent, borderRadius: BorderRadius.circular(2)),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final q in qs)
+                          SizedBox(
+                            width: cell,
+                            child: _QuarterNode(
+                              q: q,
+                              state: paid(q)
+                                  ? _QState.paid
+                                  : q == next
+                                  ? _QState.next
+                                  : q.due.isBefore(d0)
+                                  ? _QState.missed
+                                  : _QState.later,
+                              size: dot,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+enum _QState { paid, next, missed, later }
+
+class _QuarterNode extends StatelessWidget {
+  final QuarterDue q;
+  final _QState state;
+  final double size;
+  const _QuarterNode({required this.q, required this.state, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final ll = context.ll;
+    final (bg, fg, icon) = switch (state) {
+      _QState.paid => (ll.accent, ll.onAccent, Icons.check_rounded),
+      _QState.next => (ll.surface, ll.accent, null),
+      _QState.missed => (ll.warning.withValues(alpha: 0.16), ll.warning, Icons.priority_high_rounded),
+      _QState.later => (ll.surfaceAlt, ll.muted, null),
+    };
+    return Semantics(
+      label:
+          '${q.quarter}, due ${DateFormat.yMMMd().format(q.due)}, '
+          '${switch (state) {
+            _QState.paid => 'payment logged',
+            _QState.next => 'next',
+            _QState.missed => 'no payment logged',
+            _QState.later => 'upcoming',
+          }}',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: bg,
+              shape: BoxShape.circle,
+              border: state == _QState.next ? Border.all(color: ll.accent, width: 2.5) : null,
+              boxShadow: state == _QState.next
+                  ? [BoxShadow(color: ll.accent.withValues(alpha: 0.25), blurRadius: 10, spreadRadius: 1)]
+                  : null,
+            ),
+            child: Center(
+              child: icon != null
+                  ? Icon(icon, size: 17, color: fg)
+                  : Text(
+                      q.quarter,
+                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: fg),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            q.quarter,
+            style: context.text.labelMedium?.copyWith(
+              color: state == _QState.next ? ll.text : ll.muted,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(DateFormat.MMMd().format(q.due), style: context.text.labelSmall?.copyWith(color: ll.muted)),
+        ],
+      ),
     );
   }
 }
