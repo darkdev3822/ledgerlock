@@ -13,9 +13,12 @@
     <application
         android:allowBackup="false"
         android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:label="LedgerLock"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- No deep links: other apps must not be able to push routes into the vault (T21). -->
+        <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

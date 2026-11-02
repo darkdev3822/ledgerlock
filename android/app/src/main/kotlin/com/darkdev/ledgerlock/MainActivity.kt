@@ -43,7 +43,7 @@ class MainActivity : FlutterFragmentActivity() {
                 contentResolver.openOutputStream(uri, "wt")?.use { it.write(bytes) }
                     ?: throw IllegalStateException("no stream")
                 runOnUiThread { result.success(true) }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 runOnUiThread { result.error("write_failed", e.message, null) }
             }
         }.start()
@@ -65,7 +65,7 @@ class MainActivity : FlutterFragmentActivity() {
                     if (c.moveToFirst()) {
                         val n = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                         val s = c.getColumnIndex(OpenableColumns.SIZE)
-                        if (n >= 0) name = c.getString(n) ?: name
+                        if (n >= 0) name = cleanName(c.getString(n)) ?: name
                         if (s >= 0 && !c.isNull(s)) size = c.getLong(s)
                     }
                 }
@@ -73,16 +73,66 @@ class MainActivity : FlutterFragmentActivity() {
                     runOnUiThread { result.error("too_large", "File is larger than 30 MB", null) }
                     return@Thread
                 }
-                val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                // Don't trust the provider's SIZE: read at most maxBytes + 1 (T21).
+                val bytes = contentResolver.openInputStream(uri)?.use { readCapped(it) }
+                if (bytes != null && bytes.size > maxBytes) {
+                    runOnUiThread { result.error("too_large", "File is larger than 30 MB", null) }
+                    return@Thread
+                }
                 val mime = contentResolver.getType(uri) ?: "application/octet-stream"
                 runOnUiThread {
                     if (bytes == null) result.error("unreadable", "Could not read the file", null)
                     else result.success(mapOf("name" to name, "mime" to mime, "bytes" to bytes))
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) { // includes OutOfMemoryError: never crash on a hostile file
                 runOnUiThread { result.error("unreadable", e.message, null) }
             }
         }.start()
+    }
+
+    private fun readCapped(input: java.io.InputStream): ByteArray {
+        val out = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(64 * 1024)
+        var total = 0L
+        while (true) {
+            val n = input.read(buf)
+            if (n < 0) break
+            total += n
+            out.write(buf, 0, n)
+            if (total > maxBytes) break
+        }
+        return out.toByteArray()
+    }
+
+    /** Display names come from other apps: cap length, drop control and bidi-override characters (T21). */
+    private fun cleanName(raw: String?): String? {
+        if (raw == null) return null
+        val cleaned = raw.filter { ch ->
+            !Character.isISOControl(ch) && ch !in '\u202A'..'\u202E' && ch !in '\u2066'..'\u2069' && ch != '\u200E' && ch != '\u200F'
+        }.trim()
+        return cleaned.take(120).ifEmpty { null }
+    }
+
+    private val linkHosts = setOf("irs.gov", "score.org")
+
+    /** Same rules as Dart's isAllowedLink, enforced again here (T8, T21). */
+    private fun allowedLink(uri: Uri): Boolean {
+        val host = uri.host ?: return false
+        if (uri.scheme != "https" || uri.query != null || uri.fragment != null || uri.userInfo != null || uri.port != -1) return false
+        if (!Regex("^[a-z0-9.-]+$").matches(host)) return false
+        return linkHosts.any { host == it || host.endsWith(".$it") }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setSecure(true) // T22: from the first frame, before any unlock
+    }
+
+    /** Blocks screenshots, screen recording and the app-switcher thumbnail (T22). Default on. */
+    private fun setSecure(on: Boolean) {
+        if (on) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        if (android.os.Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -138,7 +188,7 @@ class MainActivity : FlutterFragmentActivity() {
                         try {
                             val text = Ocr.recognize(applicationContext, bytes)
                             runOnUiThread { result.success(text) }
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             runOnUiThread { result.error("ocr_failed", e.message, null) }
                         }
                     }.start()
@@ -147,11 +197,15 @@ class MainActivity : FlutterFragmentActivity() {
                     Reminders.cancelAll(this)
                     result.success(true)
                 }
+                "setSecure" -> {
+                    setSecure(call.argument<Boolean>("on") != false)
+                    result.success(null)
+                }
                 "openUrl" -> {
                     // Hands an https link to the user's browser. This app has no INTERNET permission and
                     // never connects; the browser does, only after the user taps (SPEC §2.12).
                     val uri = call.argument<String>("url")?.let(Uri::parse)
-                    if (uri == null || uri.scheme != "https" || uri.host.isNullOrEmpty() || uri.query != null) {
+                    if (uri == null || !allowedLink(uri)) {
                         result.error("bad_url", "Only plain https links", null)
                         return@setMethodCallHandler
                     }

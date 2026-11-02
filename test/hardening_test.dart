@@ -20,7 +20,7 @@ void main() {
   group('T1 guess throttling', () {
     test('lockout escalates after 5 misses, survives restarts, resets on success', () async {
       var now = DateTime(2026, 11, 1, 12);
-      AttemptGuard g() => AttemptGuard(dir, now: () => now);
+      AttemptGuard g() => AttemptGuard(dir, now: () => now, uptime: () => null);
       Vault v() => Vault(dir, kdfFactory: fastKdf, guard: g());
       await v().create('right');
       for (var i = 0; i < 4; i++) {
@@ -40,7 +40,7 @@ void main() {
 
     test('moving the clock backwards does not shorten a lockout', () {
       var now = DateTime(2026, 11, 1, 12);
-      final g = AttemptGuard(dir, now: () => now);
+      final g = AttemptGuard(dir, now: () => now, uptime: () => null);
       for (var i = 0; i < 9; i++) {
         g.recordFailure();
       }

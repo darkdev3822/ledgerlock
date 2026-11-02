@@ -13,6 +13,9 @@ bool isAllowedLink(String url) {
   final u = Uri.tryParse(url);
   if (u == null || u.scheme != 'https' || u.hasQuery || u.hasFragment || u.userInfo.isNotEmpty) return false;
   if (u.hasPort && u.port != 443) return false;
+  // Plain ASCII hostnames only: percent-escapes, backslashes and full-width characters can make a host look like
+  // ".irs.gov" to us but resolve elsewhere in a browser (M9.5 review, T21).
+  if (!RegExp(r'^[a-z0-9.-]+$').hasMatch(u.host) || url.contains('%') || url.contains(r'\')) return false;
   return allowedLinkHosts.any((h) => u.host == h || u.host.endsWith('.$h'));
 }
 

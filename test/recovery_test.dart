@@ -32,7 +32,7 @@ void main() {
 
     test('answers normalise case, spaces and punctuation', () {
       expect(normalizeAnswer('  Mr. Whiskers!! '), normalizeAnswer('mr whiskers'));
-      expect(normalizeAnswer('São Paulo'), 'são paulo');
+      expect(normalizeAnswer('São Paulo'), 'sao paulo');
     });
   });
 

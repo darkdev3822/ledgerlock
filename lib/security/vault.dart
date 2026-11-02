@@ -54,7 +54,20 @@ class RecoveryKey {
 }
 
 /// Answers are compared case/space/punctuation-insensitively.
-String normalizeAnswer(String a) => a.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ').trim();
+const _fold = {
+  'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'å': 'a', 'ç': 'c', 'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e', //
+  'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i', 'ñ': 'n', 'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o', 'ø': 'o',
+  'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u', 'ý': 'y', 'ÿ': 'y', 'ß': 'ss', 'æ': 'ae', 'œ': 'oe',
+};
+
+/// Case, accents, spacing and punctuation don't matter. Combining marks are dropped and accented Latin letters
+/// folded, so "José" matches whether the keyboard sent é as one character or e + accent (M9.5 review, T23).
+/// Changing this changes stored answers: only safe before release or with a slot migration.
+String normalizeAnswer(String a) {
+  final lower = a.toLowerCase().replaceAll(RegExp(r'\p{M}', unicode: true), '');
+  final folded = lower.split('').map((c) => _fold[c] ?? c).join();
+  return folded.replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ').trim();
+}
 
 class Vault {
   static const _passwordAad = 'ledgerlock/v1/data-key'; // v1-compatible
@@ -205,7 +218,7 @@ class Vault {
   /// Exactly 3 questions; all answers are needed to recover.
   Future<void> setSecurityQuestions(Uint8List dataKey, List<String> questions, List<String> answers) async {
     if (questions.length != 3 || answers.length != 3) throw ArgumentError('need 3 questions and answers');
-    if (answers.any((a) => normalizeAnswer(a).length < 2)) throw ArgumentError('answer too short');
+    if (answers.any((a) => normalizeAnswer(a).length < 3)) throw ArgumentError('answer too short');
     await _setSlot(Slot.questions, dataKey, _answersSecret(answers), questionsKdfFactory(), {'questions': questions});
   }
 

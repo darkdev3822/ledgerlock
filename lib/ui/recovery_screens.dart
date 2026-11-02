@@ -193,7 +193,7 @@ class _SecurityQuestionsSetupScreenState extends State<SecurityQuestionsSetupScr
     super.dispose();
   }
 
-  bool get _valid => _questions.toSet().length == 3 && _answers.every((c) => normalizeAnswer(c.text).length >= 2);
+  bool get _valid => _questions.toSet().length == 3 && _answers.every((c) => normalizeAnswer(c.text).length >= 3);
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -229,7 +229,11 @@ class _SecurityQuestionsSetupScreenState extends State<SecurityQuestionsSetupScr
             autocorrect: false,
             key: Key('a$i'),
             controller: _answers[i],
-            decoration: const InputDecoration(labelText: 'Answer', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+              labelText: 'Answer',
+              helperText: 'At least 3 letters or numbers',
+              border: OutlineInputBorder(),
+            ),
             onChanged: (_) => setState(() {}),
           ),
         ],
@@ -264,7 +268,18 @@ class ForgotPasswordScreen extends StatefulWidget {
   final Vault vault;
   final BiometricSecretStore biometrics;
   final Future<void> Function(Uint8List dataKey) onRecovered;
-  const ForgotPasswordScreen({super.key, required this.vault, required this.biometrics, required this.onRecovered});
+
+  /// Hand the recovered key to an owner that auto-lock can wipe, and release it if the user backs out (T19).
+  final void Function(Uint8List dataKey)? onHold;
+  final VoidCallback? onRelease;
+  const ForgotPasswordScreen({
+    super.key,
+    required this.vault,
+    required this.biometrics,
+    required this.onRecovered,
+    this.onHold,
+    this.onRelease,
+  });
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
@@ -296,7 +311,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _done(Uint8List dk) async {
-    if (!mounted) return;
+    if (!mounted) {
+      LedgerCrypto.zero(dk);
+      return;
+    }
+    widget.onHold?.call(dk);
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => SetupScreen(
@@ -311,6 +330,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
       ),
     );
+    // Route closed: after success the session owns the key and release is a no-op; after back/lock it is wiped.
+    widget.onRelease?.call();
   }
 
   @override

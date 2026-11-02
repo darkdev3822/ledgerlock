@@ -9,7 +9,8 @@ const _channel = MethodChannel('ledgerlock/files');
 Future<String?> openOfficialLink(String url) async {
   if (!isAllowedLink(url)) return 'That link isn\u2019t on the official list.';
   try {
-    await _channel.invokeMethod<bool>('openUrl', {'url': url});
+    // Send the parsed, normalised form: what we checked is exactly what the browser gets.
+    await _channel.invokeMethod<bool>('openUrl', {'url': Uri.parse(url).toString()});
     return null;
   } on PlatformException catch (e) {
     return e.code == 'no_browser' ? 'No browser is installed.' : 'Couldn\u2019t open the link.';

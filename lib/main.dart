@@ -50,12 +50,18 @@ class LedgerLockApp extends ConsumerStatefulWidget {
 class _LedgerLockAppState extends ConsumerState<LedgerLockApp> {
   final _nav = GlobalKey<NavigatorState>();
   Stage? _lastStage;
+  int _lastRecoveryEpoch = 0; // a lock during password recovery wiped the key: back to the lock screen
   bool _welcomed = false; // first run: privacy promise before choosing a password
 
   void _forgot(AppController app) => _nav.currentState!.push(
     MaterialPageRoute(
-      builder: (_) =>
-          ForgotPasswordScreen(vault: app.vault, biometrics: app.biometrics, onRecovered: app.openWithDataKey),
+      builder: (_) => ForgotPasswordScreen(
+        vault: app.vault,
+        biometrics: app.biometrics,
+        onRecovered: app.openWithDataKey,
+        onHold: app.holdRecoveryKey,
+        onRelease: app.releaseRecoveryKey,
+      ),
     ),
   );
 
@@ -83,10 +89,11 @@ class _LedgerLockAppState extends ConsumerState<LedgerLockApp> {
   Widget build(BuildContext context) {
     final app = ref.watch(appControllerProvider);
     // Any stage change (lock, unlock, onboarding step) clears pushed screens.
-    if (_lastStage != null && _lastStage != app.stage) {
+    if ((_lastStage != null && _lastStage != app.stage) || _lastRecoveryEpoch != app.recoveryEpoch) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _nav.currentState?.popUntil((r) => r.isFirst));
     }
     _lastStage = app.stage;
+    _lastRecoveryEpoch = app.recoveryEpoch;
     return MaterialApp(
       title: 'LedgerLock',
       navigatorKey: _nav,

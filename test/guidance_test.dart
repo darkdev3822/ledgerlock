@@ -287,4 +287,22 @@ void main() {
       expect(whatChanged(rules(2025, k1099: 5000), rules(2026)), isEmpty);
     });
   });
+
+  test('link allowlist rejects host tricks (M9.5 review, SECURITY.md T21)', () {
+    for (final evil in [
+      'https://evil.com%2f.irs.gov/',
+      'https://evil.com%5C.irs.gov/',
+      'https://evil.com\\.irs.gov/',
+      'https://evil.com\uff0f.irs.gov/',
+      'https://irs.gov.evil.com/',
+      'https://user@irs.gov/',
+      'https://irs.gov:8443/',
+      'http://irs.gov/',
+      'https://irs.gov/x?y=1',
+      'https://irs.gov/#frag',
+    ]) {
+      expect(isAllowedLink(evil), isFalse, reason: evil);
+    }
+    expect(isAllowedLink('https://www.irs.gov/businesses/small-businesses-self-employed'), isTrue);
+  });
 }

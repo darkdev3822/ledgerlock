@@ -11,12 +11,25 @@ class TooManyAttempts implements Exception {
   String toString() => 'TooManyAttempts(${wait.inSeconds}s)';
 }
 
+/// Time since boot from /proc/uptime (Linux/Android, readable without permissions). The user can't set it, unlike
+/// the wall clock. Null where unavailable.
+Duration? bootUptime() {
+  try {
+    final secs = double.parse(File('/proc/uptime').readAsStringSync().split(' ').first);
+    return Duration(milliseconds: (secs * 1000).round());
+  } catch (_) {
+    return null;
+  }
+}
+
 class AttemptGuard {
   final File file;
   final DateTime Function() _now;
-  AttemptGuard(Directory dir, {DateTime Function()? now})
+  final Duration? Function() _uptime;
+  AttemptGuard(Directory dir, {DateTime Function()? now, Duration? Function()? uptime})
     : file = File('${dir.path}/attempts.json'),
-      _now = now ?? DateTime.now;
+      _now = now ?? DateTime.now,
+      _uptime = uptime ?? bootUptime;
 
   /// Lockout after the Nth consecutive failure (N >= 5).
   static Duration lockoutFor(int failures) => switch (failures) {
@@ -28,30 +41,46 @@ class AttemptGuard {
     _ => const Duration(hours: 1),
   };
 
-  (int, DateTime?) _read() {
+  (int, DateTime?, int?) _read() {
     try {
       final j = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
       final t = j['last'] as int?;
-      return (j['failures'] as int? ?? 0, t == null ? null : DateTime.fromMillisecondsSinceEpoch(t));
+      return (j['failures'] as int? ?? 0, t == null ? null : DateTime.fromMillisecondsSinceEpoch(t), j['up'] as int?);
     } catch (_) {
-      return (0, null);
+      return (0, null, null);
     }
   }
 
-  void _write(int failures, DateTime? last) {
+  void _write(int failures, DateTime? last, int? up) {
     final tmp = File('${file.path}.tmp');
-    tmp.writeAsStringSync(jsonEncode({'failures': failures, 'last': last?.millisecondsSinceEpoch}), flush: true);
+    tmp.writeAsStringSync(
+      jsonEncode({'failures': failures, 'last': last?.millisecondsSinceEpoch, 'up': up}),
+      flush: true,
+    );
     tmp.renameSync(file.path);
   }
 
   /// Time left before another guess is allowed (zero if allowed now).
+  ///
+  /// Measured on time-since-boot when available, so changing the wall clock (backwards OR forwards) can't shorten
+  /// a lockout (SECURITY.md T1, T20). After a reboot that clock restarts and we can't know how long the phone was
+  /// off, so the lockout restarts in full from the first check after boot: rebooting gains an attacker nothing.
   Duration remaining() {
-    final (failures, last) = _read();
+    final (failures, last, up) = _read();
     if (last == null) return Duration.zero;
     final lock = lockoutFor(failures);
     if (lock == Duration.zero) return Duration.zero;
+    final upNow = _uptime();
+    if (upNow != null && up != null) {
+      if (upNow.inMilliseconds < up) {
+        _write(failures, _now(), upNow.inMilliseconds); // rebooted: restart the lockout from now
+        return lock;
+      }
+      final left = lock - Duration(milliseconds: upNow.inMilliseconds - up);
+      return left.isNegative ? Duration.zero : left;
+    }
     final now = _now();
-    // Clock moved backwards: don't let that shorten the lockout.
+    // No boot clock (tests, other platforms): wall clock, and a clock moved backwards never shortens the lockout.
     if (now.isBefore(last)) return lock;
     final left = last.add(lock).difference(now);
     return left.isNegative ? Duration.zero : left;
@@ -64,12 +93,12 @@ class AttemptGuard {
   }
 
   void recordFailure() {
-    final (failures, _) = _read();
-    _write(failures + 1, _now());
+    final (failures, _, _) = _read();
+    _write(failures + 1, _now(), _uptime()?.inMilliseconds);
   }
 
   void reset() {
-    if (file.existsSync()) _write(0, null);
+    if (file.existsSync()) _write(0, null, null);
   }
 
   int get failures => _read().$1;

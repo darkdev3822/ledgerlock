@@ -250,6 +250,21 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SectionHeader('Privacy'),
+          LLGroup(
+            children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.screenshot_monitor_outlined),
+                title: const Text('Allow screenshots'),
+                subtitle: const Text(
+                  'Off keeps amounts and receipts out of screenshots, screen recordings and the app switcher. '
+                  'Always off while locked.',
+                ),
+                value: app.allowScreenshots,
+                onChanged: app.setAllowScreenshots,
+              ),
+            ],
+          ),
+          const SizedBox(height: Space.md),
           LLCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

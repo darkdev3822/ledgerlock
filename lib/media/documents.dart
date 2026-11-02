@@ -21,22 +21,41 @@ class Documents {
   final EncryptedFileStore files;
   Documents(this.db, this.files);
 
-  Future<int> saveReceipt(ProcessedReceipt r, {required int year, int? entryId, String name = 'Receipt'}) async {
-    final fileId = await files.put(r.jpeg);
-    final thumbId = await files.put(r.thumbJpeg);
-    return db.addAttachment(
-      AttachmentsCompanion.insert(
-        folder: 'receipt',
-        year: year,
-        entryId: Value(entryId),
-        fileId: fileId,
-        thumbId: Value(thumbId),
-        name: Value(name),
-        mime: 'image/jpeg',
-        sizeBytes: r.jpeg.length,
-      ),
-    );
+  /// Writes files then the row; if anything fails (e.g. the app locked mid-way), files already written are deleted
+  /// so no orphan is left behind.
+  Future<int> _atomic(Future<int> Function(List<String> written) body) async {
+    final written = <String>[];
+    try {
+      return await body(written);
+    } catch (_) {
+      for (final id in written) {
+        try {
+          await files.delete(id);
+        } catch (_) {}
+      }
+      rethrow;
+    }
   }
+
+  Future<int> saveReceipt(ProcessedReceipt r, {required int year, int? entryId, String name = 'Receipt'}) =>
+      _atomic((w) async {
+        final fileId = await files.put(r.jpeg);
+        w.add(fileId);
+        final thumbId = await files.put(r.thumbJpeg);
+        w.add(thumbId);
+        return db.addAttachment(
+          AttachmentsCompanion.insert(
+            folder: 'receipt',
+            year: year,
+            entryId: Value(entryId),
+            fileId: fileId,
+            thumbId: Value(thumbId),
+            name: Value(name),
+            mime: 'image/jpeg',
+            sizeBytes: r.jpeg.length,
+          ),
+        );
+      });
 
   Future<int> importFile({
     required String name,
@@ -45,10 +64,12 @@ class Documents {
     required String folder,
     required int year,
     int? entryId,
-  }) async {
+  }) => _atomic((w) async {
     final fileId = await files.put(bytes);
+    w.add(fileId);
     final thumb = mime.startsWith('image/') ? await thumbnailInBackground(bytes) : null;
     final thumbId = thumb == null ? null : await files.put(thumb);
+    if (thumbId != null) w.add(thumbId);
     return db.addAttachment(
       AttachmentsCompanion.insert(
         folder: folder,
@@ -61,7 +82,7 @@ class Documents {
         sizeBytes: bytes.length,
       ),
     );
-  }
+  });
 
   Future<Uint8List> read(Attachment a) => files.get(a.fileId);
 

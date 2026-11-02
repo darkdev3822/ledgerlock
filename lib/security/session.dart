@@ -45,6 +45,7 @@ class Session {
   }
 
   Future<void> lock() async {
+    files.close(); // first, synchronously: nothing may encrypt with the key once zeroing starts
     await db.close();
     for (final k in _keys) {
       LedgerCrypto.zero(k);

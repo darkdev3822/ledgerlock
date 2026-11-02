@@ -12,6 +12,7 @@ import '../data/ledger.dart';
 import '../data/tax_rules.dart';
 import '../media/documents.dart';
 import '../platform/document_picker.dart';
+import '../platform/secure_window.dart';
 import '../security/auto_lock.dart';
 import '../security/biometric_reset.dart';
 import '../security/crypto.dart';
@@ -65,6 +66,9 @@ class AppController extends ChangeNotifier {
 
   /// Reminders (SPEC §2.6, §2.13). Stored in the encrypted DB; only generic notification text leaves it.
   bool quarterlyReminders = false;
+
+  /// Screenshots allowed while unlocked (default off: blocked, T22).
+  bool allowScreenshots = false;
   String checkInFrequency = 'off';
   DateTime? lastCheckIn;
   Set<String> dismissedCheckIns = {};
@@ -130,8 +134,29 @@ class AppController extends ChangeNotifier {
   Future<void> openWithPassword(String password) async =>
       _afterUnlock(await Session.open(dataDir, password, vault: vault));
 
-  Future<void> openWithDataKey(Uint8List dataKey) async =>
-      _afterUnlock(await Session.fromDataKey(dataDir, dataKey, vault));
+  Future<void> openWithDataKey(Uint8List dataKey) async {
+    if (identical(dataKey, _recoveringKey)) _recoveringKey = null; // the session owns it now
+    await _afterUnlock(await Session.fromDataKey(dataDir, dataKey, vault));
+  }
+
+  // ---------- password recovery (SECURITY.md T19) ----------
+  /// Data key recovered by fingerprint / recovery key / answers, held while the user picks a new password. Owned here
+  /// (not by a screen) so auto-lock can wipe it: before, the key sat in a route that no lock ever cleared.
+  Uint8List? _recoveringKey;
+
+  /// Bumped when a lock wipes a pending recovery, so the UI pops back to the lock screen.
+  int recoveryEpoch = 0;
+
+  void holdRecoveryKey(Uint8List dk) {
+    if (!identical(dk, _recoveringKey)) LedgerCrypto.zero(_recoveringKey);
+    _recoveringKey = dk;
+  }
+
+  /// The user backed out of choosing a new password: wipe the key.
+  void releaseRecoveryKey() {
+    LedgerCrypto.zero(_recoveringKey);
+    _recoveringKey = null;
+  }
 
   Future<void> _afterUnlock(Session s) async {
     final db = s.db;
@@ -152,6 +177,8 @@ class AppController extends ChangeNotifier {
       if (h != null) homeOfficeSqft[y] = h;
     }
     quarterlyReminders = await db.getSetting('quarterlyReminders') == 'true';
+    allowScreenshots = await db.getSetting('allowScreenshots') == 'true';
+    if (allowScreenshots) setSecureWindow(false);
     checkInFrequency = await db.getSetting('checkInFrequency') ?? 'off';
     onboarded = await db.getSetting('onboarded') == 'true';
     businessTypes = (await db.getSetting('businessTypes') ?? '').split(',').where((t) => t.isNotEmpty).toSet();
@@ -172,7 +199,14 @@ class AppController extends ChangeNotifier {
 
   void lock() {
     final s = _session;
-    if (s == null) return;
+    if (s == null) {
+      if (_recoveringKey != null) {
+        releaseRecoveryKey();
+        recoveryEpoch++;
+        notifyListeners();
+      }
+      return;
+    }
     _session = null;
     _documents = null;
     pendingCode = null;
@@ -180,6 +214,8 @@ class AppController extends ChangeNotifier {
     w2WagesCents = {}; // sensitive answers: reload from the encrypted DB on unlock
     homeOfficeSqft = {};
     businessTypes = {};
+    if (allowScreenshots) setSecureWindow(true); // locked: always secure
+    allowScreenshots = false;
     stage = Stage.locked;
     notifyListeners();
     s.lock();
@@ -211,6 +247,13 @@ class AppController extends ChangeNotifier {
 
   void finishBiometricOffer() {
     stage = _afterSecurity;
+    notifyListeners();
+  }
+
+  Future<void> setAllowScreenshots(bool v) async {
+    allowScreenshots = v;
+    await db?.setSetting('allowScreenshots', '$v');
+    await setSecureWindow(!v);
     notifyListeners();
   }
 
