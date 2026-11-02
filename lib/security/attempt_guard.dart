@@ -40,10 +40,7 @@ class AttemptGuard {
 
   void _write(int failures, DateTime? last) {
     final tmp = File('${file.path}.tmp');
-    tmp.writeAsStringSync(
-      jsonEncode({'failures': failures, 'last': last?.millisecondsSinceEpoch}),
-      flush: true,
-    );
+    tmp.writeAsStringSync(jsonEncode({'failures': failures, 'last': last?.millisecondsSinceEpoch}), flush: true);
     tmp.renameSync(file.path);
   }
 

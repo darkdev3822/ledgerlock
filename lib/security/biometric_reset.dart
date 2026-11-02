@@ -30,10 +30,7 @@ class PlatformBiometricSecretStore implements BiometricSecretStore {
       negativeButton: 'Cancel',
       confirmationRequired: false,
     ),
-    iosPromptInfo: IosPromptInfo(
-      saveTitle: 'Turn on biometric reset',
-      accessTitle: 'Reset your LedgerLock password',
-    ),
+    iosPromptInfo: IosPromptInfo(saveTitle: 'Turn on biometric reset', accessTitle: 'Reset your LedgerLock password'),
   );
 
   static const _savePrompt = PromptInfo(
@@ -43,10 +40,7 @@ class PlatformBiometricSecretStore implements BiometricSecretStore {
       negativeButton: 'Cancel',
       confirmationRequired: false,
     ),
-    iosPromptInfo: IosPromptInfo(
-      saveTitle: 'Turn on biometric reset',
-      accessTitle: 'Turn on biometric reset',
-    ),
+    iosPromptInfo: IosPromptInfo(saveTitle: 'Turn on biometric reset', accessTitle: 'Turn on biometric reset'),
   );
 
   Future<BiometricStorageFile> _file() => BiometricStorage().getStorage(
@@ -56,12 +50,10 @@ class PlatformBiometricSecretStore implements BiometricSecretStore {
   );
 
   @override
-  Future<bool> isAvailable() async =>
-      await BiometricStorage().canAuthenticate() == CanAuthenticateResponse.success;
+  Future<bool> isAvailable() async => await BiometricStorage().canAuthenticate() == CanAuthenticateResponse.success;
 
   @override
-  Future<void> save(Uint8List secret) async =>
-      (await _file()).write(base64.encode(secret), promptInfo: _savePrompt);
+  Future<void> save(Uint8List secret) async => (await _file()).write(base64.encode(secret), promptInfo: _savePrompt);
 
   @override
   Future<Uint8List?> read() async {

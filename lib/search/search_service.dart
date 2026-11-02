@@ -26,9 +26,7 @@ Future<SearchResults> runSearch(AppDatabase db, SearchQuery q, {int limit = 200}
   if (q.year != null) {
     where.add('e.date LIKE ?');
     args.add(
-      Variable.withString(
-        q.month == null ? '${q.year}-%' : '${q.year}-${q.month.toString().padLeft(2, '0')}-%',
-      ),
+      Variable.withString(q.month == null ? '${q.year}-%' : '${q.year}-${q.month.toString().padLeft(2, '0')}-%'),
     );
   } else if (q.month != null) {
     where.add('substr(e.date, 6, 2) = ?');
@@ -85,11 +83,7 @@ Future<SearchResults> runSearch(AppDatabase db, SearchQuery q, {int limit = 200}
       dargs.add(Variable.withInt(q.year!));
     }
     final drows = await db
-        .customSelect(
-          '$dsql ORDER BY a.created_at DESC LIMIT 50',
-          variables: dargs,
-          readsFrom: {db.attachments},
-        )
+        .customSelect('$dsql ORDER BY a.created_at DESC LIMIT 50', variables: dargs, readsFrom: {db.attachments})
         .get();
     docs = [for (final r in drows) db.attachments.map(r.data)];
   }

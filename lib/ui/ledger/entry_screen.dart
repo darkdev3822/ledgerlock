@@ -16,8 +16,8 @@ import '../vault/vault_screens.dart';
 import 'category_icons.dart';
 
 /// Opens the entry screen. Pass [existing] to edit.
-Future<void> openEntry(BuildContext context, {LedgerEntry? existing, bool income = false}) =>
-    Navigator.of(context).push(
+Future<void> openEntry(BuildContext context, {LedgerEntry? existing, bool income = false}) => Navigator.of(context)
+    .push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => EntryScreen(existing: existing, startIncome: income),
@@ -50,6 +50,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   final _focus = FocusScopeNode();
   bool _textFocused = false;
   bool _userPickedCategory = false;
+  bool _userSetPct = false;
   List<String> _recentParties = const [];
   List<String> _recentPlatforms = const [];
 
@@ -84,8 +85,14 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   Future<void> _maybeSuggest() async {
     if (_userPickedCategory) return;
     final db = ref.read(appControllerProvider).db;
-    final s = await db?.suggestCategory(isIncome: _income, party: _party.text);
-    if (mounted && !_userPickedCategory) setState(() => _category = s ?? _category);
+    if (db == null) return;
+    final s = await db.suggestCategory(isIncome: _income, party: _party.text);
+    final rule = _income || _editing ? null : matchRule(await db.allRules(), isIncome: false, party: _party.text);
+    if (!mounted || _userPickedCategory) return;
+    setState(() {
+      _category = s ?? _category;
+      if (rule?.businessPct != null && !_userSetPct) _businessPct = rule!.businessPct!.toDouble();
+    });
   }
 
   @override
@@ -149,6 +156,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
         await db.linkAttachment(r, newId);
       }
     }
+    await db.learnFromSave(isIncome: _income, party: _party.text, category: category);
     HapticFeedback.mediumImpact();
     if (mounted) Navigator.of(context).pop();
   }
@@ -200,11 +208,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                   SegmentedButton<bool>(
                     showSelectedIcon: false,
                     segments: const [
-                      ButtonSegment(
-                        value: false,
-                        label: Text('Expense'),
-                        icon: Icon(Icons.north_east_rounded),
-                      ),
+                      ButtonSegment(value: false, label: Text('Expense'), icon: Icon(Icons.north_east_rounded)),
                       ButtonSegment(value: true, label: Text('Income'), icon: Icon(Icons.south_west_rounded)),
                     ],
                     selected: {_income},
@@ -263,10 +267,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                   if (selected != null)
                     Padding(
                       padding: const EdgeInsets.only(top: Space.sm, left: 4),
-                      child: Text(
-                        'Schedule C line ${selected.line} · ${selected.hint}',
-                        style: context.text.bodySmall,
-                      ),
+                      child: Text('Schedule C line ${selected.line} · ${selected.hint}', style: context.text.bodySmall),
                     ),
                   const SectionHeader('Details'),
                   LLGroup(
@@ -333,7 +334,10 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                                 max: 100,
                                 divisions: 20,
                                 label: '${_businessPct.round()}%',
-                                onChanged: (v) => setState(() => _businessPct = v),
+                                onChanged: (v) => setState(() {
+                                  _businessPct = v;
+                                  _userSetPct = true;
+                                }),
                               ),
                             ],
                           ),
@@ -446,13 +450,7 @@ class _Field extends StatelessWidget {
   final String label;
   final TextInputType? keyboard;
   final String? prefix;
-  const _Field({
-    required this.controller,
-    required this.icon,
-    required this.label,
-    this.keyboard,
-    this.prefix,
-  });
+  const _Field({required this.controller, required this.icon, required this.label, this.keyboard, this.prefix});
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -487,12 +485,7 @@ class _AutoField extends StatefulWidget {
   final IconData icon;
   final String label;
   final List<String> options;
-  const _AutoField({
-    required this.controller,
-    required this.icon,
-    required this.label,
-    required this.options,
-  });
+  const _AutoField({required this.controller, required this.icon, required this.label, required this.options});
   @override
   State<_AutoField> createState() => _AutoFieldState();
 }
@@ -520,9 +513,7 @@ class _AutoFieldState extends State<_AutoField> {
             optionsBuilder: (v) {
               final q = v.text.trim().toLowerCase();
               if (q.isEmpty) return const [];
-              return widget.options
-                  .where((o) => o.toLowerCase().startsWith(q) && o.toLowerCase() != q)
-                  .take(5);
+              return widget.options.where((o) => o.toLowerCase().startsWith(q) && o.toLowerCase() != q).take(5);
             },
             fieldViewBuilder: (context, c, focus, onSubmit) => TextField(
               enableIMEPersonalizedLearning: false,

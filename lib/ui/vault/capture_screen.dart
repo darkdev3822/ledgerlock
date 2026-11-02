@@ -57,10 +57,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   Future<void> _start() async {
     try {
       final cams = await availableCameras();
-      final back = cams.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.back,
-        orElse: () => cams.first,
-      );
+      final back = cams.firstWhere((c) => c.lensDirection == CameraLensDirection.back, orElse: () => cams.first);
       final c = CameraController(
         back,
         ResolutionPreset.veryHigh,

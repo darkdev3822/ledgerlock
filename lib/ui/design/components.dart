@@ -29,13 +29,7 @@ class LLCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
   final Color? color;
-  const LLCard({
-    super.key,
-    required this.child,
-    this.padding = const EdgeInsets.all(Space.lg),
-    this.onTap,
-    this.color,
-  });
+  const LLCard({super.key, required this.child, this.padding = const EdgeInsets.all(Space.lg), this.onTap, this.color});
 
   @override
   Widget build(BuildContext context) => Card(
@@ -59,10 +53,7 @@ class SectionHeader extends StatelessWidget {
     child: Row(
       children: [
         Expanded(
-          child: Text(
-            title.toUpperCase(),
-            style: context.text.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
+          child: Text(title.toUpperCase(), style: context.text.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
         ),
         ?trailing,
       ],
@@ -87,10 +78,7 @@ class StatTile extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: c.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: BoxDecoration(color: c.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
             child: Icon(icon, size: 20, color: c),
           ),
           const SizedBox(height: Space.md),
@@ -114,10 +102,7 @@ class Pill extends StatelessWidget {
     final c = color ?? context.ll.accent;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(Radii.pill),
-      ),
+      decoration: BoxDecoration(color: c.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(Radii.pill)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

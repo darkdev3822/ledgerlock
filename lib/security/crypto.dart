@@ -21,12 +21,7 @@ class KdfParams {
   final int parallelism;
   final Uint8List salt;
 
-  const KdfParams({
-    required this.memoryKiB,
-    required this.iterations,
-    required this.parallelism,
-    required this.salt,
-  });
+  const KdfParams({required this.memoryKiB, required this.iterations, required this.parallelism, required this.salt});
 
   /// OWASP minimum for Argon2id (19 MiB, t=2, p=1); retune on devices (SPEC §1: ~0.5 s).
   factory KdfParams.generate({int memoryKiB = 19456, int iterations = 2, int parallelism = 1}) => KdfParams(
@@ -78,8 +73,7 @@ class LedgerCrypto {
   static Uint8List randomBytes(int n) => Uint8List.fromList(List<int>.generate(n, (_) => _rng.nextInt(256)));
 
   /// Argon2id, run in a background isolate so the UI stays responsive.
-  static Future<Uint8List> deriveKey(String password, KdfParams p) =>
-      deriveKeyBytes(utf8.encode(password), p);
+  static Future<Uint8List> deriveKey(String password, KdfParams p) => deriveKeyBytes(utf8.encode(password), p);
 
   static Future<Uint8List> deriveKeyBytes(List<int> secret, KdfParams p) {
     final pw = Uint8List.fromList(secret);
@@ -105,24 +99,14 @@ class LedgerCrypto {
 
   /// AES-256-GCM. Output: nonce(12) || ciphertext || mac(16). [aad] binds context.
   static Future<Uint8List> encrypt(Uint8List plaintext, Uint8List key, {List<int> aad = const []}) async {
-    final box = await _aes.encrypt(
-      plaintext,
-      secretKey: SecretKey(key),
-      nonce: randomBytes(nonceLength),
-      aad: aad,
-    );
+    final box = await _aes.encrypt(plaintext, secretKey: SecretKey(key), nonce: randomBytes(nonceLength), aad: aad);
     return box.concatenation();
   }
 
   static Future<Uint8List> decrypt(Uint8List sealed, Uint8List key, {List<int> aad = const []}) async {
     if (sealed.length < nonceLength + macLength) throw const DecryptionFailed();
     try {
-      final box = SecretBox.fromConcatenation(
-        sealed,
-        nonceLength: nonceLength,
-        macLength: macLength,
-        copy: true,
-      );
+      final box = SecretBox.fromConcatenation(sealed, nonceLength: nonceLength, macLength: macLength, copy: true);
       return Uint8List.fromList(await _aes.decrypt(box, secretKey: SecretKey(key), aad: aad));
     } on SecretBoxAuthenticationError {
       throw const DecryptionFailed();

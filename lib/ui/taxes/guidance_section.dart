@@ -43,9 +43,7 @@ class GuidanceSection extends ConsumerWidget {
     final app = ref.watch(appControllerProvider);
     final facts = userFacts(ref, year);
     final cur = ref.watch(taxRulesProvider(year)).value;
-    final prev = TaxRules.supportedYears.contains(year - 1)
-        ? ref.watch(taxRulesProvider(year - 1)).value
-        : null;
+    final prev = TaxRules.supportedYears.contains(year - 1) ? ref.watch(taxRulesProvider(year - 1)).value : null;
     final entries = ref.watch(entriesProvider(year)).value ?? const <LedgerEntry>[];
     final changes = cur == null || prev == null
         ? const <RuleChange>[]

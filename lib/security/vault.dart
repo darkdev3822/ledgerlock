@@ -54,8 +54,7 @@ class RecoveryKey {
 }
 
 /// Answers are compared case/space/punctuation-insensitively.
-String normalizeAnswer(String a) =>
-    a.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ').trim();
+String normalizeAnswer(String a) => a.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ').trim();
 
 class Vault {
   static const _passwordAad = 'ledgerlock/v1/data-key'; // v1-compatible
@@ -81,8 +80,7 @@ class Vault {
        // The recovery key is 150 random bits, so a light KDF is plenty.
        recoveryKdfFactory = recoveryKdfFactory ?? (() => KdfParams.generate(memoryKiB: 8192, iterations: 1)),
        // Answers have low entropy: make each guess expensive.
-       questionsKdfFactory =
-           questionsKdfFactory ?? (() => KdfParams.generate(memoryKiB: 65536, iterations: 3));
+       questionsKdfFactory = questionsKdfFactory ?? (() => KdfParams.generate(memoryKiB: 65536, iterations: 3));
 
   bool get exists => headerFile.existsSync();
 
@@ -208,9 +206,7 @@ class Vault {
   Future<void> setSecurityQuestions(Uint8List dataKey, List<String> questions, List<String> answers) async {
     if (questions.length != 3 || answers.length != 3) throw ArgumentError('need 3 questions and answers');
     if (answers.any((a) => normalizeAnswer(a).length < 2)) throw ArgumentError('answer too short');
-    await _setSlot(Slot.questions, dataKey, _answersSecret(answers), questionsKdfFactory(), {
-      'questions': questions,
-    });
+    await _setSlot(Slot.questions, dataKey, _answersSecret(answers), questionsKdfFactory(), {'questions': questions});
   }
 
   /// [secret] is a random 32-byte key kept in the biometric-gated platform keystore.

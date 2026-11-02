@@ -97,11 +97,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               hintText: 'Search everything…',
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: typed
-                  ? IconButton(
-                      tooltip: 'Clear',
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => _fill(''),
-                    )
+                  ? IconButton(tooltip: 'Clear', icon: const Icon(Icons.close_rounded), onPressed: () => _fill(''))
                   : null,
             ),
           ),
@@ -155,18 +151,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 children: [
                   for (final e in _r.entries)
                     if (rules[e.day.year] != null)
-                      EntryTile(
-                        entry: e,
-                        rules: rules[e.day.year]!,
-                        highlight: [..._q.terms, ..._q.categoryWords],
-                      ),
+                      EntryTile(entry: e, rules: rules[e.day.year]!, highlight: [..._q.terms, ..._q.categoryWords]),
                 ],
               ),
             if (_r.documents.isNotEmpty) ...[
-              SectionHeader(
-                'Documents',
-                trailing: Text('${_r.documents.length}', style: context.text.labelMedium),
-              ),
+              SectionHeader('Documents', trailing: Text('${_r.documents.length}', style: context.text.labelMedium)),
               LLGroup(
                 children: [
                   for (final a in _r.documents)
@@ -178,8 +167,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       title: HighlightText(a.name.isEmpty ? 'Untitled' : a.name, _q.terms, maxLines: 1),
                       subtitle: Text('${a.year} · ${a.folder.replaceAll('_', ' ')}'),
                       trailing: Icon(Icons.chevron_right_rounded, color: ll.muted),
-                      onTap: () =>
-                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => ViewerScreen(a))),
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ViewerScreen(a))),
                     ),
                 ],
               ),

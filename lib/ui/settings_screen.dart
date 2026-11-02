@@ -8,6 +8,7 @@ import 'design/components.dart';
 import 'design/theme.dart';
 import 'lock_screens.dart';
 import 'recovery_screens.dart';
+import 'taxes/tools.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -103,9 +104,7 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: Text(app.slots.contains(Slot.questions) ? 'On' : 'Optional extra'),
                 trailing: TextButton(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SecurityQuestionsSetupScreen(onSave: app.setSecurityQuestions),
-                    ),
+                    MaterialPageRoute(builder: (_) => SecurityQuestionsSetupScreen(onSave: app.setSecurityQuestions)),
                   ),
                   child: Text(app.slots.contains(Slot.questions) ? 'Change' : 'Set up'),
                 ),
@@ -125,8 +124,7 @@ class SettingsScreen extends ConsumerWidget {
                 leading: const Icon(Icons.password_rounded),
                 title: const Text('Change master password'),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () =>
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _ChangePassword())),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _ChangePassword())),
               ),
               ListTile(
                 leading: const Icon(Icons.timer_outlined),
@@ -142,10 +140,18 @@ class SettingsScreen extends ConsumerWidget {
                   onChanged: (m) => app.setAutoLockMinutes(m!),
                 ),
               ),
+              ListTile(leading: const Icon(Icons.lock_outline_rounded), title: const Text('Lock now'), onTap: app.lock),
+            ],
+          ),
+          const SectionHeader('Records'),
+          LLGroup(
+            children: [
               ListTile(
-                leading: const Icon(Icons.lock_outline_rounded),
-                title: const Text('Lock now'),
-                onTap: app.lock,
+                leading: const Icon(Icons.auto_fix_high_outlined),
+                title: const Text('Smart rules'),
+                subtitle: const Text('Pick categories automatically by payee'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RulesScreen())),
               ),
             ],
           ),
@@ -201,16 +207,8 @@ class SettingsScreen extends ConsumerWidget {
                   label: Text('System'),
                   icon: Icon(Icons.brightness_auto_outlined),
                 ),
-                ButtonSegment(
-                  value: ThemeMode.light,
-                  label: Text('Light'),
-                  icon: Icon(Icons.light_mode_outlined),
-                ),
-                ButtonSegment(
-                  value: ThemeMode.dark,
-                  label: Text('Dark'),
-                  icon: Icon(Icons.dark_mode_outlined),
-                ),
+                ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode_outlined)),
+                ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode_outlined)),
               ],
               selected: {app.themeMode},
               onSelectionChanged: (s) => app.setThemeMode(s.first),
@@ -222,14 +220,8 @@ class SettingsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (final (icon, text) in const [
-                  (
-                    Icons.wifi_off_rounded,
-                    'No internet permission. LedgerLock can\'t send your data anywhere.',
-                  ),
-                  (
-                    Icons.enhanced_encryption_outlined,
-                    'Records, receipts and documents are encrypted on this phone.',
-                  ),
+                  (Icons.wifi_off_rounded, 'No internet permission. LedgerLock can\'t send your data anywhere.'),
+                  (Icons.enhanced_encryption_outlined, 'Records, receipts and documents are encrypted on this phone.'),
                   (Icons.visibility_off_outlined, 'No accounts, no analytics, no ads.'),
                 ])
                   Padding(

@@ -66,8 +66,19 @@ class Forms1099 extends Table {
   TextColumn get kind => text()(); // '1099-K', '1099-NEC', '1099-MISC'
   TextColumn get payer => text()(); // matched against entry platform/party (case-insensitive)
   IntColumn get amountCents => integer()();
-  IntColumn get attachmentId =>
-      integer().nullable().references(Attachments, #id, onDelete: KeyAction.setNull)();
+  IntColumn get attachmentId => integer().nullable().references(Attachments, #id, onDelete: KeyAction.setNull)();
+}
+
+/// Smart rules (SPEC §3): "payee contains X -> category Y". Manual ones from Settings, learned ones from the
+/// user's corrections. Applied when typing a payee and to imports.
+@DataClassName('CategoryRule')
+class CategoryRules extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  BoolColumn get isIncome => boolean()();
+  TextColumn get contains => text()(); // lower-case, trimmed
+  TextColumn get category => text()();
+  IntColumn get businessPct => integer().nullable()(); // expenses only; null = leave as is
+  BoolColumn get learned => boolean().withDefault(const Constant(false))();
 }
 
 /// Receipts and vault documents. Bytes live encrypted in EncryptedFileStore; only ids and metadata here.
@@ -110,7 +121,7 @@ class NotEncrypted implements Exception {
   String toString() => 'SQLCipher not available: refusing to open an unencrypted database';
 }
 
-@DriftDatabase(tables: [Settings, LedgerEntries, Attachments, TaxPayments, Trips, Forms1099])
+@DriftDatabase(tables: [Settings, LedgerEntries, Attachments, TaxPayments, Trips, Forms1099, CategoryRules])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -136,7 +147,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -167,14 +178,14 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(forms1099);
         await _v6Indexes();
       }
+      if (from < 7) await m.createTable(categoryRules);
     },
   );
 
   /// FTS5 full-text index inside the encrypted DB (SPEC §4). rowid = entry id, or -attachment id.
   /// Kept in sync by triggers, so every write path is covered.
   Future<void> _createSearchIndex() async {
-    const entryBody =
-        "new.party || ' ' || new.platform || ' ' || new.notes || ' ' || replace(new.category, '_', ' ')";
+    const entryBody = "new.party || ' ' || new.platform || ' ' || new.notes || ' ' || replace(new.category, '_', ' ')";
     const attBody = "new.name || ' ' || replace(new.folder, '_', ' ')";
     for (final sql in [
       "CREATE VIRTUAL TABLE search_fts USING fts5(body, tokenize = 'unicode61 remove_diacritics 2')",
@@ -211,12 +222,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> addAttachment(AttachmentsCompanion a) => into(attachments).insert(a);
 
-  Future<void> linkAttachment(int id, int? entryId) => (update(
-    attachments,
-  )..where((a) => a.id.equals(id))).write(AttachmentsCompanion(entryId: Value(entryId)));
+  Future<void> linkAttachment(int id, int? entryId) =>
+      (update(attachments)..where((a) => a.id.equals(id))).write(AttachmentsCompanion(entryId: Value(entryId)));
 
-  Future<Attachment?> attachment(int id) =>
-      (select(attachments)..where((a) => a.id.equals(id))).getSingleOrNull();
+  Future<Attachment?> attachment(int id) => (select(attachments)..where((a) => a.id.equals(id))).getSingleOrNull();
 
   Future<void> deleteAttachmentRow(int id) => (delete(attachments)..where((a) => a.id.equals(id))).go();
 
@@ -257,6 +266,8 @@ class AppDatabase extends _$AppDatabase {
                 .getSingleOrNull())
             ?.category;
     final p = party.trim();
+    final rule = matchRule(await allRules(), isIncome: isIncome, party: p);
+    if (rule != null) return rule.category;
     return (p.isEmpty
             ? null
             : await last((e) => e.isIncome.equals(isIncome) & e.party.lower().equals(p.toLowerCase()))) ??
@@ -309,4 +320,53 @@ class AppDatabase extends _$AppDatabase {
           .watch();
   Future<int> addForm1099(Forms1099Companion f) => into(forms1099).insert(f);
   Future<void> deleteForm1099(int id) => (delete(forms1099)..where((f) => f.id.equals(id))).go();
+
+  // ---------- M7: smart rules ----------
+  Future<List<CategoryRule>> allRules() => select(categoryRules).get();
+  Stream<List<CategoryRule>> watchRules() => (select(
+    categoryRules,
+  )..orderBy([(r) => OrderingTerm.asc(r.learned), (r) => OrderingTerm.asc(r.contains)])).watch();
+  Future<int> addRule(CategoryRulesCompanion r) => into(categoryRules).insert(r);
+  Future<void> deleteRule(int id) => (delete(categoryRules)..where((r) => r.id.equals(id))).go();
+
+  /// Called after the user saves an entry. If rules would have suggested a different category for this payee,
+  /// the user corrected it: remember the correction for this exact payee (an exact-payee rule beats a broader
+  /// "contains" rule because it is longer or equal). Nothing is learned while rules and choice agree.
+  Future<void> learnFromSave({required bool isIncome, required String party, required String category}) async {
+    final p = party.trim().toLowerCase();
+    if (p.isEmpty) return;
+    final rules = await allRules();
+    final hit = matchRule(rules, isIncome: isIncome, party: p);
+    if (hit?.category == category) return;
+    final exact = rules.where((r) => r.isIncome == isIncome && r.contains == p).firstOrNull;
+    if (exact != null) {
+      await (update(
+        categoryRules,
+      )..where((r) => r.id.equals(exact.id))).write(CategoryRulesCompanion(category: Value(category)));
+    } else if (hit != null) {
+      // Only a correction of an existing rule teaches; first-time payees use the "last used" fallback.
+      await addRule(
+        CategoryRulesCompanion.insert(isIncome: isIncome, contains: p, category: category, learned: const Value(true)),
+      );
+    }
+  }
+}
+
+/// Best rule for a payee: the longest matching "contains" text wins; on a tie, manual beats learned, then newest.
+CategoryRule? matchRule(Iterable<CategoryRule> rules, {required bool isIncome, required String party}) {
+  final p = party.trim().toLowerCase();
+  if (p.isEmpty) return null;
+  CategoryRule? best;
+  for (final r in rules) {
+    if (r.isIncome != isIncome || r.contains.isEmpty || !p.contains(r.contains)) continue;
+    if (best == null) {
+      best = r;
+      continue;
+    }
+    final byLen = r.contains.length.compareTo(best.contains.length);
+    if (byLen > 0 || (byLen == 0 && (best.learned && !r.learned || (best.learned == r.learned && r.id > best.id)))) {
+      best = r;
+    }
+  }
+  return best;
 }

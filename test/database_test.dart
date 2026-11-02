@@ -17,13 +17,7 @@ void main() {
     String cat = 'software',
     String party = '',
     int c = 100,
-  }) => LedgerEntriesCompanion.insert(
-    isIncome: income,
-    date: date,
-    amountCents: c,
-    category: cat,
-    party: Value(party),
-  );
+  }) => LedgerEntriesCompanion.insert(isIncome: income, date: date, amountCents: c, category: cat, party: Value(party));
 
   test('v1 database (M1/M2: settings only) migrates to v2 and keeps settings', () async {
     final file = File('${dir.path}/old.db');
@@ -43,7 +37,7 @@ void main() {
     await db.close();
   });
 
-  test('v5 database migrates to v6: entries kept and paid, new tables usable', () async {
+  test('v5 database migrates to v7: entries kept and paid, new tables usable', () async {
     final file = File('${dir.path}/v5.db');
     final key = LedgerCrypto.randomBytes(32);
     final hex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
@@ -56,6 +50,7 @@ void main() {
       ..execute('DROP TABLE tax_payments')
       ..execute('DROP TABLE trips')
       ..execute('DROP TABLE forms1099')
+      ..execute('DROP TABLE category_rules')
       ..execute('ALTER TABLE ledger_entries DROP COLUMN paid')
       ..execute('PRAGMA user_version = 5');
     old.close();
@@ -65,9 +60,7 @@ void main() {
     expect(rows.single.paid, isTrue, reason: 'existing income counts as received');
     await db.addPayment(TaxPaymentsCompanion.insert(taxYear: 2026, date: '2026-04-15', amountCents: 100));
     await db.addTrip(TripsCompanion.insert(date: '2026-04-02', milesTenths: 125));
-    await db.addForm1099(
-      Forms1099Companion.insert(year: 2026, kind: '1099-K', payer: 'Etsy', amountCents: 1),
-    );
+    await db.addForm1099(Forms1099Companion.insert(year: 2026, kind: '1099-K', payer: 'Etsy', amountCents: 1));
     expect((await db.watchPayments(2026).first).single.amountCents, 100);
     expect((await db.watchTrips(2026).first).single.milesTenths, 125);
     expect((await db.watchForms1099(2026).first).single.payer, 'Etsy');
@@ -101,6 +94,38 @@ void main() {
     expect(await db.suggestCategory(isIncome: false, party: 'Someone new'), 'software');
     expect(await db.suggestCategory(isIncome: true), 'services');
     expect(await db.recentValues(db.ledgerEntries.party), containsAll(['Cafe Uno', 'Adobe', 'Acme']));
+    await db.close();
+  });
+
+  test('smart rules: longest match wins, manual beats learned on a tie, rules beat last-used', () async {
+    final db = AppDatabase.open(File('${dir.path}/r.db'), LedgerCrypto.randomBytes(32));
+    await db.addEntry(e('2026-01-01', cat: 'meals', party: 'Anthropic PBC'));
+    await db.addRule(CategoryRulesCompanion.insert(isIncome: false, contains: 'anthropic', category: 'software'));
+    expect(await db.suggestCategory(isIncome: false, party: 'ANTHROPIC PBC'), 'software');
+    expect(await db.suggestCategory(isIncome: true, party: 'Anthropic PBC'), isNull, reason: 'kind must match');
+    await db.addRule(CategoryRulesCompanion.insert(isIncome: false, contains: 'anthropic pbc', category: 'education'));
+    expect(await db.suggestCategory(isIncome: false, party: 'Anthropic PBC'), 'education');
+    final rules = await db.allRules();
+    final learned = CategoryRule(id: 99, isIncome: false, contains: 'anthropic', category: 'x', learned: true);
+    expect(matchRule([learned, ...rules], isIncome: false, party: 'my anthropic')!.category, 'software');
+    expect(matchRule(rules, isIncome: false, party: '  '), isNull);
+    await db.close();
+  });
+
+  test('smart rules learn from corrections only', () async {
+    final db = AppDatabase.open(File('${dir.path}/l.db'), LedgerCrypto.randomBytes(32));
+    await db.learnFromSave(isIncome: false, party: 'New Shop', category: 'supplies');
+    expect(await db.allRules(), isEmpty, reason: 'first-time payee: nothing to correct');
+    await db.addRule(CategoryRulesCompanion.insert(isIncome: false, contains: 'amazon', category: 'supplies'));
+    await db.learnFromSave(isIncome: false, party: 'Amazon', category: 'supplies');
+    expect((await db.allRules()).length, 1, reason: 'agreement teaches nothing');
+    await db.learnFromSave(isIncome: false, party: 'Amazon Web Services', category: 'software');
+    expect(await db.suggestCategory(isIncome: false, party: 'amazon web services'), 'software');
+    expect(await db.suggestCategory(isIncome: false, party: 'Amazon Marketplace'), 'supplies');
+    await db.learnFromSave(isIncome: false, party: 'amazon web services', category: 'office');
+    final rules = await db.allRules();
+    expect(rules.length, 2, reason: 'the exact-payee rule is updated, not duplicated');
+    expect(rules.firstWhere((r) => r.learned).category, 'office');
     await db.close();
   });
 }

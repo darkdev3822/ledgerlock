@@ -177,9 +177,7 @@ ProcessedReceipt finishReceipt(img.Image src, Quad q) {
   var out = rectify(src, q);
   const maxEdge = 2000;
   if (math.max(out.width, out.height) > maxEdge) {
-    out = out.width >= out.height
-        ? img.copyResize(out, width: maxEdge)
-        : img.copyResize(out, height: maxEdge);
+    out = out.width >= out.height ? img.copyResize(out, width: maxEdge) : img.copyResize(out, height: maxEdge);
   }
   final thumb = out.width >= out.height ? img.copyResize(out, width: 320) : img.copyResize(out, height: 320);
   return ProcessedReceipt(img.encodeJpg(out, quality: 85), img.encodeJpg(thumb, quality: 70));
@@ -234,7 +232,6 @@ Future<Decoded?> decodeBytes(Uint8List bytes) => Isolate.run(() {
   return im == null ? null : _decoded(img.bakeOrientation(im));
 });
 
-Future<ProcessedReceipt> finishInBackground(img.Image src, Quad q) =>
-    Isolate.run(() => finishReceipt(src, q));
+Future<ProcessedReceipt> finishInBackground(img.Image src, Quad q) => Isolate.run(() => finishReceipt(src, q));
 
 Future<Uint8List?> thumbnailInBackground(Uint8List bytes) => Isolate.run(() => thumbnailFor(bytes));

@@ -111,8 +111,7 @@ void main() {
           todayProvider.overrideWithValue(DateTime(2026, 11, 1)),
           taxRulesProvider.overrideWith((ref, year) async => rules[year]!),
           entriesProvider.overrideWith(
-            (ref, year) =>
-                Stream.value(data ? fixtureEntries().where((e) => e.date.startsWith('$year')).toList() : []),
+            (ref, year) => Stream.value(data ? fixtureEntries().where((e) => e.date.startsWith('$year')).toList() : []),
           ),
         ],
         child: MaterialApp(debugShowCheckedModeBanner: false, theme: buildTheme(b), home: home),
@@ -128,10 +127,7 @@ void main() {
   for (final b in Brightness.values) {
     testWidgets('home ${b.name}', (t) => shoot(t, 'home', const AppShell(), b, data: true));
     testWidgets('entry_expense ${b.name}', (t) => shoot(t, 'entry_expense', const EntryScreen(), b));
-    testWidgets(
-      'entry_income ${b.name}',
-      (t) => shoot(t, 'entry_income', const EntryScreen(startIncome: true), b),
-    );
+    testWidgets('entry_income ${b.name}', (t) => shoot(t, 'entry_income', const EntryScreen(startIncome: true), b));
     testWidgets('home_empty ${b.name}', (t) => shoot(t, 'home_empty', const AppShell(), b));
     testWidgets(
       'records_filled ${b.name}',
@@ -163,9 +159,7 @@ void main() {
           // Layout preview only: the shipped list stays unverified until the owner-led review.
           resourcesProvider.overrideWith(
             (ref) async => [
-              for (final r in jsonDecode(
-                File('assets/tax_rules/resources.json').readAsStringSync(),
-              )['resources'])
+              for (final r in jsonDecode(File('assets/tax_rules/resources.json').readAsStringSync())['resources'])
                 Resource.fromJson({...r as Map<String, dynamic>, 'verified': 'preview'}),
             ],
           ),
@@ -182,13 +176,7 @@ void main() {
         extra: [
           tripsProvider.overrideWith(
             (ref, y) => Stream.value(const [
-              Trip(
-                id: 2,
-                date: '2026-08-04',
-                milesTenths: 236,
-                purpose: 'Client workshop',
-                route: 'Home to Riverside',
-              ),
+              Trip(id: 2, date: '2026-08-04', milesTenths: 236, purpose: 'Client workshop', route: 'Home to Riverside'),
               Trip(id: 1, date: '2026-05-12', milesTenths: 84, purpose: 'Supplies run', route: ''),
             ]),
           ),
@@ -208,6 +196,32 @@ void main() {
             (ref, y) => Stream.value([
               Form1099(id: 1, year: 2026, kind: '1099-K', payer: 'Etsy', amountCents: recordedEtsy()),
               const Form1099(id: 2, year: 2026, kind: '1099-NEC', payer: 'Studio Co', amountCents: 120000),
+            ]),
+          ),
+        ],
+      ),
+    );
+    testWidgets(
+      'rules ${b.name}',
+      (t) => shoot(
+        t,
+        'rules',
+        const RulesScreen(),
+        b,
+        data: true,
+        extra: [
+          categoryRulesProvider.overrideWith(
+            (ref) => Stream.value(const [
+              CategoryRule(id: 1, isIncome: false, contains: 'anthropic', category: 'software', learned: false),
+              CategoryRule(
+                id: 2,
+                isIncome: false,
+                contains: 'verizon',
+                category: 'utilities',
+                businessPct: 40,
+                learned: false,
+              ),
+              CategoryRule(id: 3, isIncome: false, contains: 'staples', category: 'office', learned: true),
             ]),
           ),
         ],

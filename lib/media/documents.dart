@@ -21,12 +21,7 @@ class Documents {
   final EncryptedFileStore files;
   Documents(this.db, this.files);
 
-  Future<int> saveReceipt(
-    ProcessedReceipt r, {
-    required int year,
-    int? entryId,
-    String name = 'Receipt',
-  }) async {
+  Future<int> saveReceipt(ProcessedReceipt r, {required int year, int? entryId, String name = 'Receipt'}) async {
     final fileId = await files.put(r.jpeg);
     final thumbId = await files.put(r.thumbJpeg);
     return db.addAttachment(

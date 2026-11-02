@@ -131,11 +131,7 @@ ThemeData buildTheme(Brightness b) {
   final base = ThemeData(useMaterial3: true, colorScheme: scheme, brightness: b);
   final t = base.textTheme.apply(bodyColor: c.text, displayColor: c.text);
   final text = t.copyWith(
-    displaySmall: t.displaySmall?.copyWith(
-      fontWeight: FontWeight.w600,
-      letterSpacing: -0.5,
-      fontFeatures: tabular,
-    ),
+    displaySmall: t.displaySmall?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.5, fontFeatures: tabular),
     headlineMedium: t.headlineMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.3),
     headlineSmall: t.headlineSmall?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.2),
     titleLarge: t.titleLarge?.copyWith(fontWeight: FontWeight.w600),

@@ -145,10 +145,7 @@ class AppController extends ChangeNotifier {
     quarterlyReminders = await db.getSetting('quarterlyReminders') == 'true';
     checkInFrequency = await db.getSetting('checkInFrequency') ?? 'off';
     lastCheckIn = DateTime.tryParse(await db.getSetting('lastCheckIn') ?? '');
-    dismissedCheckIns = (await db.getSetting('dismissedCheckIns') ?? '')
-        .split('\n')
-        .where((k) => k.isNotEmpty)
-        .toSet();
+    dismissedCheckIns = (await db.getSetting('dismissedCheckIns') ?? '').split('\n').where((k) => k.isNotEmpty).toSet();
     slots = await vault.enabledSlots();
     _session = s;
     rescheduleReminders();
@@ -407,6 +404,11 @@ final paymentsProvider = StreamProvider.family<List<TaxPayment>, int>((ref, year
 final tripsProvider = StreamProvider.family<List<Trip>, int>((ref, year) {
   final db = ref.watch(appControllerProvider.select((a) => a.db));
   return db == null ? Stream.value(const []) : db.watchTrips(year);
+});
+
+final categoryRulesProvider = StreamProvider<List<CategoryRule>>((ref) {
+  final db = ref.watch(appControllerProvider.select((a) => a.db));
+  return db == null ? Stream.value(const []) : db.watchRules();
 });
 
 final forms1099Provider = StreamProvider.family<List<Form1099>, int>((ref, year) {

@@ -263,12 +263,8 @@ class _UnlockScreenState extends State<UnlockScreen> {
         onSubmitted: (_) => _submit(),
       ),
       const SizedBox(height: 24),
-      FilledButton(
-        onPressed: _busy ? null : _submit,
-        child: _busy ? const BusyDot() : Text(widget.buttonLabel),
-      ),
-      if (widget.onForgot != null)
-        TextButton(onPressed: widget.onForgot, child: const Text('Forgot password?')),
+      FilledButton(onPressed: _busy ? null : _submit, child: _busy ? const BusyDot() : Text(widget.buttonLabel)),
+      if (widget.onForgot != null) TextButton(onPressed: widget.onForgot, child: const Text('Forgot password?')),
     ],
   );
 }

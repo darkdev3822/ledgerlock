@@ -33,9 +33,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final id = await captureReceipt(context, year: app.selectedYear);
     if (id == null) return;
     setState(() => _tab = 2);
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Receipt saved encrypted. Tap it to attach to a record.')),
-    );
+    messenger.showSnackBar(const SnackBar(content: Text('Receipt saved encrypted. Tap it to attach to a record.')));
   }
 
   @override
@@ -53,21 +51,12 @@ class _AppShellState extends ConsumerState<AppShell> {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Search',
-            icon: const Icon(Icons.search_rounded),
-            onPressed: () => openSearch(context),
-          ),
-          IconButton(
-            tooltip: 'Add a record',
-            icon: const Icon(Icons.add_rounded),
-            onPressed: () => openEntry(context),
-          ),
+          IconButton(tooltip: 'Search', icon: const Icon(Icons.search_rounded), onPressed: () => openSearch(context)),
+          IconButton(tooltip: 'Add a record', icon: const Icon(Icons.add_rounded), onPressed: () => openEntry(context)),
           IconButton(
             tooltip: 'Settings',
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () =>
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
           const SizedBox(width: Space.sm),
         ],
@@ -132,10 +121,7 @@ class YearSwitcher extends StatelessWidget {
               children: [
                 Text(
                   '$year',
-                  style: context.text.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: tabular,
-                  ),
+                  style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700, fontFeatures: tabular),
                 ),
                 const SizedBox(width: 2),
                 Icon(Icons.expand_more, size: 18, color: ll.muted),

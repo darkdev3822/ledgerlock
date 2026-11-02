@@ -188,9 +188,7 @@ List<ReminderItem> planReminders({
         ]) {
           final at = DateTime(q.due.year, q.due.month, q.due.day - before, 9);
           if (at.isAfter(now)) {
-            out.add(
-              ReminderItem(r.year * 100 + i * 10 + k, at, title, 'Open LedgerLock to check your set-aside.'),
-            );
+            out.add(ReminderItem(r.year * 100 + i * 10 + k, at, title, 'Open LedgerLock to check your set-aside.'));
           }
         }
       }

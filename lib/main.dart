@@ -21,12 +21,7 @@ Future<void> main() async {
     tempDir: await getTemporaryDirectory(),
   );
   await app.init();
-  runApp(
-    ProviderScope(
-      overrides: [appControllerProvider.overrideWith((ref) => app)],
-      child: const LedgerLockApp(),
-    ),
-  );
+  runApp(ProviderScope(overrides: [appControllerProvider.overrideWith((ref) => app)], child: const LedgerLockApp()));
 }
 
 class LedgerLockApp extends ConsumerStatefulWidget {
@@ -41,11 +36,8 @@ class _LedgerLockAppState extends ConsumerState<LedgerLockApp> {
 
   void _forgot(AppController app) => _nav.currentState!.push(
     MaterialPageRoute(
-      builder: (_) => ForgotPasswordScreen(
-        vault: app.vault,
-        biometrics: app.biometrics,
-        onRecovered: app.openWithDataKey,
-      ),
+      builder: (_) =>
+          ForgotPasswordScreen(vault: app.vault, biometrics: app.biometrics, onRecovered: app.openWithDataKey),
     ),
   );
 

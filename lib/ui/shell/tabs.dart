@@ -51,11 +51,7 @@ class HomeTab extends ConsumerWidget {
             ),
             const SizedBox(width: Space.md),
             Expanded(
-              child: StatTile(
-                label: 'Est. self-employment tax',
-                cents: s.seTaxCents,
-                icon: Icons.percent_rounded,
-              ),
+              child: StatTile(label: 'Est. self-employment tax', cents: s.seTaxCents, icon: Icons.percent_rounded),
             ),
           ],
         ),
@@ -63,15 +59,10 @@ class HomeTab extends ConsumerWidget {
           const SizedBox(height: Space.md),
           _NextDueCard(rules: rules, today: today, perQuarterCents: s.setAsideCents ~/ 4),
         ],
-        if (entries.isNotEmpty) ...[
-          const SectionHeader('Month by month'),
-          LLCard(child: MonthlyChart(summary: s)),
-        ],
+        if (entries.isNotEmpty) ...[const SectionHeader('Month by month'), LLCard(child: MonthlyChart(summary: s))],
         SectionHeader(
           'Recent activity',
-          trailing: entries.isEmpty
-              ? null
-              : TextButton(onPressed: () => openEntry(context), child: const Text('Add')),
+          trailing: entries.isEmpty ? null : TextButton(onPressed: () => openEntry(context), child: const Text('Add')),
         ),
         if (entries.isEmpty)
           EmptyState(
@@ -109,9 +100,7 @@ class _HeroCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [ll.heroStart, ll.heroEnd],
         ),
-        boxShadow: [
-          BoxShadow(color: ll.heroEnd.withValues(alpha: 0.25), blurRadius: 24, offset: const Offset(0, 10)),
-        ],
+        boxShadow: [BoxShadow(color: ll.heroEnd.withValues(alpha: 0.25), blurRadius: 24, offset: const Offset(0, 10))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,11 +125,7 @@ class _HeroCard extends StatelessWidget {
               Container(width: 1, height: 36, color: onHero.withValues(alpha: 0.2)),
               const SizedBox(width: Space.lg),
               Expanded(
-                child: _HeroStat(
-                  label: 'Deductible expenses',
-                  cents: s.expensesCents,
-                  icon: Icons.north_east_rounded,
-                ),
+                child: _HeroStat(label: 'Deductible expenses', cents: s.expensesCents, icon: Icons.north_east_rounded),
               ),
             ],
           ),
@@ -208,9 +193,7 @@ class _NextDueCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  next == null
-                      ? '${rules.year} quarterly payments are behind you'
-                      : '${next.quarter} estimated tax',
+                  next == null ? '${rules.year} quarterly payments are behind you' : '${next.quarter} estimated tax',
                   style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 2),
@@ -224,8 +207,7 @@ class _NextDueCard extends StatelessWidget {
               ],
             ),
           ),
-          if (days != null)
-            Pill(days == 0 ? 'Today' : 'in $days days', color: days <= 14 ? ll.warning : ll.accent),
+          if (days != null) Pill(days == 0 ? 'Today' : 'in $days days', color: days <= 14 ? ll.warning : ll.accent),
         ],
       ),
     );
@@ -269,10 +251,7 @@ class MonthlyChart extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _Bar(
-                                fraction: math.max(0, summary.monthly[m]?.$1 ?? 0) / maxV,
-                                color: ll.accent,
-                              ),
+                              _Bar(fraction: math.max(0, summary.monthly[m]?.$1 ?? 0) / maxV, color: ll.accent),
                               const SizedBox(width: 2),
                               _Bar(
                                 fraction: (summary.monthly[m]?.$2 ?? 0) / maxV,
@@ -381,11 +360,7 @@ class EntryTile extends StatelessWidget {
       ),
       trailing: Text(
         '$sign${formatCents(entry.amountCents)}',
-        style: context.text.titleSmall?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontFeatures: tabular,
-        ),
+        style: context.text.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w600, fontFeatures: tabular),
       ),
     );
   }
@@ -402,8 +377,7 @@ enum _Filter { all, income, expenses }
 class _RecordsTabState extends ConsumerState<RecordsTab> {
   _Filter _filter = _Filter.all;
 
-  bool _matches(LedgerEntry e, TaxRules rules) =>
-      _filter == _Filter.all || (_filter == _Filter.income) == e.isIncome;
+  bool _matches(LedgerEntry e, TaxRules rules) => _filter == _Filter.all || (_filter == _Filter.income) == e.isIncome;
 
   Future<void> _delete(LedgerEntry e) async {
     final db = ref.read(appControllerProvider).db;
@@ -649,25 +623,10 @@ class TaxesTab extends ConsumerWidget {
         LLGroup(
           children: [
             for (final (icon, title, sub, Widget screen) in [
-              (
-                Icons.payments_outlined,
-                'Payment log',
-                'Record what you\'ve paid the IRS',
-                PaymentLogScreen(year),
-              ),
-              (
-                Icons.directions_car_outlined,
-                'Mileage',
-                'Standard mileage rate, trip by trip',
-                MileageScreen(year),
-              ),
+              (Icons.payments_outlined, 'Payment log', 'Record what you\'ve paid the IRS', PaymentLogScreen(year)),
+              (Icons.directions_car_outlined, 'Mileage', 'Standard mileage rate, trip by trip', MileageScreen(year)),
               (Icons.home_work_outlined, 'Home office', 'Simplified method', HomeOfficeScreen(year)),
-              (
-                Icons.description_outlined,
-                '1099 tracker',
-                'Match forms to your income',
-                Forms1099Screen(year),
-              ),
+              (Icons.description_outlined, '1099 tracker', 'Match forms to your income', Forms1099Screen(year)),
             ])
               ListTile(
                 leading: Icon(icon),
@@ -748,10 +707,7 @@ Future<void> _editW2(BuildContext context, AppController app, int year) async {
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(d), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: () => Navigator.pop(d, (int.tryParse(c.text) ?? 0) * 100),
-          child: const Text('Save'),
-        ),
+        FilledButton(onPressed: () => Navigator.pop(d, (int.tryParse(c.text) ?? 0) * 100), child: const Text('Save')),
       ],
     ),
   );

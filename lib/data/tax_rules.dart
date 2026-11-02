@@ -144,9 +144,7 @@ class TaxRules {
       seMinimumNetEarningsCents: (((se['minimumNetEarnings'] as num?) ?? 0) * 100).round(),
       defaultSetAsidePct: (j['defaultSetAsidePct'] as num?)?.toDouble() ?? 25,
       verified: (j['review'] as Map<String, dynamic>?)?['verified'] as String?,
-      keyFigures: [
-        for (final k in j['keyFigures'] as List? ?? const []) KeyFigure.fromJson(k as Map<String, dynamic>),
-      ],
+      keyFigures: [for (final k in j['keyFigures'] as List? ?? const []) KeyFigure.fromJson(k as Map<String, dynamic>)],
     );
   }
 

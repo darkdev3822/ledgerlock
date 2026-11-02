@@ -155,8 +155,7 @@ List<Suggestion> suggestResources(List<Resource> all, UserFacts f) {
           _ => null,
         },
         'age60' when f.age60OptIn => 'You said you’re 60 or older.',
-        'firstYear' when f.hasIncome && !f.hadIncomeLastYear =>
-          'This looks like your first year self-employed.',
+        'firstYear' when f.hasIncome && !f.hadIncomeLastYear => 'This looks like your first year self-employed.',
         'platformIncome' when f.platforms.isNotEmpty =>
           'You have ${_money(f.platformIncomeCents)} of income through ${(f.platforms.toList()..sort()).join(', ')}.',
         'taxDue' when f.seTaxCents > 0 =>
@@ -249,9 +248,7 @@ List<RuleChange> whatChanged(
         RuleChange(
           '${c.name}: deductible share',
           '${_pct(old.deductibleShare)} → ${_pct(c.deductibleShare)}',
-          forYou: spend > 0
-              ? 'About ${_money(delta.abs())} ${delta > 0 ? 'more' : 'less'} deduction for you.'
-              : null,
+          forYou: spend > 0 ? 'About ${_money(delta.abs())} ${delta > 0 ? 'more' : 'less'} deduction for you.' : null,
         ),
       );
     }

@@ -114,9 +114,7 @@ LedgerSummary summarize(
   }
   if (mileageCents > 0) add('9', mileageCents.toDouble());
   final gross = (lines['1'] ?? 0) - (lines['2'] ?? 0) + (lines['6'] ?? 0);
-  final expenses = lines.entries
-      .where((e) => !const {'1', '2', '6'}.contains(e.key))
-      .fold(0.0, (a, e) => a + e.value);
+  final expenses = lines.entries.where((e) => !const {'1', '2', '6'}.contains(e.key)).fold(0.0, (a, e) => a + e.value);
   // Line 30 (home office, simplified method) can't create or increase a loss.
   final tentative = gross - expenses;
   final office = homeOfficeCents <= 0 || tentative <= 0

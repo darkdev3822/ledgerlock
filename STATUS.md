@@ -108,6 +108,9 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   permission and `adb shell dumpsys alarm | grep ledgerlock` shows alarms; check-in card; FAB outline (goldens show a
   black outline, likely test-only focus highlight). Also: Emergency Kit save writes a .pdf; reminder shows padlock icon.
   Owner said "go ahead"/"continue" but auto mode still blocked PIN entry: needs explicit permission or owner unlocks.
+- M7 part 1 (2026-11-01): smart rules (schema v7 category_rules; longest substring match, manual > learned;
+  learns only from corrections; business % per rule; Settings > Records > Smart rules). SECURITY T14. 134 tests.
+  Not Pro-gated yet (paywall needs owner's Play account).
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).

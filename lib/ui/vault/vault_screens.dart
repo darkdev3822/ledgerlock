@@ -25,8 +25,7 @@ final entryAttachmentsProvider = StreamProvider.family<List<Attachment>, int>((r
   return db == null ? Stream.value(const []) : db.watchEntryAttachments(entryId);
 });
 
-String _size(int b) =>
-    b < 1024 * 1024 ? '${(b / 1024).ceil()} KB' : '${(b / 1024 / 1024).toStringAsFixed(1)} MB';
+String _size(int b) => b < 1024 * 1024 ? '${(b / 1024).ceil()} KB' : '${(b / 1024 / 1024).toStringAsFixed(1)} MB';
 
 IconData _folderIcon(String f) => switch (f) {
   'tax_form' => Icons.work_outline_rounded,
@@ -111,10 +110,7 @@ class VaultTab extends ConsumerWidget {
           ],
         ),
         if (unmatched.isNotEmpty) ...[
-          SectionHeader(
-            'Receipts to match',
-            trailing: Pill('${unmatched.length}', color: context.ll.warning),
-          ),
+          SectionHeader('Receipts to match', trailing: Pill('${unmatched.length}', color: context.ll.warning)),
           SizedBox(
             height: 120,
             child: ListView.separated(
@@ -146,12 +142,7 @@ class VaultTab extends ConsumerWidget {
 }
 
 /// Imports a file through the platform picker (no plaintext copies) into [folder].
-Future<void> importInto(
-  BuildContext context,
-  WidgetRef ref, {
-  required String folder,
-  required int year,
-}) async {
+Future<void> importInto(BuildContext context, WidgetRef ref, {required String folder, required int year}) async {
   final app = ref.read(appControllerProvider);
   final docs = app.documents;
   if (docs == null) return;
@@ -220,9 +211,7 @@ class FolderScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final items = (ref.watch(attachmentsProvider(year)).value ?? const [])
-        .where((a) => a.folder == folder)
-        .toList();
+    final items = (ref.watch(attachmentsProvider(year)).value ?? const []).where((a) => a.folder == folder).toList();
     return Scaffold(
       appBar: AppBar(title: Text('${vaultFolders[folder]} · $year')),
       floatingActionButton: FloatingActionButton.extended(
@@ -326,10 +315,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                 leading: Icon(categoryIcon(e.category)),
                 title: Text(e.party.isNotEmpty ? e.party : (rules?.category(e.category)?.name ?? e.category)),
                 subtitle: Text(DateFormat.yMMMd().format(e.day)),
-                trailing: Text(
-                  formatCents(e.amountCents),
-                  style: ctx.text.titleSmall?.copyWith(fontFeatures: tabular),
-                ),
+                trailing: Text(formatCents(e.amountCents), style: ctx.text.titleSmall?.copyWith(fontFeatures: tabular)),
                 onTap: () => Navigator.pop(ctx, e),
               ),
           ],

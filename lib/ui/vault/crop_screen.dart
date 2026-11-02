@@ -75,13 +75,9 @@ class _CropScreenState extends ConsumerState<CropScreen> {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
+                          Positioned.fill(child: Image.memory(_preview, fit: BoxFit.fill, gaplessPlayback: true)),
                           Positioned.fill(
-                            child: Image.memory(_preview, fit: BoxFit.fill, gaplessPlayback: true),
-                          ),
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: _QuadPainter([for (final p in _pts) Offset(p.x * s, p.y * s)]),
-                            ),
+                            child: CustomPaint(painter: _QuadPainter([for (final p in _pts) Offset(p.x * s, p.y * s)])),
                           ),
                           for (var i = 0; i < 4; i++)
                             Positioned(

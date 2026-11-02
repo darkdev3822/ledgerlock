@@ -36,19 +36,14 @@ final _money = [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,$]')), LengthLi
 InputDecoration _dec(String label, {String? helper, String? prefix}) =>
     InputDecoration(labelText: label, helperText: helper, prefixText: prefix, helperMaxLines: 2);
 
-TextField _field(
-  TextEditingController c,
-  String label, {
-  bool money = false,
-  bool number = false,
-  String? helper,
-}) => TextField(
-  controller: c,
-  enableIMEPersonalizedLearning: false,
-  keyboardType: money || number ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-  inputFormatters: money ? _money : [LengthLimitingTextInputFormatter(number ? 8 : 80)],
-  decoration: _dec(label, helper: helper, prefix: money ? '\$' : null),
-);
+TextField _field(TextEditingController c, String label, {bool money = false, bool number = false, String? helper}) =>
+    TextField(
+      controller: c,
+      enableIMEPersonalizedLearning: false,
+      keyboardType: money || number ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+      inputFormatters: money ? _money : [LengthLimitingTextInputFormatter(number ? 8 : 80)],
+      decoration: _dec(label, helper: helper, prefix: money ? '\$' : null),
+    );
 
 Future<DateTime?> _pickDate(BuildContext context, DateTime initial, int year) => showDatePicker(
   context: context,
@@ -58,23 +53,13 @@ Future<DateTime?> _pickDate(BuildContext context, DateTime initial, int year) =>
 );
 
 /// A simple form sheet: fields + Save. Returns true if saved.
-Future<bool> _sheet(
-  BuildContext context,
-  String title,
-  List<Widget> fields,
-  Future<bool> Function() save,
-) async {
+Future<bool> _sheet(BuildContext context, String title, List<Widget> fields, Future<bool> Function() save) async {
   final ok = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     builder: (c) => Padding(
-      padding: EdgeInsets.fromLTRB(
-        Space.gutter,
-        0,
-        Space.gutter,
-        MediaQuery.of(c).viewInsets.bottom + Space.lg,
-      ),
+      padding: EdgeInsets.fromLTRB(Space.gutter, 0, Space.gutter, MediaQuery.of(c).viewInsets.bottom + Space.lg),
       child: StatefulBuilder(
         builder: (c, set) => Column(
           mainAxisSize: MainAxisSize.min,
@@ -98,8 +83,7 @@ Future<bool> _sheet(
   return ok ?? false;
 }
 
-void _toast(BuildContext context, String s) =>
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
+void _toast(BuildContext context, String s) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
 
 /// Date row used inside sheets.
 class _DateRow extends StatefulWidget {
@@ -209,18 +193,10 @@ class PaymentLogScreen extends ConsumerWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: StatTile(
-                    label: 'Paid to the IRS',
-                    cents: paid,
-                    icon: Icons.account_balance_outlined,
-                  ),
+                  child: StatTile(label: 'Paid to the IRS', cents: paid, icon: Icons.account_balance_outlined),
                 ),
                 Expanded(
-                  child: StatTile(
-                    label: 'Set aside so far',
-                    cents: s.setAsideCents,
-                    icon: Icons.savings_outlined,
-                  ),
+                  child: StatTile(label: 'Set aside so far', cents: s.setAsideCents, icon: Icons.savings_outlined),
                 ),
               ],
             ),
@@ -265,10 +241,7 @@ class PaymentLogScreen extends ConsumerWidget {
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: ll.surfaceAlt,
-                        child: Text(
-                          p.quarter.isEmpty ? '·' : p.quarter,
-                          style: const TextStyle(fontSize: 12),
-                        ),
+                        child: Text(p.quarter.isEmpty ? '·' : p.quarter, style: const TextStyle(fontSize: 12)),
                       ),
                       title: Text(DateFormat.yMMMd().format(DateTime.parse(p.date))),
                       subtitle: p.method.isEmpty ? null : Text(p.method),
@@ -301,11 +274,7 @@ class MileageScreen extends ConsumerWidget {
       [
         _DateRow(initial: date, year: year, onChanged: (d) => date = d),
         _field(miles, 'Miles', number: true),
-        _field(
-          purpose,
-          'Business purpose',
-          helper: 'The IRS expects a purpose for each trip, e.g. "client meeting"',
-        ),
+        _field(purpose, 'Business purpose', helper: 'The IRS expects a purpose for each trip, e.g. "client meeting"'),
         _field(route, 'Route (optional)', helper: 'e.g. Home to Riverside office'),
       ],
       () async {
@@ -340,9 +309,7 @@ class MileageScreen extends ConsumerWidget {
     final rules = ref.watch(taxRulesProvider(year)).value;
     final rate = rules?.figure('mileage_rate');
     final tenths = trips.fold(0, (a, t) => a + t.milesTenths);
-    final deduction = rules == null
-        ? 0
-        : mileageDeductionCents(trips.map((t) => (t.date, t.milesTenths)), rules);
+    final deduction = rules == null ? 0 : mileageDeductionCents(trips.map((t) => (t.date, t.milesTenths)), rules);
     return Scaffold(
       appBar: AppBar(title: Text('Mileage · $year')),
       floatingActionButton: FloatingActionButton.extended(
@@ -400,10 +367,7 @@ class MileageScreen extends ConsumerWidget {
                           if (t.route.isNotEmpty) t.route,
                         ].join(' · '),
                       ),
-                      trailing: Text(
-                        '${(t.milesTenths / 10).toStringAsFixed(1)} mi',
-                        style: context.text.titleSmall,
-                      ),
+                      trailing: Text('${(t.milesTenths / 10).toStringAsFixed(1)} mi', style: context.text.titleSmall),
                     ),
                   ),
               ],
@@ -473,14 +437,8 @@ class HomeOfficeScreen extends ConsumerWidget {
                         controller: c,
                         autofocus: true,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(5),
-                        ],
-                        decoration: _dec(
-                          'Square feet',
-                          helper: 'Only the part used regularly and only for business.',
-                        ),
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(5)],
+                        decoration: _dec('Square feet', helper: 'Only the part used regularly and only for business.'),
                       ),
                     ],
                     () async {
@@ -512,12 +470,7 @@ int recordedFrom(String payer, Iterable<LedgerEntry> entries) {
   final p = payer.trim().toLowerCase();
   if (p.isEmpty) return 0;
   return entries
-      .where(
-        (e) =>
-            e.isIncome &&
-            e.paid &&
-            (e.platform.trim().toLowerCase() == p || e.party.trim().toLowerCase() == p),
-      )
+      .where((e) => e.isIncome && e.paid && (e.platform.trim().toLowerCase() == p || e.party.trim().toLowerCase() == p))
       .fold(0, (a, e) => a + e.amountCents);
 }
 
@@ -697,4 +650,110 @@ Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) asyn
       ),
     ),
   );
+}
+
+// ============================== Smart rules (Pro, M7) ==============================
+
+class RulesScreen extends ConsumerWidget {
+  const RulesScreen({super.key});
+
+  Future<void> _add(BuildContext context, WidgetRef ref, TaxRules rules) async {
+    final db = ref.read(appControllerProvider).db;
+    if (db == null) return;
+    final cats = [...rules.expenseCategories, ...rules.incomeCategories];
+    String? cat;
+    final text = TextEditingController(), pct = TextEditingController();
+    await _sheet(
+      context,
+      'New rule',
+      [
+        _field(text, 'Payee contains', helper: 'e.g. "anthropic" matches "Anthropic PBC" and "ANTHROPIC.COM"'),
+        DropdownButtonFormField<String>(
+          isExpanded: true,
+          decoration: _dec('Category'),
+          items: [
+            for (final c in cats)
+              DropdownMenuItem(value: c.id, child: Text('${c.isIncome ? 'Income' : 'Expense'} · ${c.name}')),
+          ],
+          onChanged: (v) => cat = v,
+        ),
+        _field(pct, 'Business use % (expenses, optional)', number: true, helper: 'Leave empty to keep 100%'),
+      ],
+      () async {
+        final t = text.text.trim().toLowerCase();
+        final c = cats.where((x) => x.id == cat).firstOrNull;
+        final p = int.tryParse(pct.text.trim());
+        if (t.length < 2 || c == null || (p != null && (p < 0 || p > 100))) {
+          _toast(context, 'Add at least 2 letters, a category, and a % from 0 to 100');
+          return false;
+        }
+        await db.addRule(
+          CategoryRulesCompanion.insert(
+            isIncome: c.isIncome,
+            contains: t,
+            category: c.id,
+            businessPct: Value(c.isIncome ? null : p),
+          ),
+        );
+        return true;
+      },
+    );
+    text.dispose();
+    pct.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final year = ref.watch(appControllerProvider.select((a) => a.selectedYear));
+    final rules = ref.watch(taxRulesProvider(year)).value;
+    final list = ref.watch(categoryRulesProvider).value ?? const <CategoryRule>[];
+    return Scaffold(
+      appBar: AppBar(title: const Text('Smart rules')),
+      floatingActionButton: rules == null
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _add(context, ref, rules),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add rule'),
+            ),
+      body: ListView(
+        padding: _pad,
+        children: [
+          Text(
+            'Rules pick the category when you type a payee, and when you import a file. When you change a '
+            'suggested category, LedgerLock learns it for that payee. Swipe a rule away to delete it.',
+            style: context.text.bodySmall,
+          ),
+          const SectionHeader('Rules'),
+          if (list.isEmpty)
+            const EmptyState(
+              icon: Icons.auto_fix_high_outlined,
+              title: 'No rules yet',
+              body: 'Add one, or just correct a suggested category and it will appear here.',
+            )
+          else
+            LLGroup(
+              children: [
+                for (final r in list)
+                  Dismissible(
+                    key: ValueKey('r${r.id}'),
+                    direction: DismissDirection.endToStart,
+                    background: _deleteBg(context),
+                    onDismissed: (_) => ref.read(appControllerProvider).db?.deleteRule(r.id),
+                    child: ListTile(
+                      leading: Icon(r.learned ? Icons.school_outlined : Icons.rule_rounded),
+                      title: Text('"${r.contains}"'),
+                      subtitle: Text(
+                        '${r.isIncome ? 'Income' : 'Expense'} · ${rules?.category(r.category)?.name ?? r.category}'
+                        '${r.businessPct == null ? '' : ' · ${r.businessPct}% business'}'
+                        '${r.learned ? ' · learned' : ''}',
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
 }
