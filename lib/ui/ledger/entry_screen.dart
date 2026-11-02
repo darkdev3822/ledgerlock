@@ -233,7 +233,9 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                           child: Text(
                             formatCents(_cents),
                             style: context.text.displayMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+                              fontFamily: Fonts.ui,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -1,
                               color: amountColor,
                               fontFeatures: tabular,
                             ),
@@ -436,7 +438,14 @@ class _Keypad extends StatelessWidget {
             child: Center(
               child: k == '⌫'
                   ? Icon(Icons.backspace_outlined, semanticLabel: 'Delete digit', color: context.ll.muted)
-                  : Text(k, style: context.text.headlineSmall?.copyWith(fontFeatures: tabular)),
+                  : Text(
+                      k,
+                      style: context.text.headlineSmall?.copyWith(
+                        fontFamily: Fonts.ui,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: tabular,
+                      ),
+                    ),
             ),
           ),
       ],

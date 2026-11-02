@@ -33,12 +33,11 @@ class HomeTab extends ConsumerWidget {
     final s = ref.watch(summaryProvider(year));
     final entries = ref.watch(entriesProvider(year)).value ?? const [];
     final today = ref.watch(todayProvider);
-    return ListView(
-      padding: _pad,
-      children: [
-        const CheckInCard(),
-        _HeroCard(year: year, s: s),
-        const SizedBox(height: Space.md),
+    final sections = <Widget>[
+      _Greeting(today: today, rules: rules, s: s, hasEntries: entries.isNotEmpty),
+      const CheckInCard(),
+      _HeroCard(year: year, s: s),
+      if (entries.isNotEmpty)
         Row(
           children: [
             Expanded(
@@ -55,30 +54,91 @@ class HomeTab extends ConsumerWidget {
             ),
           ],
         ),
-        if (rules != null) ...[
-          const SizedBox(height: Space.md),
-          _NextDueCard(rules: rules, today: today, perQuarterCents: s.setAsideCents ~/ 4),
-        ],
-        if (entries.isNotEmpty) ...[const SectionHeader('Month by month'), LLCard(child: MonthlyChart(summary: s))],
-        SectionHeader(
-          'Recent activity',
-          trailing: entries.isEmpty ? null : TextButton(onPressed: () => openEntry(context), child: const Text('Add')),
+      if (rules != null) _NextDueCard(rules: rules, today: today, perQuarterCents: s.setAsideCents ~/ 4),
+      if (entries.isNotEmpty)
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SectionHeader('Month by month'),
+            LLCard(
+              child: MonthlyChart(summary: s, currentMonth: today.year == year ? today.month : null),
+            ),
+          ],
         ),
-        if (entries.isEmpty)
-          EmptyState(
-            icon: Icons.add_card_rounded,
-            title: 'Add your first income or expense',
-            body: 'Three taps: amount, category, done. LedgerLock maps it to the right Schedule C line for you.',
-            actionLabel: 'Add a record',
-            onAction: () => openEntry(context),
-          )
-        else if (rules != null)
-          LLGroup(
-            children: [for (final e in entries.take(5)) EntryTile(entry: e, rules: rules)],
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SectionHeader(
+            'Recent activity',
+            trailing: entries.isEmpty
+                ? null
+                : TextButton(onPressed: () => openEntry(context), child: const Text('Add')),
+          ),
+          if (entries.isEmpty)
+            EmptyState(
+              icon: Icons.add_card_rounded,
+              title: 'Add your first income or expense',
+              body: 'Three taps: amount, category, done. LedgerLock maps it to the right Schedule C line for you.',
+              actionLabel: 'Add a record',
+              onAction: () => openEntry(context),
+            )
+          else if (rules != null)
+            LLGroup(
+              children: [for (final e in entries.take(5)) EntryTile(entry: e, rules: rules)],
+            ),
+        ],
+      ),
+    ];
+    return ListView(
+      padding: _pad,
+      children: [
+        for (final (i, w) in sections.indexed)
+          Padding(
+            padding: EdgeInsets.only(bottom: i == 0 || i == sections.length - 1 ? 0 : Space.md),
+            child: Reveal(index: i, child: w),
           ),
       ],
     );
   }
+}
+
+/// "Good evening" plus one line about where the user stands. Awareness, not decoration.
+class _Greeting extends StatelessWidget {
+  final DateTime today;
+  final TaxRules? rules;
+  final LedgerSummary s;
+  final bool hasEntries;
+  const _Greeting({required this.today, required this.rules, required this.s, required this.hasEntries});
+
+  String get _hello {
+    final h = today.hour;
+    if (h >= 5 && h < 12) return 'Good morning';
+    if (h >= 12 && h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  String get _line {
+    if (!hasEntries) return 'Let’s get your year started.';
+    final next = rules?.nextDue(today);
+    if (s.netCents <= 0) return 'Expenses are ahead of income so far. That’s common early on.';
+    if (next == null) return 'This year’s quarterly payments are behind you.';
+    final days = next.due.difference(DateTime(today.year, today.month, today.day)).inDays;
+    if (days <= 14) return '${next.quarter} is due in $days day${days == 1 ? '' : 's'}. Worth a look today.';
+    return 'You’re up ${formatCents(s.netCents)} this year. ${next.quarter} is due in $days days.';
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, Space.xs, 4, Space.lg),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_hello, style: context.text.headlineMedium?.copyWith(fontWeight: FontWeight.w500)),
+        const SizedBox(height: Space.xs),
+        Text(_line, style: context.text.bodyMedium?.copyWith(color: context.ll.muted)),
+      ],
+    ),
+  );
 }
 
 class _HeroCard extends StatelessWidget {
@@ -90,47 +150,136 @@ class _HeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ll = context.ll;
     const onHero = Colors.white;
-    final dim = onHero.withValues(alpha: 0.72);
+    final dim = onHero.withValues(alpha: 0.74);
     return Container(
-      padding: const EdgeInsets.all(Space.xl),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Radii.card),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [ll.heroStart, ll.heroEnd],
-        ),
-        boxShadow: [BoxShadow(color: ll.heroEnd.withValues(alpha: 0.25), blurRadius: 24, offset: const Offset(0, 10))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('Net profit · $year', style: context.text.labelLarge?.copyWith(color: dim)),
-              const Spacer(),
-              Icon(Icons.lock_rounded, size: 16, color: dim),
-              const SizedBox(width: 4),
-              Text('Encrypted', style: context.text.labelSmall?.copyWith(color: dim)),
-            ],
-          ),
-          const SizedBox(height: Space.sm),
-          MoneyText(s.netCents, style: context.text.displaySmall, color: onHero),
-          const SizedBox(height: Space.lg),
-          Row(
-            children: [
-              Expanded(
-                child: _HeroStat(label: 'Income', cents: s.grossCents, icon: Icons.south_west_rounded),
-              ),
-              Container(width: 1, height: 36, color: onHero.withValues(alpha: 0.2)),
-              const SizedBox(width: Space.lg),
-              Expanded(
-                child: _HeroStat(label: 'Deductible expenses', cents: s.expensesCents, icon: Icons.north_east_rounded),
-              ),
-            ],
+        borderRadius: BorderRadius.circular(Radii.card + 4),
+        boxShadow: [
+          BoxShadow(
+            color: ll.heroEnd.withValues(alpha: 0.30),
+            blurRadius: 30,
+            spreadRadius: -10,
+            offset: const Offset(0, 18),
           ),
         ],
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(Radii.card + 4),
+        child: _AmbientGlow(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(Space.xl, Space.xl, Space.xl, Space.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '${s.netCents < 0 ? 'Net loss' : 'Net profit'} · $year',
+                      style: context.text.titleSmall?.copyWith(
+                        color: dim,
+                        fontFamily: Fonts.voice,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: onHero.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(Radii.pill),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lock_rounded, size: 12, color: dim),
+                          const SizedBox(width: 4),
+                          Text('On this phone only', style: context.text.labelSmall?.copyWith(color: dim)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Space.md),
+                AnimatedMoney(s.netCents, style: context.text.displaySmall, color: onHero),
+                const SizedBox(height: Space.xl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _HeroStat(label: 'Income', cents: s.grossCents, icon: Icons.south_west_rounded),
+                    ),
+                    Container(width: 1, height: 36, color: onHero.withValues(alpha: 0.18)),
+                    const SizedBox(width: Space.lg),
+                    Expanded(
+                      child: _HeroStat(label: 'Deductible', cents: s.expensesCents, icon: Icons.north_east_rounded),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Hero background: deep emerald with a warm glow that drifts very slowly (14 s loop). Static with reduce-motion.
+class _AmbientGlow extends StatefulWidget {
+  final Widget child;
+  const _AmbientGlow({required this.child});
+  @override
+  State<_AmbientGlow> createState() => _AmbientGlowState();
+}
+
+class _AmbientGlowState extends State<_AmbientGlow> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(seconds: 14));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final on = Motion.ambient && !Motion.reduced(context);
+    if (on && !_c.isAnimating) {
+      _c.repeat(reverse: true);
+    } else if (!on) {
+      _c.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ll = context.ll;
+    return AnimatedBuilder(
+      animation: _c,
+      child: widget.child,
+      builder: (_, child) {
+        final t = Curves.easeInOutSine.transform(_c.value);
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [ll.heroStart, ll.heroEnd],
+            ),
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0.55 + 0.35 * t, -1.1 + 0.3 * t),
+                radius: 1.15,
+                colors: [ll.heroGlow.withValues(alpha: 0.30), ll.heroGlow.withValues(alpha: 0)],
+              ),
+            ),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }
@@ -161,7 +310,7 @@ class _HeroStat extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 2),
-        MoneyText(cents, style: context.text.titleMedium, color: Colors.white),
+        AnimatedMoney(cents, style: context.text.titleMedium, color: Colors.white),
       ],
     );
   }
@@ -217,7 +366,10 @@ class _NextDueCard extends StatelessWidget {
 /// Income vs deductible expenses per month (custom-painted: no chart dependency).
 class MonthlyChart extends StatelessWidget {
   final LedgerSummary summary;
-  const MonthlyChart({super.key, required this.summary});
+
+  /// Highlighted (label in accent, bold) when viewing the current year.
+  final int? currentMonth;
+  const MonthlyChart({super.key, required this.summary, this.currentMonth});
 
   @override
   Widget build(BuildContext context) {
@@ -263,7 +415,10 @@ class MonthlyChart extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           DateFormat('MMMMM').format(DateTime(2000, m)),
-                          style: context.text.labelSmall?.copyWith(color: ll.muted),
+                          style: context.text.labelSmall?.copyWith(
+                            color: m == currentMonth ? ll.accent : ll.muted,
+                            fontWeight: m == currentMonth ? FontWeight.w800 : FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -286,12 +441,12 @@ class _Bar extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, c) => TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: fraction.clamp(0, 1)),
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOutCubic,
+      duration: Motion.reduced(context) ? Duration.zero : Motion.slow,
+      curve: Motion.enter,
       builder: (_, f, _) => Container(
-        width: 7,
-        height: math.max(f * c.maxHeight, f > 0 ? 3 : 0),
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+        width: 9,
+        height: math.max(f * c.maxHeight, f > 0 ? 4 : 0),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5)),
       ),
     ),
   );

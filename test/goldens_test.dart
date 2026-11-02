@@ -52,6 +52,19 @@ Future<void> loadFonts() async {
   }
 
   await load('Roboto', ['Roboto-Regular.ttf', 'Roboto-Medium.ttf', 'Roboto-Bold.ttf']);
+  Future<void> bundled(String family, List<String> files) async {
+    final loader = FontLoader(family);
+    for (final f in files) {
+      loader.addFont(Future.value(ByteData.sublistView(File('assets/fonts/$f').readAsBytesSync())));
+    }
+    await loader.load();
+  }
+
+  await bundled('Manrope', [
+    for (final w in [400, 500, 600, 700, 800]) 'Manrope-$w.ttf',
+  ]);
+  await bundled('Fraunces', ['Fraunces-500.ttf', 'Fraunces-600.ttf']);
+  Motion.ambient = false; // looping animation would never settle
   await load('MaterialIcons', ['MaterialIcons-Regular.otf']);
 }
 

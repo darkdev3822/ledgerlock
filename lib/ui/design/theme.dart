@@ -1,11 +1,32 @@
-// LedgerLock design system: tokens + Material 3 theme (SPEC §5).
-// One accent, calm neutrals, 20 px cards, tabular numerals for money.
+// LedgerLock design system: tokens + Material 3 theme (SPEC §5, docs/DESIGN.md).
+// Warm paper neutrals, one emerald accent + "sun" for attention, Fraunces voice + Manrope UI/numbers.
 import 'package:flutter/material.dart';
 
 /// Spacing scale (4 pt grid).
 abstract final class Space {
   static const xs = 4.0, sm = 8.0, md = 12.0, lg = 16.0, xl = 24.0, xxl = 32.0;
   static const gutter = 20.0;
+}
+
+/// Fonts (bundled, SIL OFL). Fraunces = voice (titles, greetings); Manrope = UI and every number.
+abstract final class Fonts {
+  static const voice = 'Fraunces', ui = 'Manrope';
+}
+
+/// Motion tokens (docs/DESIGN.md). Calm: no wobble except success moments.
+abstract final class Motion {
+  static const fast = Duration(milliseconds: 150);
+  static const medium = Duration(milliseconds: 300);
+  static const slow = Duration(milliseconds: 700);
+  static const stagger = Duration(milliseconds: 40);
+  static const enter = Curves.easeOutCubic;
+  static const success = Curves.easeOutBack;
+
+  /// Slow looping ambience (hero glow). Tests switch it off so pumpAndSettle can finish.
+  static bool ambient = true;
+
+  /// System "remove animations" setting.
+  static bool reduced(BuildContext context) => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 }
 
 abstract final class Radii {
@@ -16,7 +37,7 @@ abstract final class Radii {
 @immutable
 class LLColors extends ThemeExtension<LLColors> {
   final Color background, surface, surfaceAlt, border, text, muted;
-  final Color accent, onAccent, accentSoft, income, expense, warning, heroStart, heroEnd;
+  final Color accent, onAccent, accentSoft, income, expense, warning, heroStart, heroEnd, heroGlow;
 
   const LLColors({
     required this.background,
@@ -33,40 +54,44 @@ class LLColors extends ThemeExtension<LLColors> {
     required this.warning,
     required this.heroStart,
     required this.heroEnd,
+    required this.heroGlow,
   });
 
+  // Warm paper neutrals. muted on background >= 4.5:1 (WCAG AA).
   static const light = LLColors(
-    background: Color(0xFFF5F7F6),
-    surface: Color(0xFFFFFFFF),
-    surfaceAlt: Color(0xFFEDF1EF),
-    border: Color(0xFFE1E7E4),
-    text: Color(0xFF0F1714),
-    muted: Color(0xFF5E6B65),
-    accent: Color(0xFF0C7A63),
+    background: Color(0xFFF6F4EE),
+    surface: Color(0xFFFFFEFB),
+    surfaceAlt: Color(0xFFEFECE4),
+    border: Color(0xFFE5E1D6),
+    text: Color(0xFF16190F),
+    muted: Color(0xFF66665C),
+    accent: Color(0xFF0B7A62),
     onAccent: Color(0xFFFFFFFF),
-    accentSoft: Color(0xFFDDF0EA),
-    income: Color(0xFF0C7A63),
+    accentSoft: Color(0xFFDCEFE7),
+    income: Color(0xFF0B7A62),
     expense: Color(0xFFB4432F),
-    warning: Color(0xFFA86A12),
-    heroStart: Color(0xFF0C7A63),
-    heroEnd: Color(0xFF0A5C4C),
+    warning: Color(0xFFA5670F),
+    heroStart: Color(0xFF0E7A61),
+    heroEnd: Color(0xFF0A4F41),
+    heroGlow: Color(0xFFE9C46A),
   );
 
   static const dark = LLColors(
-    background: Color(0xFF0A0F0D),
-    surface: Color(0xFF131A17),
-    surfaceAlt: Color(0xFF1B2420),
-    border: Color(0xFF26312C),
-    text: Color(0xFFE9EFEC),
-    muted: Color(0xFF93A29B),
-    accent: Color(0xFF3FCBA6),
-    onAccent: Color(0xFF042119),
-    accentSoft: Color(0xFF12352C),
-    income: Color(0xFF3FCBA6),
+    background: Color(0xFF0E0F0C),
+    surface: Color(0xFF171914),
+    surfaceAlt: Color(0xFF20231C),
+    border: Color(0xFF2B2F27),
+    text: Color(0xFFEEECE3),
+    muted: Color(0xFFA3A396),
+    accent: Color(0xFF47D1AC),
+    onAccent: Color(0xFF04221A),
+    accentSoft: Color(0xFF14362D),
+    income: Color(0xFF47D1AC),
     expense: Color(0xFFF08A73),
-    warning: Color(0xFFE5B158),
-    heroStart: Color(0xFF115846),
-    heroEnd: Color(0xFF0B3B30),
+    warning: Color(0xFFE9B65C),
+    heroStart: Color(0xFF125B48),
+    heroEnd: Color(0xFF0A2E25),
+    heroGlow: Color(0xFFD9A441),
   );
 
   @override
@@ -91,6 +116,7 @@ class LLColors extends ThemeExtension<LLColors> {
       warning: l(warning, other.warning),
       heroStart: l(heroStart, other.heroStart),
       heroEnd: l(heroEnd, other.heroEnd),
+      heroGlow: l(heroGlow, other.heroGlow),
     );
   }
 }
@@ -128,17 +154,35 @@ ThemeData buildTheme(Brightness b) {
         onSurfaceVariant: c.muted,
         secondaryContainer: c.accentSoft,
       );
-  final base = ThemeData(useMaterial3: true, colorScheme: scheme, brightness: b);
+  final base = ThemeData(useMaterial3: true, colorScheme: scheme, brightness: b, fontFamily: Fonts.ui);
   final t = base.textTheme.apply(bodyColor: c.text, displayColor: c.text);
+  TextStyle? voice(TextStyle? x, double size) => x?.copyWith(
+    fontFamily: Fonts.voice,
+    fontWeight: FontWeight.w600,
+    fontSize: size,
+    letterSpacing: -0.4,
+    height: 1.15,
+  );
   final text = t.copyWith(
-    displaySmall: t.displaySmall?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.5, fontFeatures: tabular),
-    headlineMedium: t.headlineMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.3),
-    headlineSmall: t.headlineSmall?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.2),
-    titleLarge: t.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-    titleMedium: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-    bodyMedium: t.bodyMedium?.copyWith(color: c.text, height: 1.4),
-    bodySmall: t.bodySmall?.copyWith(color: c.muted, height: 1.35),
-    labelMedium: t.labelMedium?.copyWith(color: c.muted, letterSpacing: 0.2),
+    // Hero money: Manrope, tabular, tight.
+    displaySmall: t.displaySmall?.copyWith(
+      fontSize: 40,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -1.2,
+      height: 1.05,
+      fontFeatures: tabular,
+    ),
+    displayMedium: voice(t.displayMedium, 34),
+    headlineMedium: voice(t.headlineMedium, 30),
+    headlineSmall: voice(t.headlineSmall, 26),
+    titleLarge: t.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.2),
+    titleMedium: t.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+    titleSmall: t.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+    bodyLarge: t.bodyLarge?.copyWith(height: 1.45),
+    bodyMedium: t.bodyMedium?.copyWith(color: c.text, height: 1.45),
+    bodySmall: t.bodySmall?.copyWith(color: c.muted, height: 1.4),
+    labelLarge: t.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+    labelMedium: t.labelMedium?.copyWith(color: c.muted, letterSpacing: 0.3, fontWeight: FontWeight.w600),
   );
   final inputBorder = OutlineInputBorder(
     borderRadius: BorderRadius.circular(Radii.input),

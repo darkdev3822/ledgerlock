@@ -119,6 +119,13 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   categories (business % + meals share), 1099 check, payments, mileage; "not a tax return" on every page.
   SECURITY T16. 144 tests. Receipts appendix (zip) not done: it would export decrypted receipts -> decide later.
   Polish: keep a section heading with its table across page breaks.
+- Design pass 1 (2026-11-01, owner: "feel alive"): docs/DESIGN.md brief (principles -> rules). Bundled fonts
+  Fraunces (voice) + Manrope (UI, all numbers, tabular) as static instances, SIL OFL, licences in assets/fonts.
+  Warm paper palette + heroGlow; Motion tokens (Motion.reduced honours system setting; Motion.ambient=false in
+  goldens). Components: Pressable (LLCard with onTap), AnimatedMoney (count-up), Reveal (staggered entrance).
+  Home: greeting by time of day + status line is the title, ambient glow hero, chart highlights current month.
+  Next design passes: Records/Taxes/Vault entrances, success moments (payment logged, check-in done), tab
+  transitions, empty-state illustrations, onboarding. Device check: shadows render as hard ledges in goldens.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).

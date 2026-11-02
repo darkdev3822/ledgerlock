@@ -71,6 +71,26 @@ flutter:
   uses-material-design: true
   assets:
     - assets/tax_rules/
+  # Bundled (never fetched at runtime). SIL OFL 1.1, licences in assets/fonts/.
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-400.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope-500.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope-600.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-700.ttf
+          weight: 700
+        - asset: assets/fonts/Manrope-800.ttf
+          weight: 800
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/Fraunces-500.ttf
+          weight: 500
+        - asset: assets/fonts/Fraunces-600.ttf
+          weight: 600
 
   # To add assets to your application, add an assets section, like this:
   # assets:

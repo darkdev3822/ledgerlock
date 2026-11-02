@@ -45,9 +45,16 @@ class _AppShellState extends ConsumerState<AppShell> {
         titleSpacing: Space.gutter,
         title: Row(
           children: [
-            Text(_titles[_tab], style: context.text.headlineSmall),
-            const Spacer(),
+            // Home's greeting is its title (one hero per screen); other tabs name themselves.
+            if (_tab != 0) ...[
+              AnimatedSwitcher(
+                duration: Motion.medium,
+                child: Text(_titles[_tab], key: ValueKey(_tab), style: context.text.headlineSmall),
+              ),
+              const Spacer(),
+            ],
             YearSwitcher(year: app.selectedYear, onChanged: app.setYear),
+            if (_tab == 0) const Spacer(),
           ],
         ),
         actions: [

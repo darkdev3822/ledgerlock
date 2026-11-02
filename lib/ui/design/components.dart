@@ -1,5 +1,6 @@
 // Shared components. Screens compose these instead of styling raw widgets.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import 'theme.dart';
@@ -18,7 +19,8 @@ class MoneyText extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     formatCents(cents),
-    style: (style ?? context.text.titleMedium)?.copyWith(fontFeatures: tabular, color: color),
+    // Always Manrope: the voice serif has no tabular figures (docs/DESIGN.md).
+    style: (style ?? context.text.titleMedium)?.copyWith(fontFamily: Fonts.ui, fontFeatures: tabular, color: color),
     semanticsLabel: '${cents < 0 ? 'minus ' : ''}${formatCents(cents.abs())}',
   );
 }
@@ -32,15 +34,111 @@ class LLCard extends StatelessWidget {
   const LLCard({super.key, required this.child, this.padding = const EdgeInsets.all(Space.lg), this.onTap, this.color});
 
   @override
-  Widget build(BuildContext context) => Card(
-    color: color,
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onTap,
-      child: Padding(padding: padding, child: child),
+  Widget build(BuildContext context) {
+    final card = Card(
+      color: color,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(padding: padding, child: child),
+      ),
+    );
+    return onTap == null ? card : Pressable(child: card);
+  }
+}
+
+/// Tactile press: the child sinks slightly while touched and springs back (critically damped, no wobble).
+/// Purely visual: taps still go to the child's own InkWell/onTap.
+class Pressable extends StatefulWidget {
+  final Widget child;
+  final double depth;
+  const Pressable({super.key, required this.child, this.depth = 0.975});
+  @override
+  State<Pressable> createState() => _PressableState();
+}
+
+class _PressableState extends State<Pressable> {
+  bool _down = false;
+  void _set(bool v) {
+    if (v != _down) setState(() => _down = v);
+  }
+
+  @override
+  Widget build(BuildContext context) => Listener(
+    onPointerDown: (_) => _set(true),
+    onPointerUp: (_) => _set(false),
+    onPointerCancel: (_) => _set(false),
+    child: AnimatedScale(
+      scale: _down ? widget.depth : 1,
+      duration: Motion.reduced(context) ? Duration.zero : (_down ? Motion.fast : Motion.medium),
+      curve: _down ? Curves.easeOut : Curves.easeOutCubic,
+      child: widget.child,
     ),
   );
 }
+
+/// Money that counts to its new value instead of jumping (continuity). Instant with reduce-motion.
+class AnimatedMoney extends StatefulWidget {
+  final int cents;
+  final TextStyle? style;
+  final Color? color;
+  const AnimatedMoney(this.cents, {super.key, this.style, this.color});
+  @override
+  State<AnimatedMoney> createState() => _AnimatedMoneyState();
+}
+
+class _AnimatedMoneyState extends State<AnimatedMoney> {
+  late int _from = widget.cents;
+  @override
+  void didUpdateWidget(AnimatedMoney old) {
+    super.didUpdateWidget(old);
+    if (old.cents != widget.cents) _from = old.cents;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (Motion.reduced(context) || _from == widget.cents) {
+      return MoneyText(widget.cents, style: widget.style, color: widget.color);
+    }
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(widget.cents),
+      tween: Tween(begin: _from.toDouble(), end: widget.cents.toDouble()),
+      duration: Motion.slow,
+      curve: Curves.easeOutCubic,
+      onEnd: () => _from = widget.cents,
+      builder: (_, v, _) => MoneyText(v.round(), style: widget.style, color: widget.color),
+    );
+  }
+}
+
+/// Entrance: fade + rise, staggered by [index]. Plays once when first built. Instant with reduce-motion.
+class Reveal extends StatelessWidget {
+  final int index;
+  final Widget child;
+  const Reveal({super.key, this.index = 0, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    if (Motion.reduced(context)) return child;
+    final delay = Motion.stagger.inMilliseconds * index.clamp(0, 8);
+    final total = Motion.medium.inMilliseconds + 150 + delay;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: total),
+      builder: (_, t, c) {
+        final v = Motion.enter.transform(((t * total - delay) / (total - delay)).clamp(0.0, 1.0));
+        return Opacity(
+          opacity: v,
+          child: Transform.translate(offset: Offset(0, 14 * (1 - v)), child: c),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+/// Light haptic for selections and toggles; medium for commits (save, log payment).
+void tick() => HapticFeedback.selectionClick();
 
 class SectionHeader extends StatelessWidget {
   final String title;
@@ -154,7 +252,15 @@ class EmptyState extends StatelessWidget {
             child: Icon(icon, size: 32, color: ll.accent),
           ),
           const SizedBox(height: Space.lg),
-          Text(title, style: context.text.titleMedium, textAlign: TextAlign.center),
+          Text(
+            title,
+            style: context.text.titleMedium?.copyWith(
+              fontFamily: Fonts.voice,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: Space.sm),
           Text(body, style: context.text.bodySmall, textAlign: TextAlign.center),
           if (actionLabel != null) ...[
