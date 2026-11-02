@@ -47,3 +47,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Tesseract 5 + Leptonica, Apache-2.0, no networking (checked: no curl/socket symbols in the .so files).
+    implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
+}

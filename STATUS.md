@@ -148,6 +148,15 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   Fixed from it: import Platform field now blank by default (file names are junk), unknown import payees -> Other
   (not last-used; database_test), dup sentence grammar, missed-quarter list grammar, import uses done toast,
   check-in row MergeSemantics.
+- M7 part 4: receipt OCR (owner chose Tesseract over ML Kit). Rejected flutter_tesseract_ocr (needs a file path
+  = plaintext on disk; opaque 14 MB AAR). Own Kotlin Ocr.kt over Tesseract4Android 4.9.0 + tessdata_fast eng
+  (android assets), bytes in memory; rows rebuilt from word boxes (auto layout split price columns at the decimal
+  point on device). lib/media/receipt_parser.dart (merchant/date/total/tax; never subtotal or cash tendered;
+  fixes "38: 76"). Scan button -> Import/photo -> new expense pre-filled with a "check before saving" banner;
+  adding a receipt to an empty entry also reads it. Device-verified on clean and noisy images ($38.76, Office
+  Depot, Oct 27). Found + fixed M4 bug: 16-bit RGBA PNGs stored as colour noise (normalize8). SECURITY T17.
+  Size: OCR adds ~10.6 MB per device (engine 6.7 + model 3.9); universal APK 104 MB, Play split ~40 MB.
+  Ideas: category guess from merchant words; tax field use; iOS OCR via Apple Vision (M10).
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).

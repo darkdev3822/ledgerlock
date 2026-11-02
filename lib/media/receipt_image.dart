@@ -196,10 +196,30 @@ img.Image? safeDecode(Uint8List bytes) {
     final info = decoder.startDecode(bytes);
     if (info == null || info.width <= 0 || info.height <= 0) return null;
     if (info.width * info.height > maxDecodePixels) return null;
-    return decoder.decode(bytes, frame: 0);
+    final im = decoder.decode(bytes, frame: 0);
+    return im == null ? null : normalize8(im);
   } catch (_) {
     return null;
   }
+}
+
+/// Everything downstream (corner detection, JPEG, OCR) assumes 8-bit RGB. 16-bit, grey, palette and alpha
+/// images are converted, with transparency placed on white paper. (A 16-bit RGBA PNG used to come out as
+/// colour noise: found in the OCR device check, image_formats_test.)
+img.Image normalize8(img.Image im) {
+  if (im.format == img.Format.uint8 && im.numChannels == 3 && !im.hasPalette) return im;
+  final out = img.Image(width: im.width, height: im.height);
+  final grey = im.numChannels < 3 && !im.hasPalette;
+  final alpha = im.hasAlpha;
+  for (final p in im) {
+    final a = alpha ? p.aNormalized.toDouble() : 1.0;
+    double ch(num v) => (v * a + (1 - a)) * 255;
+    final r = grey ? p.luminanceNormalized : p.rNormalized;
+    final g = grey ? p.luminanceNormalized : p.gNormalized;
+    final b = grey ? p.luminanceNormalized : p.bNormalized;
+    out.setPixelRgb(p.x, p.y, ch(r).round(), ch(g).round(), ch(b).round());
+  }
+  return out;
 }
 
 /// Thumbnail for an imported image (no crop).

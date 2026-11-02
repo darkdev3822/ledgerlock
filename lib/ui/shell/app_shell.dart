@@ -44,11 +44,11 @@ class _AppShellState extends ConsumerState<AppShell> {
   Future<void> _scan() async {
     HapticFeedback.mediumImpact();
     final app = ref.read(appControllerProvider);
-    final messenger = ScaffoldMessenger.of(context);
     final id = await captureReceipt(context, year: app.selectedYear);
-    if (id == null) return;
-    setState(() => _tab = 2);
-    messenger.showSnackBar(const SnackBar(content: Text('Receipt saved encrypted. Tap it to attach to a record.')));
+    if (id == null || !mounted) return;
+    // Straight into a new expense, pre-filled from the receipt (read on this phone). Cancel keeps the receipt in
+    // the Vault, unmatched.
+    await openEntry(context, receiptId: id);
   }
 
   @override

@@ -2,6 +2,11 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // On-device OCR engine only (SPEC §3). exclusiveContent: JitPack may serve nothing else.
+        exclusiveContent {
+            forRepository { maven("https://jitpack.io") }
+            filter { includeGroup("cz.adaptech.tesseract4android") }
+        }
     }
 }
 

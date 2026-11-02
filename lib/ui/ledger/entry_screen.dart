@@ -9,6 +9,8 @@ import 'package:intl/intl.dart';
 import '../../app/app_controller.dart';
 import '../../data/business_types.dart';
 import '../../data/database.dart';
+import '../../media/receipt_parser.dart';
+import '../../platform/ocr.dart';
 import '../../data/tax_rules.dart';
 import '../design/components.dart';
 import '../design/theme.dart';
@@ -17,18 +19,21 @@ import '../vault/vault_screens.dart';
 import 'category_icons.dart';
 
 /// Opens the entry screen. Pass [existing] to edit.
-Future<void> openEntry(BuildContext context, {LedgerEntry? existing, bool income = false}) => Navigator.of(context)
-    .push(
+Future<void> openEntry(BuildContext context, {LedgerEntry? existing, bool income = false, int? receiptId}) =>
+    Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => EntryScreen(existing: existing, startIncome: income),
+        builder: (_) => EntryScreen(existing: existing, startIncome: income, receiptId: receiptId),
       ),
     );
 
 class EntryScreen extends ConsumerStatefulWidget {
   final LedgerEntry? existing;
   final bool startIncome;
-  const EntryScreen({super.key, this.existing, this.startIncome = false});
+
+  /// A just-scanned receipt: attached on save, and read on the device (OCR) to pre-fill the form.
+  final int? receiptId;
+  const EntryScreen({super.key, this.existing, this.startIncome = false, this.receiptId});
   @override
   ConsumerState<EntryScreen> createState() => _EntryScreenState();
 }
@@ -58,6 +63,46 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   /// Receipts captured before a new entry is saved; linked on save.
   final List<int> _pendingReceipts = [];
 
+  /// Receipt reading: null = not started, true = reading, false = done. [_ocrFilled]: what was filled.
+  bool? _reading;
+  String? _ocrFilled;
+
+  /// Reads [attachmentId] on the device and fills only fields the user hasn't touched.
+  Future<void> _readReceipt(int attachmentId) async {
+    final app = ref.read(appControllerProvider);
+    final docs = app.documents, db = app.db;
+    if (docs == null || db == null) return;
+    setState(() => _reading = true);
+    String? text;
+    try {
+      final a = await db.attachment(attachmentId);
+      if (a != null && a.mime.startsWith('image/')) text = await recognizeText(await docs.read(a));
+    } catch (_) {}
+    if (!mounted) return;
+    final g = text == null ? null : parseReceipt(text, today: DateTime.now());
+    final filled = <String>[];
+    setState(() {
+      _reading = false;
+      if (g == null || g.isEmpty) return;
+      if (g.totalCents != null && _cents == 0) {
+        _cents = g.totalCents!.clamp(0, 99999999);
+        filled.add('amount');
+      }
+      if (g.merchant != null && _party.text.trim().isEmpty) {
+        _party.text = g.merchant!;
+        filled.add('payee');
+      }
+      if (g.date != null && g.date!.year == _date.year) {
+        _date = g.date!;
+        filled.add('date');
+      }
+    });
+    if (filled.isNotEmpty) {
+      HapticFeedback.lightImpact();
+      setState(() => _ocrFilled = filled.join(', '));
+    }
+  }
+
   bool get _editing => widget.existing != null;
 
   DateTime _defaultDate() {
@@ -73,6 +118,10 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     _focus.addListener(() => setState(() => _textFocused = _focus.hasFocus));
     _party.addListener(_maybeSuggest);
     _loadSuggestions();
+    if (widget.receiptId != null) {
+      _pendingReceipts.add(widget.receiptId!);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _readReceipt(widget.receiptId!));
+    }
   }
 
   Future<void> _loadSuggestions() async {
@@ -254,6 +303,16 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                             ),
                           ),
                         ),
+                        AnimatedSize(
+                          duration: Motion.medium,
+                          curve: Motion.enter,
+                          child: _reading == null && _ocrFilled == null
+                              ? const SizedBox(width: double.infinity)
+                              : Padding(
+                                  padding: const EdgeInsets.only(top: Space.sm),
+                                  child: _ReceiptReadBanner(reading: _reading == true, filled: _ocrFilled),
+                                ),
+                        ),
                       ],
                     ),
                   ),
@@ -369,6 +428,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                             await db.linkAttachment(id, widget.existing!.id);
                           } else {
                             setState(() => _pendingReceipts.add(id));
+                            if (_cents == 0) _readReceipt(id);
                           }
                         },
                       ),
@@ -603,6 +663,43 @@ class _ReceiptRow extends ConsumerWidget {
               ),
             ),
           IconButton(tooltip: 'Add receipt', icon: const Icon(Icons.add_a_photo_outlined), onPressed: onAdd),
+        ],
+      ),
+    );
+  }
+}
+
+/// Status of on-device receipt reading. Always asks the user to check: OCR is a suggestion, not a fact.
+class _ReceiptReadBanner extends StatelessWidget {
+  final bool reading;
+  final String? filled;
+  const _ReceiptReadBanner({required this.reading, required this.filled});
+
+  @override
+  Widget build(BuildContext context) {
+    final ll = context.ll;
+    final text = reading
+        ? 'Reading your receipt on this phone…'
+        : filled == null
+        ? 'Couldn’t read this receipt clearly. Enter the details yourself.'
+        : 'Filled $filled from your receipt. Check before saving.';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Space.md, vertical: Space.sm),
+      decoration: BoxDecoration(
+        color: (filled == null && !reading ? ll.surfaceAlt : ll.accentSoft),
+        borderRadius: BorderRadius.circular(Radii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (reading)
+            SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ll.accent))
+          else
+            Icon(filled == null ? Icons.info_outline_rounded : Icons.auto_awesome_rounded, size: 16, color: ll.accent),
+          const SizedBox(width: Space.sm),
+          Flexible(
+            child: Text(text, style: context.text.labelMedium?.copyWith(color: ll.text)),
+          ),
         ],
       ),
     );

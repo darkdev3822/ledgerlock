@@ -128,6 +128,21 @@ class MainActivity : FlutterFragmentActivity() {
                     Reminders.scheduleAll(this, items)
                     result.success(true)
                 }
+                "ocr" -> {
+                    val bytes = call.argument<ByteArray>("bytes")
+                    if (bytes == null || bytes.size > maxBytes) {
+                        result.error("bad_input", "No image or too large", null)
+                        return@setMethodCallHandler
+                    }
+                    Thread {
+                        try {
+                            val text = Ocr.recognize(applicationContext, bytes)
+                            runOnUiThread { result.success(text) }
+                        } catch (e: Exception) {
+                            runOnUiThread { result.error("ocr_failed", e.message, null) }
+                        }
+                    }.start()
+                }
                 "cancelReminders" -> {
                     Reminders.cancelAll(this)
                     result.success(true)
