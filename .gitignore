@@ -47,3 +47,8 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 test/failures/
+
+# Android build output (must never be committed: contains local paths)
+/android/build/
+/android/.gradle/
+/android/app/build/
