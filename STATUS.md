@@ -133,7 +133,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   tools as 2x2 pressable tiles + Export card; staggered sections). taxes_full golden (2300 px tall).
 - Design pass 4: Vault (per-folder hue, icon tiles with counts, "sealed with AES-256" line, staggered); tab
   switch fade-and-rise keeping tab state (_TabFade in app_shell).
-  Next design passes: empty-state illustrations, onboarding. Device check: shadows render as hard ledges in goldens.
+- Design pass 5: in-house illustrations (lib/ui/design/illustrations.dart, CustomPainter, theme colours, own
+  dark paper tones, slow float off in tests/reduce-motion): Art.ledger (Home/Records empty), Art.receipt (Vault).
+  Next design pass: onboarding (SPEC §5: privacy promise -> password -> biometrics -> business type -> first
+  scan); business type needs a data decision (which categories to show). Device check: shadows render as hard ledges in goldens.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).

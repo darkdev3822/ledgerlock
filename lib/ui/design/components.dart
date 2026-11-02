@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import 'illustrations.dart';
 import 'theme.dart';
+
+export 'illustrations.dart' show Art;
 
 final _usd = NumberFormat.currency(locale: 'en_US', symbol: r'$');
 
@@ -222,8 +225,12 @@ class EmptyState extends StatelessWidget {
   final String body;
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// In-house illustration instead of the icon circle.
+  final Art? art;
   const EmptyState({
     super.key,
+    this.art,
     required this.icon,
     required this.title,
     required this.body,
@@ -238,19 +245,22 @@ class EmptyState extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(Space.xl, Space.xxl, Space.xl, Space.xl),
       child: Column(
         children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [ll.accentSoft, ll.accentSoft.withValues(alpha: 0.4)],
+          if (art != null)
+            Illustration(art!)
+          else
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [ll.accentSoft, ll.accentSoft.withValues(alpha: 0.4)],
+                ),
               ),
+              child: Icon(icon, size: 32, color: ll.accent),
             ),
-            child: Icon(icon, size: 32, color: ll.accent),
-          ),
           const SizedBox(height: Space.lg),
           Text(
             title,

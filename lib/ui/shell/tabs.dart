@@ -76,6 +76,7 @@ class HomeTab extends ConsumerWidget {
           ),
           if (entries.isEmpty)
             EmptyState(
+              art: Art.ledger,
               icon: Icons.add_card_rounded,
               title: 'Add your first income or expense',
               body: 'Three taps: amount, category, done. LedgerLock maps it to the right Schedule C line for you.',
@@ -603,6 +604,7 @@ class _RecordsTabState extends ConsumerState<RecordsTab> {
           Padding(
             padding: const EdgeInsets.only(top: Space.lg),
             child: EmptyState(
+              art: Art.ledger,
               icon: Icons.receipt_long_rounded,
               title: 'No records for $year yet',
               body: 'Everything you add lands here, grouped by month and searchable in an instant.',

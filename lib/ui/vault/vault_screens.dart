@@ -170,6 +170,7 @@ class VaultTab extends ConsumerWidget {
         ),
       if (items.isEmpty)
         EmptyState(
+          art: Art.receipt,
           icon: Icons.document_scanner_rounded,
           title: 'Scan your first receipt',
           body:
