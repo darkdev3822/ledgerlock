@@ -683,7 +683,7 @@ Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) asyn
   );
 }
 
-// ============================== Smart rules (Pro, M7) ==============================
+// ============================== Smart rules (M7) ==============================
 
 class RulesScreen extends ConsumerWidget {
   const RulesScreen({super.key});

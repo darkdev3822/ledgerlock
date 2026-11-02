@@ -273,6 +273,25 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SectionHeader('About'),
+          LLGroup(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.favorite_outline_rounded),
+                title: const Text('Free and open source'),
+                subtitle: const Text(
+                  'No paid tier, no ads, nothing locked. Licensed under GPL-3.0, so anyone can '
+                  'check what this app does.',
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: const Text('Open-source licences'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => showLicensePage(context: context, applicationName: 'LedgerLock'),
+              ),
+            ],
+          ),
         ],
       ),
     );

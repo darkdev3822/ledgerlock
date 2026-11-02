@@ -1,4 +1,4 @@
-// Bank and platform CSV import (SPEC §3, Pro). Pure Dart, no packages. The file is read into memory from the
+// Bank and platform CSV import (SPEC §3). Pure Dart, no packages. The file is read into memory from the
 // system picker and parsed here; nothing is copied to app storage. Column layouts are detected from header names
 // (no hard-coded per-bank formats that silently break) and the user's mapping is saved per header signature.
 import 'dart:convert';

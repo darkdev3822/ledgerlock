@@ -1,4 +1,4 @@
-// Tax packet PDF (SPEC §3, Pro): a summary of the user's own records to hand to a preparer. It is NOT a tax
+// Tax packet PDF (SPEC §3): a summary of the user's own records to hand to a preparer. It is NOT a tax
 // return and never says so (the draft return is a separate, owner-gated feature). Pure Dart via `pdf`.
 import 'dart:typed_data';
 

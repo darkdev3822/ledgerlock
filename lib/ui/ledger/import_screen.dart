@@ -1,4 +1,4 @@
-// CSV import (SPEC §3, Pro): pick a file -> check columns -> review rows -> import. Everything stays in memory
+// CSV import (SPEC §3): pick a file -> check columns -> review rows -> import. Everything stays in memory
 // until the user taps Import; the file itself is never copied into app storage.
 import 'dart:convert';
 

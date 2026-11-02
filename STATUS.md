@@ -157,9 +157,18 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   Depot, Oct 27). Found + fixed M4 bug: 16-bit RGBA PNGs stored as colour noise (normalize8). SECURITY T17.
   Size: OCR adds ~10.6 MB per device (engine 6.7 + model 3.9); universal APK 104 MB, Play split ~40 MB.
   Ideas: category guess from merchant words; tax field use; iOS OCR via Apple Vision (M10).
+- 2026-11-02 OWNER DECISION: free + open source (GPL-3.0), Android only. No paywall/purchases/trial/billing (Play
+  Billing merges network permissions). M7 closed. LICENSE (GPL-3.0), README rewritten, Settings > About (free +
+  Open-source licences page; fonts/Tesseract licences registered in main.dart). Licence audit: all 82 shipped
+  packages MIT/BSD/Apache-2.0; natives BSD/Apache; fonts OFL. Git author is darkdev@localhost (no personal email).
+  Owner to do before release: GitHub account + public repo (GPL needs source available), Play Console personal
+  account ($25) + 12 closed testers for 14 days, privacy policy page.
+  F-Droid blockers to solve in M10: SQLCipher prebuilt binary download at build time, Tesseract4Android via
+  JitPack (F-Droid builds from source; may need srclibs), Flutter build recipe.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
-- Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).
+- Next: M9 backups (encrypted export/restore; owner's data-loss priority), then M8 leftovers (app icon, a11y
+  pass, video walkthrough), M9.5 security assessment, M10 Android launch. Draft return still gated on lawyer.
   Tax-rules review window opens 2026-12-01: do the open items FIRST then.
   -> quarterly reminders + check-ins (§2.13), emulator check of all M6 screens (FAB black outline seen in goldens:
   likely test focus highlight, confirm on device). Review adds: home_office_rate + home_office_max_sqft (both years).

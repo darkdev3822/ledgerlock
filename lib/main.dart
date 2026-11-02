@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -13,6 +15,19 @@ import 'ui/onboarding_screens.dart';
 import 'ui/recovery_screens.dart';
 import 'ui/shell/app_shell.dart';
 
+/// Licences for bundled non-Dart components, shown with the package licences in Settings > Open-source licences.
+void _registerLicenses() {
+  LicenseRegistry.addLicense(() async* {
+    for (final (pkgs, file) in const [
+      (['Manrope font'], 'OFL-Manrope.txt'),
+      (['Fraunces font'], 'OFL-Fraunces.txt'),
+      (['Tesseract OCR', 'Tesseract4Android', 'tessdata_fast (eng)'], 'tesseract-apache-2.0.txt'),
+    ]) {
+      yield LicenseEntryWithLineBreaks(pkgs, await rootBundle.loadString('assets/licenses/$file'));
+    }
+  });
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final Directory dir = await getApplicationSupportDirectory();
@@ -22,6 +37,7 @@ Future<void> main() async {
     tempDir: await getTemporaryDirectory(),
   );
   await app.init();
+  _registerLicenses();
   runApp(ProviderScope(overrides: [appControllerProvider.overrideWith((ref) => app)], child: const LedgerLockApp()));
 }
 

@@ -6,7 +6,8 @@ Everything stays on your phone, locked behind your master password. No accounts,
 
 **Goal (owner):** become the go-to tax and record-keeping app on the stores. Huge quality-of-life features, search
 for anything, browse any tax year, store every document and receipt, and the sleekest UI in the category. A free
-version plus a PRO version for income.
+version plus a PRO version for income. **Changed 2026-11-02 (owner): free and open source (GPL-3.0), no paid tier,
+no ads, nothing locked.** Android only for now; iOS deferred.
 
 **Market reality:** QuickBooks Self-Employed, Keeper, Everlance, Hurdlr, Expensify and Stride exist. Almost all
 require an account and keep your data in their cloud. **Our wedge: 100% local and encrypted, no account, plus
@@ -30,7 +31,7 @@ better design and search.** Lead with privacy in every store listing and screens
     biometric attempts, and every 7 days.
   - **Auto-lock** after N minutes in the background (configurable, default 1 min). The app switcher shows a
     blurred privacy cover. Screenshots can optionally be blocked (FLAG_SECURE).
-  - **Panic / duress options (Pro):** a wipe after N wrong passwords (off by default, with a strong warning that recovery methods
+  - **Panic / duress options:** a wipe after N wrong passwords (off by default, with a strong warning that recovery methods
     cannot bring the data back after a wipe; only a backup can).
 - **Account recovery: several independent ways back in, all offline** (owner decision 2026-11-01: users must
   never lose their data). The random data key is wrapped separately by each method, so any one of them unlocks it
@@ -111,7 +112,7 @@ better design and search.** Lead with privacy in every store listing and screens
     Needs: local notifications (shared with quarterly reminders; vet plugin) and an "invoiced, not paid yet" status
     on income entries. Free tier.
 
-## 3. PRO features
+## 3. Advanced features (were "Pro"; all free since 2026-11-02)
 - **On-device OCR** (Google ML Kit text recognition / Apple Vision, both offline): scan a receipt and it fills in
   merchant, date, total and tax, and suggests a category. Line items are a stretch goal.
 - **Unlimited receipts and documents.**
@@ -130,7 +131,7 @@ better design and search.** Lead with privacy in every store listing and screens
   "guaranteed accurate", "max refund". Before shipping (owner): lawyer review of terms/disclaimers, LLC/E&O
   insurance decision, and the PDF form-filling library's license (many are commercial).
 - **1099 reconciliation:** enter the forms you receive and compare them with your recorded gross per platform.
-- **Mileage log:** manual entries, with optional GPS trip detection (on-device only; Pro). Rate per year
+- **Mileage log:** manual entries, with optional GPS trip detection (on-device only). Rate per year
   editable (never hard-coded).
 - **Home office calculator** (simplified and regular methods), and depreciation helper notes.
 - **Multiple businesses / profiles,** each with its own books.
@@ -143,13 +144,14 @@ better design and search.** Lead with privacy in every store listing and screens
 - **Year-over-year insights:** "software spend up 40% vs 2025".
 - **Custom categories, tags and colours; themes and app icons.**
 
-**Pricing** (to test): **$3.99/month, $24.99/year, or $59.99 lifetime.** Lifetime is popular with privacy-minded
-users and fits "no account". A 14-day free trial of Pro.
-Store fees: Apple Small Business Program and Google Play are 15% on the first $1M. Confirm current terms at signup.
+**Money (owner decision 2026-11-02):** free, no catch. No paywall, purchases, trial, ads or billing library (the
+Play Billing Library merges network permissions, which would break "no INTERNET"). Optional donations may be
+linked from the website and store listing only (in-app donation links need a Play policy check first). Source is
+public under **GPL-3.0** so anyone can verify the privacy claims; F-Droid distribution is a goal.
 
 ## 4. Search (a headline feature)
 - One search bar, reachable from everywhere (pull down on any list, or the search tab).
-- Searches **transactions, notes, tags, payees, document names, and receipt OCR text** (Pro) via SQLite **FTS5**
+- Searches **transactions, notes, tags, payees, document names, and receipt OCR text** via SQLite **FTS5**
   inside the encrypted database.
 - **Filter chips:** year, date range, type, category, platform, amount range, has or has no receipt,
   business-use %, tag, tax line.
@@ -157,7 +159,7 @@ Store fees: Apple Small Business Program and Google Play are 15% on the first $1
   `fiverr fees march`, `no receipt > 75`, `uncategorized last year`.
 - **Results grouped by type** (transactions / receipts / documents) with highlighted matches, and instant
   as-you-type results (<50 ms on 10k records).
-- Recent and saved searches (Pro).
+- Recent and saved searches.
 
 ## 5. UI and UX: the sleekest app in the category
 - **Design language:** calm and confident. Generous whitespace, one accent colour, soft depth (layered cards,
@@ -197,6 +199,9 @@ Store fees: Apple Small Business Program and Google Play are 15% on the first $1
   page (GitHub Pages) stating exactly that.
 - No "IRS-approved" or similar claims. Show IRS rates as user-editable values with a note to verify.
 - US-first (Schedule C, 1040-ES). Other countries later via rule files.
+- **Open source:** GPL-3.0 (LICENSE). Every shipped dependency is MIT/BSD/Apache-2.0 (checked 2026-11-02); fonts
+  SIL OFL; Tesseract + tessdata Apache-2.0. Third-party licences are shown in Settings > Open-source licences.
+  GPL means the source must be public when the app is distributed: publish the repo before (or with) release.
 
 ## 8. Milestones (each one a fresh, low-usage session)
 | # | Milestone | Done when |
@@ -208,8 +213,8 @@ Store fees: Apple Small Business Program and Google Play are 15% on the first $1
 | M4 | Receipts and vault: capture, crop, encrypt, attach, documents per year | Photos never appear unencrypted on disk |
 | M5 | Search: FTS5, chips, natural-language parser | <50 ms on 10k seeded records |
 | M6 | Taxes tab: quarterly reminders, payments, 1099s, mileage, home office, CSV export, "What changed for you" + free resources (§2.12), check-ins + invoiced status (§2.13) | Matches the desktop Tax Keeper on the same data |
-| M7 | Pro: OCR, rules, imports, PDF packet, paywall, purchases, trial | Purchases work in Play test mode |
+| M7 | Advanced: OCR, rules, imports, PDF packet (paywall/purchases/trial dropped: app is free) | Done 2026-11-02 |
 | M8 | Polish: motion, haptics, accessibility, onboarding, empty states, app icon | The owner's sign-off on video walkthroughs |
 | M9 | Backups and resilience: encrypted export/restore, migration tests | Restore on a fresh install works |
 | M9.5 | Security assessment: debugging, polish, AI-assisted white-hat attacks (APK reverse engineering, root/forensic file attacks, fuzzing every parser, brute-force and tamper scenarios, AI-driven attack agents); see SECURITY.md | No open High findings; every finding has a regression test |
-| M10 | Store launch: listing, screenshots, privacy policy, Play internal test → production; iOS via cloud CI | Live on Google Play; iOS TestFlight |
+| M10 | Launch (Android): public GPL-3.0 repo, listing, screenshots, privacy policy, Play closed test (personal account: 12+ testers for 14 days) → production; F-Droid submission | Live on Google Play; F-Droid submitted |
