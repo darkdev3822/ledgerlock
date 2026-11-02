@@ -253,7 +253,7 @@ class MainActivity : FlutterFragmentActivity() {
                     val src = call.argument<String>("path")
                     val name = call.argument<String>("name") ?: "ledgerlock.llbackup"
                     // Only files the app itself staged inside its own storage.
-                    if (src == null || !java.io.File(src).canonicalPath.startsWith(filesDir.parentFile!!.canonicalPath) || pendingBackupOut != null) {
+                    if (src == null || !java.io.File(src).canonicalPath.startsWith(filesDir.parentFile!!.canonicalPath + java.io.File.separator) || pendingBackupOut != null) {
                         result.error("bad_input", "No backup to save", null)
                         return@setMethodCallHandler
                     }
@@ -262,7 +262,7 @@ class MainActivity : FlutterFragmentActivity() {
                 }
                 "pickBackup" -> {
                     val dest = call.argument<String>("dest")
-                    if (dest == null || !java.io.File(dest).canonicalPath.startsWith(filesDir.parentFile!!.canonicalPath) || pendingBackupIn != null) {
+                    if (dest == null || !java.io.File(dest).canonicalPath.startsWith(filesDir.parentFile!!.canonicalPath + java.io.File.separator) || pendingBackupIn != null) {
                         result.error("bad_input", "Bad destination", null)
                         return@setMethodCallHandler
                     }

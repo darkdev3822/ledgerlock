@@ -362,8 +362,34 @@ class _ChangePasswordState extends ConsumerState<_ChangePassword> {
       onSubmit: (pw) async {
         await app.changePassword(_current!, pw);
         if (!context.mounted) return;
+        // Old backups still open with the old password (same data key; M9 review B4 / SECURITY A1).
+        if (app.lastBackup != null) {
+          await showDialog<void>(
+            context: context,
+            builder: (c) => AlertDialog(
+              title: const Text('Make a fresh backup'),
+              content: const Text(
+                'Your password is changed on this phone. Backups you made earlier still open with the OLD password. '
+                'Save a new backup now and delete the old backup files, especially if the old password may be known '
+                'to someone else.',
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(c), child: const Text('Later')),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(c);
+                    runBackup(context, app);
+                  },
+                  child: const Text('Back up now'),
+                ),
+              ],
+            ),
+          );
+        }
+        if (!context.mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Master password changed')));
+        messenger.showSnackBar(const SnackBar(content: Text('Master password changed')));
       },
     );
   }

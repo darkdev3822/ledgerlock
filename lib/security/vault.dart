@@ -186,8 +186,13 @@ class Vault {
 
   // ---------- status ----------
 
-  Future<Set<Slot>> enabledSlots() async =>
-      exists ? (await _readSlots()).keys.map(Slot.values.byName).toSet() : <Slot>{};
+  Future<Set<Slot>> enabledSlots() async => exists
+      ? {
+          for (final k in (await _readSlots()).keys)
+            for (final x in Slot.values)
+              if (x.name == k) x, // unknown names are ignored, never fatal (M9 review B1)
+        }
+      : <Slot>{};
 
   Future<List<String>> securityQuestions() async {
     final q = (await _readSlots())[Slot.questions.name] as Map<String, dynamic>?;

@@ -182,7 +182,13 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   Settings, password or recovery key, staging + verify-then-swap), Home BackupNudge (>30 days / never), Settings
   "Back up now" with last date, monthly backup reminder (id 9). Verified on emulator: backup -> pm clear ->
   restore: records, 7 receipts decrypt, nudge cleared. SECURITY T25. 652 tests.
-  Next: short AI attack round on backups, then M8 leftovers (app icon, a11y pass, walkthrough), M10.
+- M9 backup attack round (2026-11-02): 6 findings, fixed T26 (3 High data-loss: Back mid-verify, unauthenticated
+  header, no recovery of interrupted swap) + B5/B6; A1 reopened as Medium, mitigated with a fresh-backup prompt on
+  password change (rotation planned). test/fuzz/backup_fuzz_test.dart (14 tests). 665 tests.
+- Brand (2026-11-02): "locked ledger" icon (padlock whose body is an open ledger + gold coin keyhole), adaptive
+  vectors + themed monochrome + PNG fallbacks, Android 12 splash, in-app BrandMark, docs/brand/ (icon.svg, Play
+  512 icon, 1024x500 feature graphic). See docs/DESIGN.md "Brand". Not yet seen on a real launcher: check on device.
+  Next: M8 leftovers (a11y pass, walkthrough video for owner sign-off), M10 (owner: keystore, Play, testers).
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next: M9 backups (encrypted export/restore; owner's data-loss priority), then M8 leftovers (app icon, a11y

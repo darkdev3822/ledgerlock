@@ -91,6 +91,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
     final ll = context.ll;
     final b = _backup;
     return PopScope(
+      canPop: !_busy, // no leaving while every file is being checked (M9 review B2)
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) ref.read(appControllerProvider).cancelRestore();
       },

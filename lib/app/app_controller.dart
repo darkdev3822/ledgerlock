@@ -119,6 +119,10 @@ class AppController extends ChangeNotifier {
   Future<void> init() async {
     autoLock.attach();
     await wipeTemp();
+    // An app kill mid-restore leaves the old vault aside: put it back, or finish the new one (M9 review B3).
+    try {
+      await recoverInterruptedRestore(dataDir);
+    } catch (_) {}
     try {
       biometricsAvailable = await biometrics.isAvailable();
     } catch (_) {
@@ -204,8 +208,10 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void lock() {
+  /// Locks the vault. Async so callers that replace files (restore) can wait for the database to close.
+  Future<void> lock() async {
     final s = _session;
+    if (_restoring) _restoreAborted = true; // auto-lock during a restore: don't reopen unlocked afterwards (B5)
     if (s == null) {
       if (_recoveringKey != null) {
         releaseRecoveryKey();
@@ -225,8 +231,8 @@ class AppController extends ChangeNotifier {
     allowScreenshots = false;
     stage = Stage.locked;
     notifyListeners();
-    s.lock();
-    wipeTemp();
+    await s.lock();
+    await wipeTemp();
   }
 
   /// Deletes everything in the temp/cache dir (plugins may leave files there).
@@ -295,31 +301,40 @@ class AppController extends ChangeNotifier {
 
   /// Last step: [dk] came from the backup's own slots (password / recovery key / answers). Verifies every byte,
   /// then replaces the live vault (locking it first if open) and opens the restored one.
+  bool _restoring = false, _restoreAborted = false;
+  bool get restoring => _restoring;
+
   Future<void> finishRestore(BackupFile b, Uint8List dk) async {
-    DateTime? verifiedCreated;
+    _restoring = true;
+    _restoreAborted = false;
+    DateTime made;
+    var swapping = false;
     try {
       final staging = restoreStaging;
       for (final f in staging.existsSync() ? staging.listSync() : const <FileSystemEntity>[]) {
         if (!f.path.endsWith('vault.json')) f.deleteSync(recursive: true); // keep the staged header only
       }
-      verifiedCreated = await b.extractVerified(staging, dk);
-      if (_session != null) {
-        final old = _session!;
-        _session = null;
-        _documents = null;
-        await old.lock();
-      }
+      made = await b.extractVerified(staging, dk);
+      if (_restoreAborted) throw const BackupInvalid('locked during restore');
+      // Through the real lock path (stage, sensitive fields, snackbars), waiting for the DB to close (B5).
+      if (_session != null) await lock();
+      _restoreAborted = false; // our own lock above, not an auto-lock
+      swapping = true;
       await installStaged(staging, dataDir);
     } catch (_) {
       LedgerCrypto.zero(dk);
-      if (restoreStaging.existsSync()) restoreStaging.deleteSync(recursive: true);
+      // Once the swap has started, staging is not ours to delete: startup recovery resolves it (B3).
+      if (!swapping && restoreStaging.existsSync()) restoreStaging.deleteSync(recursive: true);
+      if (swapping) await recoverInterruptedRestore(dataDir);
+      _restoring = false;
       rethrow;
     } finally {
       if (_restoreIn.existsSync()) _restoreIn.deleteSync();
     }
+    _restoring = false;
     await openWithDataKey(dk);
     // The snapshot inside a backup predates its own "last backup" stamp: count the backup we just restored from.
-    final last = lastBackup, made = verifiedCreated;
+    final last = lastBackup;
     if (last == null || made.isAfter(last)) {
       lastBackup = made;
       await db?.setSetting('lastBackup', made.toIso8601String());
@@ -328,6 +343,7 @@ class AppController extends ChangeNotifier {
   }
 
   void cancelRestore() {
+    if (_restoring) return; // never pull staging out from under a running restore (M9 review B2)
     if (restoreStaging.existsSync()) restoreStaging.deleteSync(recursive: true);
     if (_restoreIn.existsSync()) _restoreIn.deleteSync();
   }

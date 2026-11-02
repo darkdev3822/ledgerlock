@@ -28,6 +28,16 @@ const _maxEntries = 200000;
 const _maxEntryBytes = 4 * 1024 * 1024 * 1024; // 4 GB (database or one file)
 final _entryName = RegExp(r'^(ledger\.db|files/[0-9a-f]{32}\.llf)$');
 
+/// JSON with object keys sorted at every level, for comparing two maps for equality.
+String _canonical(Object? v) {
+  Object? sort(Object? x) => x is Map
+      ? {for (final k in (x.keys.map((k) => '$k').toList()..sort())) k: sort(x[k])}
+      : x is List
+      ? [for (final e in x) sort(e)]
+      : x;
+  return jsonEncode(sort(v));
+}
+
 class BackupInvalid implements Exception {
   final String why;
   const BackupInvalid(this.why);
@@ -78,18 +88,25 @@ Future<({int files, int bytes})> createBackup({
     final manifest = <Map<String, Object>>[
       for (final (name, f) in entries) {'name': name, 'size': f.lengthSync(), 'sha256': await _sha256File(f)},
     ];
+    // Vault header without the device-bound fingerprint slot. Sealed INSIDE the manifest too, so restore installs
+    // only an authenticated header (M9 review B1: the plain header copy is just for unlocking).
+    final vaultJson = jsonDecode(await File('${dataDir.path}/vault.json').readAsString()) as Map<String, dynamic>;
+    final slots = Map<String, dynamic>.from((vaultJson['slots'] as Map?) ?? const {})..remove(Slot.biometric.name);
     if (dataKey.every((b) => b == 0)) throw StateError('vault is locked');
     final key = await _backupKey(dataKey);
     final sealed = await LedgerCrypto.encrypt(
-      utf8.encode(jsonEncode({'created': (now ?? DateTime.now()).toIso8601String(), 'entries': manifest})),
+      utf8.encode(
+        jsonEncode({
+          'created': (now ?? DateTime.now()).toIso8601String(),
+          'entries': manifest,
+          'vault': {'v': 2, 'slots': slots},
+        }),
+      ),
       key,
       aad: utf8.encode(_manifestAad),
     );
     LedgerCrypto.zero(key);
 
-    // Vault header without the device-bound fingerprint slot.
-    final vaultJson = jsonDecode(await File('${dataDir.path}/vault.json').readAsString()) as Map<String, dynamic>;
-    final slots = Map<String, dynamic>.from((vaultJson['slots'] as Map?) ?? const {})..remove(Slot.biometric.name);
     final header = utf8.encode(
       jsonEncode({
         'v': backupVersion,
@@ -159,6 +176,8 @@ class BackupFile {
       final j = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
       final vault = Map<String, dynamic>.from(j['vault'] as Map);
       if (vault['v'] != 2 || vault['slots'] is! Map) throw const BackupInvalid('damaged header');
+      final known = {for (final x in Slot.values) x.name};
+      if (!(vault['slots'] as Map).keys.every(known.contains)) throw const BackupInvalid('damaged header');
       return BackupFile._(
         file,
         DateTime.tryParse(j['created'] as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
@@ -189,11 +208,15 @@ class BackupFile {
   Future<DateTime> extractVerified(Directory staging, Uint8List dataKey) async {
     final key = await _backupKey(dataKey);
     List<dynamic> expected;
+    DateTime made;
+    Map<String, dynamic> sealedVault;
     try {
       final m = jsonDecode(
         utf8.decode(await LedgerCrypto.decrypt(sealedManifest, key, aad: utf8.encode(_manifestAad))),
       );
       expected = (m as Map)['entries'] as List;
+      made = DateTime.parse(m['created'] as String); // authenticated, unlike the header's display copy
+      sealedVault = Map<String, dynamic>.from(m['vault'] as Map);
     } catch (_) {
       throw const BackupInvalid('this backup does not match that secret, or was changed');
     } finally {
@@ -245,24 +268,43 @@ class BackupFile {
       await raf.close();
     }
     if (seen.length != want.length) throw const BackupInvalid('missing entries');
-    return created;
+    // Install only the authenticated header (replaces the unauthenticated copy used for unlocking).
+    final known = {for (final x in Slot.values) x.name};
+    final ss = sealedVault['slots'];
+    if (sealedVault['v'] != 2 || ss is! Map || !ss.keys.every(known.contains)) {
+      throw const BackupInvalid('damaged header');
+    }
+    // The plain header copy (used to unlock) must match the sealed one: any difference means the file was edited.
+    if (_canonical(vault) != _canonical(sealedVault)) throw const BackupInvalid('header changed');
+    await File('${staging.path}/vault.json').writeAsString(jsonEncode(sealedVault), flush: true);
+    return made;
   }
 }
 
 /// Replaces the live vault in [dataDir] with the verified one in [staging]. Only vault.json, ledger.db and files/
 /// are swapped; the old ones are kept aside until the new ones are in place, then deleted.
 Future<void> installStaged(Directory staging, Directory dataDir) async {
+  // Never touch live data unless the staged vault is complete (M9 review B2: an emptied staging dir used to
+  // replace, and then delete, the live vault).
+  if (!File('${staging.path}/vault.json').existsSync() || !File('${staging.path}/ledger.db').existsSync()) {
+    throw const BackupInvalid('incomplete restore');
+  }
+  // A previous swap that was interrupted must be resolved first, never deleted (B3).
+  await recoverInterruptedRestore(dataDir);
   final old = Directory('${dataDir.path}/.restore-old');
-  if (old.existsSync()) old.deleteSync(recursive: true);
   old.createSync(recursive: true);
-  final names = ['vault.json', 'ledger.db', 'files'];
-  for (final n in names) {
+  for (final n in const ['vault.json', 'ledger.db', 'files']) {
     final p = '${dataDir.path}/$n';
-    if (FileSystemEntity.typeSync(p) != FileSystemEntityType.notFound) {
-      await FileSystemEntity.isDirectory(p) ? Directory(p).rename('${old.path}/$n') : File(p).rename('${old.path}/$n');
+    switch (FileSystemEntity.typeSync(p)) {
+      case FileSystemEntityType.directory:
+        await Directory(p).rename('${old.path}/$n');
+      case FileSystemEntityType.file:
+        await File(p).rename('${old.path}/$n');
+      default:
     }
   }
-  for (final n in ['ledger.db', 'files', 'vault.json']) {
+  // vault.json goes in LAST: its presence means the new vault is complete (recoverInterruptedRestore relies on it).
+  for (final n in const ['ledger.db', 'files', 'vault.json']) {
     final p = '${staging.path}/$n';
     if (FileSystemEntity.isDirectorySync(p)) {
       await Directory(p).rename('${dataDir.path}/$n');
@@ -272,11 +314,39 @@ Future<void> installStaged(Directory staging, Directory dataDir) async {
       Directory('${dataDir.path}/files').createSync();
     }
   }
-  // Fresh attempt counter for the restored vault; drop the staging guard file.
-  for (final f in ['attempts.json']) {
-    final p = File('${dataDir.path}/$f');
-    if (p.existsSync()) p.deleteSync();
-  }
+  final attempts = File('${dataDir.path}/attempts.json'); // fresh attempt counter for the restored vault
+  if (attempts.existsSync()) attempts.deleteSync();
   old.deleteSync(recursive: true);
   if (staging.existsSync()) staging.deleteSync(recursive: true);
+}
+
+/// Called at startup and before any restore. If a swap was interrupted (app killed), finish it or roll it back:
+/// a live vault.json means the new vault was fully installed (it goes in last); otherwise the old vault is put
+/// back. The user's data is never deleted here.
+Future<void> recoverInterruptedRestore(Directory dataDir) async {
+  final old = Directory('${dataDir.path}/.restore-old');
+  if (!old.existsSync()) return;
+  if (File('${dataDir.path}/vault.json').existsSync()) {
+    old.deleteSync(recursive: true); // new vault complete; the old copy is the leftover
+    return;
+  }
+  for (final n in const ['ledger.db', 'files', 'vault.json']) {
+    final from = '${old.path}/$n', to = '${dataDir.path}/$n';
+    final t = FileSystemEntity.typeSync(from);
+    if (t == FileSystemEntityType.notFound) continue;
+    switch (FileSystemEntity.typeSync(to)) {
+      // Remove the half-installed new copy first.
+      case FileSystemEntityType.directory:
+        Directory(to).deleteSync(recursive: true);
+      case FileSystemEntityType.file:
+        File(to).deleteSync();
+      default:
+    }
+    if (t == FileSystemEntityType.directory) {
+      await Directory(from).rename(to);
+    } else {
+      await File(from).rename(to);
+    }
+  }
+  old.deleteSync(recursive: true);
 }
