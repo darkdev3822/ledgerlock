@@ -193,7 +193,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   48 dp; Close labels on entry/capture. Contrast checked EXACTLY in a11y_palette_test (pixel sampler misreads 1x
   anti-aliasing): light accent #086A55, warning #85550B, muted #5E5E54, expense #A63D2B so every text colour is
   >= 4.5:1 on all surfaces and its own 12% pill. 667 tests.
-  Next: walkthrough video for owner sign-off, then M10 (owner: keystore, Play, testers).
+- Walkthrough (2026-11-02): ~/Videos/LedgerLock-walkthrough.mp4 (100 s, emulator, demo vault from
+  scratchpad demo-2026.csv). Found + fixed while watching: imported income defaulted to "Other income" (Schedule C
+  line 6) -> now the business type's line-1 category; review category change applies to every row from that
+  payee; choices saved as learned smart rules for the next import.
+  Next: owner sign-off on the video, then M10 (owner: keystore, Play account, 12 testers, GitHub repo).
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next: M9 backups (encrypted export/restore; owner's data-loss priority), then M8 leftovers (app icon, a11y

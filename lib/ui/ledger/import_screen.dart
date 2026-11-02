@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/app_controller.dart';
+import '../../data/business_types.dart';
 import '../../data/csv_import.dart';
 import '../../data/database.dart';
 import '../../platform/document_picker.dart';
@@ -37,6 +38,9 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   List<int> _skipped = const [];
   List<_Pick>? _review;
   final _source = TextEditingController();
+
+  /// Payee -> category the user chose in review; saved as learned smart rules on import.
+  final Map<(bool, String), String> _taught = {};
   String? _error;
   bool _busy = false;
 
@@ -101,12 +105,18 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     final existing = dates.isEmpty ? <LedgerEntry>[] : await db.entriesBetween(isoDay(dates.first), isoDay(dates.last));
     final res = buildImport(data, _map, existing: existing);
     final rules = await db.allRules();
+    // Income with no rule or history goes to the main income line (Schedule C line 1) for the user's business
+    // type, not "Other income" (line 6): client payments are gross receipts (walkthrough review).
+    final app = ref.read(appControllerProvider);
+    final taxRules = await ref.read(taxRulesProvider(app.selectedYear).future);
+    final incomeCats = orderCategories(taxRules.incomeCategories, app.businessTypes);
+    final defaultIncome = incomeCats.firstWhere((c) => c.line == '1', orElse: () => incomeCats.first).id;
     final picks = <_Pick>[];
     for (final r in res.rows) {
       final rule = matchRule(rules, isIncome: r.isIncome, party: r.payee);
       final cat = rule?.category ?? await db.suggestCategory(isIncome: r.isIncome, party: r.payee, anyPayee: false);
       picks.add(
-        _Pick(r, cat ?? (r.isIncome ? 'other_income' : 'other_expense'), r.isIncome ? 100 : (rule?.businessPct ?? 100)),
+        _Pick(r, cat ?? (r.isIncome ? defaultIncome : 'other_expense'), r.isIncome ? 100 : (rule?.businessPct ?? 100)),
       );
     }
     if (!mounted) return;
@@ -139,6 +149,14 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           ),
       ]);
       await db.setSetting(headerSignature(rows.first), jsonEncode(_map.toJson()));
+      // Remember the user's sorting so the next import from the same bank sorts itself.
+      final existing = await db.allRules();
+      for (final MapEntry(key: (income, payee), value: cat) in _taught.entries) {
+        if (existing.any((r) => r.isIncome == income && r.contains == payee)) continue;
+        await db.addRule(
+          CategoryRulesCompanion.insert(isIncome: income, contains: payee, category: cat, learned: const Value(true)),
+        );
+      }
       if (!mounted) return;
       final messenger = ScaffoldMessenger.maybeOf(context);
       Navigator.of(context).pop();
@@ -297,7 +315,22 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           ],
         ),
       );
-      if (v != null) setState(() => p.category = v);
+      if (v == null) return;
+      // Same payee, same kind: change them all at once (sorting 40 rows from 4 clients took 40 taps).
+      final key = p.row.payee.trim().toLowerCase();
+      if (key.length >= 2) _taught[(p.row.isIncome, key)] = v;
+      final same = picks.where((x) => x.row.isIncome == p.row.isIncome && x.row.payee.trim().toLowerCase() == key);
+      setState(() {
+        for (final x in same) {
+          x.category = v;
+        }
+      });
+      final n = same.length;
+      if (n > 1 && context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text('Changed all $n rows from ${p.row.payee}.')));
+      }
     }
 
     return Column(
