@@ -1026,7 +1026,8 @@ class _QuarterTimeline extends StatelessWidget {
     ];
     final missedLine = missed.isEmpty
         ? ''
-        : ' ${missed.join(' and ')} ${missed.length == 1 ? 'has' : 'have'} no payment logged.';
+        : ' ${missed.length == 1 ? missed.first : '${missed.sublist(0, missed.length - 1).join(', ')} and ${missed.last}'} '
+              '${missed.length == 1 ? 'has' : 'have'} no payment logged.';
     final status = next == null
         ? 'All ${rules.year} quarters are behind you.$missedLine'
         : '${next.quarter} is due ${DateFormat.MMMd().format(next.due)}, in $days day${days == 1 ? '' : 's'}'

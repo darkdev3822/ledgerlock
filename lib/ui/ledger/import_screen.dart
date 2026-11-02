@@ -65,9 +65,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         setState(() => _error = 'That file has no rows to import.');
         return;
       }
-      final dot = f.name.lastIndexOf('.');
-      _source.text = (dot > 0 ? f.name.substring(0, dot) : f.name).replaceAll(RegExp(r'[_-]+'), ' ').trim();
-      if (_source.text.length > 40) _source.text = _source.text.substring(0, 40);
       await _load(rows);
     } on ImportTooLarge catch (e) {
       setState(() => _error = '$e. Split it into smaller files (one year at a time works well).');
@@ -107,7 +104,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     final picks = <_Pick>[];
     for (final r in res.rows) {
       final rule = matchRule(rules, isIncome: r.isIncome, party: r.payee);
-      final cat = rule?.category ?? await db.suggestCategory(isIncome: r.isIncome, party: r.payee);
+      final cat = rule?.category ?? await db.suggestCategory(isIncome: r.isIncome, party: r.payee, anyPayee: false);
       picks.add(
         _Pick(r, cat ?? (r.isIncome ? 'other_income' : 'other_expense'), r.isIncome ? 100 : (rule?.businessPct ?? 100)),
       );
@@ -143,9 +140,9 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       ]);
       await db.setSetting(headerSignature(rows.first), jsonEncode(_map.toJson()));
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Imported ${chosen.length} record${chosen.length == 1 ? '' : 's'}.')));
+      final messenger = ScaffoldMessenger.maybeOf(context);
       Navigator.of(context).pop();
+      showSuccess(messenger, 'Imported ${chosen.length} record${chosen.length == 1 ? '' : 's'}. Find them in Records.');
     } catch (_) {
       if (mounted) setState(() => _error = 'Import failed. Nothing was added.');
     } finally {
@@ -241,8 +238,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           enableIMEPersonalizedLearning: false,
           maxLength: 40,
           decoration: const InputDecoration(
-            labelText: 'Source (saved as the platform)',
-            helperText: 'e.g. PayPal or Etsy. Used to match your 1099s.',
+            labelText: 'Platform (optional)',
+            helperText: 'Only for platform exports, e.g. PayPal or Etsy. Used to match your 1099s.',
           ),
         ),
         if (_map.fee >= 0)
@@ -311,7 +308,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               Text(
                 [
                   '${picks.length} rows ready.',
-                  if (dups > 0) '$dups look like records you already have and are unticked.',
+                  if (dups > 0)
+                    dups == 1
+                        ? '1 looks like a record you already have and is unticked.'
+                        : '$dups look like records you already have and are unticked.',
                   if (_skipped.isNotEmpty)
                     '${_skipped.length} skipped (no readable date or amount): line${_skipped.length == 1 ? '' : 's'} '
                         '${_skipped.take(6).join(', ')}${_skipped.length > 6 ? '…' : ''}.',

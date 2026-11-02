@@ -257,7 +257,9 @@ class AppDatabase extends _$AppDatabase {
   Future<void> restoreEntry(LedgerEntry e) => into(ledgerEntries).insert(e, mode: InsertMode.insertOrReplace);
 
   /// Smart default (SPEC §5): the category last used for this payee, else for this kind.
-  Future<String?> suggestCategory({required bool isIncome, String party = ''}) async {
+  /// [anyPayee]: fall back to the last category used for this kind when the payee is new (manual entry). Imports
+  /// pass false so unknown payees land in "Other" instead of a misleading guess.
+  Future<String?> suggestCategory({required bool isIncome, String party = '', bool anyPayee = true}) async {
     Future<String?> last(Expression<bool> Function($LedgerEntriesTable) where) async =>
         (await (select(ledgerEntries)
                   ..where(where)
@@ -271,7 +273,7 @@ class AppDatabase extends _$AppDatabase {
     return (p.isEmpty
             ? null
             : await last((e) => e.isIncome.equals(isIncome) & e.party.lower().equals(p.toLowerCase()))) ??
-        await last((e) => e.isIncome.equals(isIncome));
+        (anyPayee ? await last((e) => e.isIncome.equals(isIncome)) : null);
   }
 
   /// Distinct recent payees/platforms for autocomplete.

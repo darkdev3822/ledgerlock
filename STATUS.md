@@ -102,7 +102,7 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   +RECEIVE_BOOT_COMPLETED, still no INTERNET.
 - M6 code-complete (2026-11-01, later): Emergency Kit PDF done (`pdf` 3.13.1 vetted; kit has blank boxes, never the
   key: SECURITY T13; save channel takes a mime). Mono notification icon (drawable/ic_stat_ledgerlock). 130 tests.
-  **Device check NOT done (needs owner):** auto mode refused typing the
+  **Device check DONE 2026-11-01** (owner authorised PIN entry; see below). Was: auto mode refused typing the
   emulator screen PIN / app password (credential entry). Owner: unlock the emulator + app (or tell Claude the test
   password / allow it), then verify: Export CSV save picker writes a file; Settings > Reminders asks for notification
   permission and `adb shell dumpsys alarm | grep ledgerlock` shows alarms; check-in card; FAB outline (goldens show a
@@ -137,6 +137,14 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   dark paper tones, slow float off in tests/reduce-motion): Art.ledger (Home/Records empty), Art.receipt (Vault).
   Next design pass: onboarding (SPEC §5: privacy promise -> password -> biometrics -> business type -> first
   scan); business type needs a data decision (which categories to show). Device check: shadows render as hard ledges in goldens.
+- Device check (2026-11-01, emulator): PASS for CSV export via picker (file + BOM correct), tax packet PDF
+  save, Emergency Kit save (pdftotext: no key groups in file), notification permission prompt, quarterly + weekly
+  check-in alarms in dumpsys, triggered reminder shows padlock icon + generic text, check-in card appears only with
+  a question and clears with done toast, success toasts, CSV import (columns guessed, dup unticked, bad line
+  skipped), light + dark themes, soft shadows (golden ledges/black rings are test-renderer only).
+  Fixed from it: import Platform field now blank by default (file names are junk), unknown import payees -> Other
+  (not last-used; database_test), dup sentence grammar, missed-quarter list grammar, import uses done toast,
+  check-in row MergeSemantics.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).
@@ -166,6 +174,8 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - android/settings.gradle.kts has the foojay toolchain resolver (Gradle fetches JDK 17 for biometric_storage at
   build time). android/build.gradle.kts raises old plugins' compileSdk to 36 via finalizeDsl (AGP 9 locks it early).
 - MainActivity is a FlutterFragmentActivity (biometric_storage needs it).
+- Emulator test vault password: LedgerTest2026 (throwaway emulator data only). uiautomator wraps labels that
+  contain double quotes in single quotes: grep both. Permission dialog: "Allow" also matches the message text.
 - Emulator has screen PIN 1234 and a fake fingerprint: `adb emu finger touch 1`. BiometricPrompt screenshots
   come out black (Android secures them). `adb input text` needs %s for spaces; escape ? in grep patterns.
 - UI-driving helpers used this session: dump/tap/field/shot functions over `uiautomator dump` (rewrite as needed).

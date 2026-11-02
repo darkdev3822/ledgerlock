@@ -93,6 +93,11 @@ void main() {
     expect(await db.suggestCategory(isIncome: false, party: 'cafe uno'), 'meals');
     expect(await db.suggestCategory(isIncome: false, party: 'Someone new'), 'software');
     expect(await db.suggestCategory(isIncome: true), 'services');
+    expect(
+      await db.suggestCategory(isIncome: false, party: 'Someone new', anyPayee: false),
+      isNull,
+      reason: 'imports: unknown payee is not given the last-used category (found in device check)',
+    );
     expect(await db.recentValues(db.ledgerEntries.party), containsAll(['Cafe Uno', 'Adobe', 'Acme']));
     await db.close();
   });

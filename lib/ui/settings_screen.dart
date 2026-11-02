@@ -175,24 +175,27 @@ class SettingsScreen extends ConsumerWidget {
                   if (!await app.setQuarterlyReminders(v) && context.mounted) _notifDenied(context);
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.fact_check_outlined),
-                title: const Text('"Keep me in check" check-ins'),
-                subtitle: const Text('A few quick questions to catch anything you forgot'),
-                trailing: DropdownButton<String>(
-                  value: app.checkInFrequency,
-                  underline: const SizedBox.shrink(),
-                  items: const [
-                    DropdownMenuItem(value: 'off', child: Text('Off')),
-                    DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                    DropdownMenuItem(value: 'biweekly', child: Text('Every 2 weeks')),
-                    DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
-                  ],
-                  onChanged: (v) async {
-                    if (v != null && !await app.setCheckInFrequency(v) && context.mounted) {
-                      _notifDenied(context);
-                    }
-                  },
+              // MergeSemantics: TalkBack reads the row as one button including the current value ("Weekly").
+              MergeSemantics(
+                child: ListTile(
+                  leading: const Icon(Icons.fact_check_outlined),
+                  title: const Text('"Keep me in check" check-ins'),
+                  subtitle: const Text('A few quick questions to catch anything you forgot'),
+                  trailing: DropdownButton<String>(
+                    value: app.checkInFrequency,
+                    underline: const SizedBox.shrink(),
+                    items: const [
+                      DropdownMenuItem(value: 'off', child: Text('Off')),
+                      DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                      DropdownMenuItem(value: 'biweekly', child: Text('Every 2 weeks')),
+                      DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                    ],
+                    onChanged: (v) async {
+                      if (v != null && !await app.setCheckInFrequency(v) && context.mounted) {
+                        _notifDenied(context);
+                      }
+                    },
+                  ),
                 ),
               ),
             ],
