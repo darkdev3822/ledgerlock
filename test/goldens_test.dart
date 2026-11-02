@@ -24,6 +24,7 @@ import 'package:ledgerlock/ui/settings_screen.dart';
 import 'package:ledgerlock/tax/checkin.dart';
 import 'package:ledgerlock/ui/taxes/checkin_screen.dart';
 import 'package:ledgerlock/ui/taxes/guidance_section.dart';
+import 'package:ledgerlock/ui/ledger/import_screen.dart';
 import 'package:ledgerlock/ui/taxes/tools.dart';
 import 'package:ledgerlock/ui/shell/app_shell.dart';
 
@@ -225,6 +226,22 @@ void main() {
             ]),
           ),
         ],
+      ),
+    );
+    testWidgets(
+      'import_map ${b.name}',
+      (t) => shoot(
+        t,
+        'import_map',
+        const ImportScreen(
+          initialRows: [
+            ['Posting Date', 'Description', 'Amount', 'Type', 'Balance'],
+            ['01/05/2026', 'ADOBE *CREATIVE CLD', '-19.99', 'Debit', '1,980.01'],
+            ['01/06/2026', 'STRIPE TRANSFER', '500.00', 'Credit', '2,480.01'],
+            ['01/08/2026', 'STAPLES 0042', '-36.50', 'Debit', '2,443.51'],
+          ],
+        ),
+        b,
       ),
     );
     testWidgets(

@@ -6,6 +6,7 @@ import '../app/app_controller.dart';
 import '../security/vault.dart';
 import 'design/components.dart';
 import 'design/theme.dart';
+import 'ledger/import_screen.dart';
 import 'lock_screens.dart';
 import 'recovery_screens.dart';
 import 'taxes/tools.dart';
@@ -152,6 +153,13 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: const Text('Pick categories automatically by payee'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RulesScreen())),
+              ),
+              ListTile(
+                leading: const Icon(Icons.upload_file_rounded),
+                title: const Text('Import from a CSV file'),
+                subtitle: const Text('Bank, PayPal, Etsy and other exports'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ImportScreen())),
               ),
             ],
           ),

@@ -321,6 +321,18 @@ class AppDatabase extends _$AppDatabase {
   Future<int> addForm1099(Forms1099Companion f) => into(forms1099).insert(f);
   Future<void> deleteForm1099(int id) => (delete(forms1099)..where((f) => f.id.equals(id))).go();
 
+  // ---------- M7: import ----------
+  /// Entries between two ISO dates (inclusive), for duplicate checks.
+  Future<List<LedgerEntry>> entriesBetween(String from, String to) =>
+      (select(ledgerEntries)..where((e) => e.date.isBetweenValues(from, to))).get();
+
+  /// All-or-nothing insert of imported rows.
+  Future<void> addEntries(List<LedgerEntriesCompanion> rows) => transaction(() async {
+    for (final r in rows) {
+      await into(ledgerEntries).insert(r);
+    }
+  });
+
   // ---------- M7: smart rules ----------
   Future<List<CategoryRule>> allRules() => select(categoryRules).get();
   Stream<List<CategoryRule>> watchRules() => (select(

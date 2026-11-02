@@ -111,6 +111,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - M7 part 1 (2026-11-01): smart rules (schema v7 category_rules; longest substring match, manual > learned;
   learns only from corrections; business % per rule; Settings > Records > Smart rules). SECURITY T14. 134 tests.
   Not Pro-gated yet (paywall needs owner's Play account).
+- M7 part 2: CSV import (lib/data/csv_import.dart + ui/ledger/import_screen.dart; Settings > Records). Columns
+  guessed from header names (no hard-coded bank formats), mapping saved per header signature, US dates, sign or
+  debit/credit, fees, duplicates unticked, rules/last-used categories, review queue, one transaction. SECURITY T15.
+  142 tests. Device check: import a real bank/PayPal CSV.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).
