@@ -1,5 +1,10 @@
 # LedgerLock: threat model and security log
 
+## Reporting a vulnerability
+Please report security issues **privately** through GitHub: the repository's **Security** tab, then **Report a
+vulnerability**. Don't open a public issue for security bugs. Reports are fixed with a regression test and logged
+in the findings table below.
+
 Updated every milestone. The final security phase (SPEC §8, M9.5) attacks everything listed here.
 
 ## Assets and attackers

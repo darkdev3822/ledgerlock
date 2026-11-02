@@ -14,7 +14,8 @@ Every step should cost as little as possible.
 6. **Security every milestone:** run the checklist in `SECURITY.md`, fix findings in the same milestone, and log
    them there with a regression test.
 7. **End of every session:** update `STATUS.md` (done / next / gotchas) in a few lines, and commit to git with a
-   clear message.
+   clear message, then `git push` (origin = public GitHub repo: never push other branches, never commit anything
+   that identifies the owner: real name, email, home paths, personal details).
 8. Show the owner progress with screenshots (`setsid xdg-open <png> &`) and a short summary.
 9. **Tax-rules review (docs/ANNUAL_RULES_REVIEW.md) comes FIRST when due:** Dec 1 - Jan 31, after any edit to
    `assets/tax_rules/`, or before a release. Before any milestone work, tell the owner plainly that it is due and

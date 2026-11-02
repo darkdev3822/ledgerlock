@@ -197,7 +197,14 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   scratchpad demo-2026.csv). Found + fixed while watching: imported income defaulted to "Other income" (Schedule C
   line 6) -> now the business type's line-1 category; review category change applies to every row from that
   payee; choices saved as learned smart rules for the next import.
-  Next: owner sign-off on the video, then M10 (owner: keystore, Play account, 12 testers, GitHub repo).
+- Owner signed off the walkthrough (M8 done). Stayed free + open source (considered $2.99 paid: Play would publish
+  the owner's address). Launch path: GitHub + F-Droid first, recruit Play closed testers from early users.
+- PUBLIC REPO (2026-11-02): https://github.com/darkdev3822/ledgerlock (main, GPL-3.0, topics, private
+  vulnerability reporting on). Before publishing: purged android/build (local paths) and the "owner's Claude plan"
+  line from all history; only author is "Dark Dev <darkdev@localhost>". Local branch backup-before-publish holds
+  the old history: NEVER push it (no --all/--mirror). Never commit anything identifying the owner.
+  Next: F-Droid build compatibility (SQLCipher prebuilt download, Tesseract4Android via JitPack), F-Droid
+  metadata + GitHub release APK, privacy policy page (GitHub Pages), launch post; then Play (owner).
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next: M9 backups (encrypted export/restore; owner's data-loss priority), then M8 leftovers (app icon, a11y
