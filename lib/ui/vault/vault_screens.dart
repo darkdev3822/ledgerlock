@@ -76,66 +76,122 @@ class VaultTab extends ConsumerWidget {
       counts[a.folder] = (counts[a.folder] ?? 0) + 1;
     }
     final unmatched = items.where((a) => a.folder == 'receipt' && a.entryId == null).toList();
+    final ll = context.ll;
+    // Folder identity: one soft hue each, so folders are recognised, not read.
+    Color tint(String f) => switch (f) {
+      'tax_form' => ll.accent,
+      'receipt' => ll.warning,
+      'prior_return' =>
+        Theme.of(context).brightness == Brightness.dark ? const Color(0xFF86AEE0) : const Color(0xFF3F6FAA),
+      'letter' => ll.expense,
+      _ => ll.muted,
+    };
+    final sections = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(4, 0, 4, Space.xs),
+        child: Row(
+          children: [
+            Icon(Icons.verified_user_outlined, size: 16, color: ll.accent),
+            const SizedBox(width: Space.sm),
+            Expanded(
+              child: Text(
+                items.isEmpty
+                    ? 'Sealed with AES-256, on this phone only.'
+                    : '${items.length} file${items.length == 1 ? '' : 's'}, sealed with AES-256 on this phone.',
+                style: context.text.bodySmall,
+              ),
+            ),
+          ],
+        ),
+      ),
+      GridView.count(
+        crossAxisCount: 2,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        mainAxisSpacing: Space.md,
+        crossAxisSpacing: Space.md,
+        childAspectRatio: 1.45,
+        children: [
+          for (final f in vaultFolders.entries.where((f) => f.key != 'other' || (counts['other'] ?? 0) > 0))
+            LLCard(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => FolderScreen(folder: f.key, year: year),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: tint(f.key).withValues(alpha: 0.13),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(_folderIcon(f.key), size: 20, color: tint(f.key)),
+                      ),
+                      const Spacer(),
+                      if ((counts[f.key] ?? 0) > 0)
+                        Text(
+                          '${counts[f.key]}',
+                          style: context.text.titleLarge?.copyWith(fontFeatures: tabular, color: ll.text),
+                        ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(f.value, style: context.text.titleSmall),
+                  Text(
+                    (counts[f.key] ?? 0) == 0 ? 'Empty' : '${counts[f.key]} ${counts[f.key] == 1 ? 'file' : 'files'}',
+                    style: context.text.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+      if (unmatched.isNotEmpty)
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SectionHeader('Receipts to match', trailing: Pill('${unmatched.length}', color: ll.warning)),
+            SizedBox(
+              height: 120,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: unmatched.length,
+                separatorBuilder: (_, _) => const SizedBox(width: Space.md),
+                itemBuilder: (_, i) => _Tile(unmatched[i], width: 92),
+              ),
+            ),
+          ],
+        ),
+      if (items.isEmpty)
+        EmptyState(
+          icon: Icons.document_scanner_rounded,
+          title: 'Scan your first receipt',
+          body:
+              'Tap the scan button below. Every photo and document is encrypted on this phone and never '
+              'shows up in your gallery.',
+          actionLabel: 'Import a W-2 or 1099',
+          onAction: () => importInto(context, ref, folder: 'tax_form', year: year),
+        )
+      else
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [const SectionHeader('Recently added'), _Grid(items.take(9).toList())],
+        ),
+    ];
     return ListView(
       padding: const EdgeInsets.fromLTRB(Space.gutter, Space.sm, Space.gutter, Space.xxl),
       children: [
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: Space.md,
-          crossAxisSpacing: Space.md,
-          childAspectRatio: 1.55,
-          children: [
-            for (final f in vaultFolders.entries.where((f) => f.key != 'other' || (counts['other'] ?? 0) > 0))
-              LLCard(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => FolderScreen(folder: f.key, year: year),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(_folderIcon(f.key), color: context.ll.accent),
-                    const Spacer(),
-                    Text(f.value, style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                    Text(
-                      '${counts[f.key] ?? 0} ${counts[f.key] == 1 ? 'file' : 'files'}',
-                      style: context.text.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-        if (unmatched.isNotEmpty) ...[
-          SectionHeader('Receipts to match', trailing: Pill('${unmatched.length}', color: context.ll.warning)),
-          SizedBox(
-            height: 120,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: unmatched.length,
-              separatorBuilder: (_, _) => const SizedBox(width: Space.md),
-              itemBuilder: (_, i) => _Tile(unmatched[i], width: 92),
-            ),
+        for (final (i, w) in sections.indexed)
+          Padding(
+            padding: EdgeInsets.only(bottom: i == sections.length - 1 ? 0 : Space.md),
+            child: Reveal(index: i, child: w),
           ),
-        ],
-        const SizedBox(height: Space.lg),
-        if (items.isEmpty)
-          EmptyState(
-            icon: Icons.document_scanner_rounded,
-            title: 'Scan your first receipt',
-            body:
-                'Tap the scan button below. Every photo and document is encrypted on this phone and never '
-                'shows up in your gallery.',
-            actionLabel: 'Import a W-2 or 1099',
-            onAction: () => importInto(context, ref, folder: 'tax_form', year: year),
-          )
-        else ...[
-          const SectionHeader('Recently added'),
-          _Grid(items.take(9).toList()),
-        ],
       ],
     );
   }

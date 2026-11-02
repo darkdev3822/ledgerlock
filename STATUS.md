@@ -131,8 +131,9 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - Design pass 3: Taxes (quarter timeline hero: paid from payment log / missed amber / next halo, track fills
   with the year; SE tax figure with formula folded into "How this is worked out"; set-aside shows per-payment;
   tools as 2x2 pressable tiles + Export card; staggered sections). taxes_full golden (2300 px tall).
-  Next design passes: Vault, tab
-  transitions, empty-state illustrations, onboarding. Device check: shadows render as hard ledges in goldens.
+- Design pass 4: Vault (per-folder hue, icon tiles with counts, "sealed with AES-256" line, staggered); tab
+  switch fade-and-rise keeping tab state (_TabFade in app_shell).
+  Next design passes: empty-state illustrations, onboarding. Device check: shadows render as hard ledges in goldens.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).

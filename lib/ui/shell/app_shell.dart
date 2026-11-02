@@ -68,7 +68,13 @@ class _AppShellState extends ConsumerState<AppShell> {
           const SizedBox(width: Space.sm),
         ],
       ),
-      body: IndexedStack(index: _tab, children: const [HomeTab(), RecordsTab(), VaultTab(), TaxesTab()]),
+      body: IndexedStack(
+        index: _tab,
+        children: [
+          for (final (i, tab) in const <Widget>[HomeTab(), RecordsTab(), VaultTab(), TaxesTab()].indexed)
+            _TabFade(active: i == _tab, child: tab),
+        ],
+      ),
       bottomNavigationBar: LLBottomBar(
         index: _tab,
         onTap: (i) {
@@ -253,4 +259,42 @@ class LLBottomBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Tab change: the incoming tab fades and rises a few pixels (continuity) while keeping its state and scroll.
+class _TabFade extends StatefulWidget {
+  final bool active;
+  final Widget child;
+  const _TabFade({required this.active, required this.child});
+  @override
+  State<_TabFade> createState() => _TabFadeState();
+}
+
+class _TabFadeState extends State<_TabFade> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: Motion.medium, value: 1);
+
+  @override
+  void didUpdateWidget(_TabFade old) {
+    super.didUpdateWidget(old);
+    if (widget.active && !old.active && !Motion.reduced(context)) _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    child: widget.child,
+    builder: (_, child) {
+      final v = Motion.enter.transform(_c.value);
+      return Opacity(
+        opacity: v,
+        child: Transform.translate(offset: Offset(0, 8 * (1 - v)), child: child),
+      );
+    },
+  );
 }
