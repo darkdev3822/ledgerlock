@@ -31,6 +31,54 @@ class MainActivity : FlutterFragmentActivity() {
     private val createCsv = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { onSaveTarget(it) }
     private val createPdf = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { onSaveTarget(it) }
 
+    // ---- Encrypted backups (M9): stream files in/out without loading them into memory ----
+    private var pendingBackupOut: Pair<MethodChannel.Result, String>? = null // result, source path
+    private var pendingBackupIn: Pair<MethodChannel.Result, String>? = null // result, destination path
+    private val backupMaxBytes = 8L * 1024 * 1024 * 1024
+
+    private val createBackupDoc = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri: Uri? ->
+        val (result, src) = pendingBackupOut ?: return@registerForActivityResult
+        pendingBackupOut = null
+        if (uri == null) { result.success(false); return@registerForActivityResult }
+        Thread {
+            try {
+                contentResolver.openOutputStream(uri, "wt")?.use { out -> java.io.File(src).inputStream().use { it.copyTo(out, 1 shl 16) } }
+                    ?: throw IllegalStateException("no stream")
+                runOnUiThread { result.success(true) }
+            } catch (e: Throwable) {
+                runOnUiThread { result.error("write_failed", e.message, null) }
+            }
+        }.start()
+    }
+
+    private val openBackupDoc = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        val (result, dest) = pendingBackupIn ?: return@registerForActivityResult
+        pendingBackupIn = null
+        if (uri == null) { result.success(false); return@registerForActivityResult }
+        Thread {
+            val target = java.io.File(dest)
+            try {
+                contentResolver.openInputStream(uri)?.use { input ->
+                    target.outputStream().use { out ->
+                        val buf = ByteArray(1 shl 16)
+                        var total = 0L
+                        while (true) {
+                            val n = input.read(buf)
+                            if (n < 0) break
+                            total += n
+                            if (total > backupMaxBytes) throw IllegalStateException("too large")
+                            out.write(buf, 0, n)
+                        }
+                    }
+                } ?: throw IllegalStateException("unreadable")
+                runOnUiThread { result.success(true) }
+            } catch (e: Throwable) {
+                target.delete()
+                runOnUiThread { result.error("unreadable", e.message, null) }
+            }
+        }.start()
+    }
+
     private fun onSaveTarget(uri: Uri?) {
         val (result, bytes) = pendingSave ?: return
         pendingSave = null
@@ -200,6 +248,26 @@ class MainActivity : FlutterFragmentActivity() {
                 "setSecure" -> {
                     setSecure(call.argument<Boolean>("on") != false)
                     result.success(null)
+                }
+                "saveBackup" -> {
+                    val src = call.argument<String>("path")
+                    val name = call.argument<String>("name") ?: "ledgerlock.llbackup"
+                    // Only files the app itself staged inside its own storage.
+                    if (src == null || !java.io.File(src).canonicalPath.startsWith(filesDir.parentFile!!.canonicalPath) || pendingBackupOut != null) {
+                        result.error("bad_input", "No backup to save", null)
+                        return@setMethodCallHandler
+                    }
+                    pendingBackupOut = result to src
+                    createBackupDoc.launch(name)
+                }
+                "pickBackup" -> {
+                    val dest = call.argument<String>("dest")
+                    if (dest == null || !java.io.File(dest).canonicalPath.startsWith(filesDir.parentFile!!.canonicalPath) || pendingBackupIn != null) {
+                        result.error("bad_input", "Bad destination", null)
+                        return@setMethodCallHandler
+                    }
+                    pendingBackupIn = result to dest
+                    openBackupDoc.launch(arrayOf("*/*"))
                 }
                 "openUrl" -> {
                     // Hands an https link to the user's browser. This app has no INTERNET permission and

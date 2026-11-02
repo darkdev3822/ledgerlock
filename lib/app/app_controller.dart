@@ -11,6 +11,8 @@ import '../data/database.dart';
 import '../data/ledger.dart';
 import '../data/tax_rules.dart';
 import '../media/documents.dart';
+import '../backup/backup.dart';
+import '../platform/backup_files.dart';
 import '../platform/document_picker.dart';
 import '../platform/secure_window.dart';
 import '../security/auto_lock.dart';
@@ -66,6 +68,9 @@ class AppController extends ChangeNotifier {
 
   /// Reminders (SPEC §2.6, §2.13). Stored in the encrypted DB; only generic notification text leaves it.
   bool quarterlyReminders = false;
+
+  /// When the last encrypted backup was saved (null = never). Drives the Home banner and recovery health.
+  DateTime? lastBackup;
 
   /// Screenshots allowed while unlocked (default off: blocked, T22).
   bool allowScreenshots = false;
@@ -178,6 +183,7 @@ class AppController extends ChangeNotifier {
     }
     quarterlyReminders = await db.getSetting('quarterlyReminders') == 'true';
     allowScreenshots = await db.getSetting('allowScreenshots') == 'true';
+    lastBackup = DateTime.tryParse(await db.getSetting('lastBackup') ?? '');
     if (allowScreenshots) setSecureWindow(false);
     checkInFrequency = await db.getSetting('checkInFrequency') ?? 'off';
     onboarded = await db.getSetting('onboarded') == 'true';
@@ -249,6 +255,81 @@ class AppController extends ChangeNotifier {
   void finishBiometricOffer() {
     stage = _afterSecurity;
     notifyListeners();
+  }
+
+  // ---------- encrypted backups (M9) ----------
+
+  Directory get _backupOut => Directory('${dataDir.path}/.backup-out');
+  File get _restoreIn => File('${dataDir.path}/.restore-in.llbackup');
+  Directory get restoreStaging => Directory('${dataDir.path}/.restore-staging');
+
+  /// Builds an encrypted backup and lets the user choose where to save it. Returns false if cancelled.
+  Future<bool> backupNow() async {
+    final s = _session;
+    if (s == null) return false;
+    final now = DateTime.now();
+    final out = File('${_backupOut.path}/b.llbackup');
+    if (_backupOut.existsSync()) _backupOut.deleteSync(recursive: true);
+    _backupOut.createSync(recursive: true);
+    try {
+      await createBackup(dataDir: dataDir, session: s, dataKey: s.dataKey, out: out, now: now);
+      final ok = await saveBackupWithPicker(out, 'LedgerLock-backup-${isoDay(now)}.llbackup');
+      if (ok && _session == s) {
+        lastBackup = now;
+        await s.db.setSetting('lastBackup', now.toIso8601String());
+        rescheduleReminders(); // move the monthly backup reminder
+        notifyListeners();
+      }
+      return ok;
+    } finally {
+      if (_backupOut.existsSync()) _backupOut.deleteSync(recursive: true);
+    }
+  }
+
+  /// Step 1 of restore: the user picks a backup file. Null if cancelled. Throws [BackupInvalid] for non-backups.
+  Future<BackupFile?> pickBackup() async {
+    if (_restoreIn.existsSync()) _restoreIn.deleteSync();
+    if (!await pickBackupTo(_restoreIn)) return null;
+    return BackupFile.open(_restoreIn);
+  }
+
+  /// Last step: [dk] came from the backup's own slots (password / recovery key / answers). Verifies every byte,
+  /// then replaces the live vault (locking it first if open) and opens the restored one.
+  Future<void> finishRestore(BackupFile b, Uint8List dk) async {
+    DateTime? verifiedCreated;
+    try {
+      final staging = restoreStaging;
+      for (final f in staging.existsSync() ? staging.listSync() : const <FileSystemEntity>[]) {
+        if (!f.path.endsWith('vault.json')) f.deleteSync(recursive: true); // keep the staged header only
+      }
+      verifiedCreated = await b.extractVerified(staging, dk);
+      if (_session != null) {
+        final old = _session!;
+        _session = null;
+        _documents = null;
+        await old.lock();
+      }
+      await installStaged(staging, dataDir);
+    } catch (_) {
+      LedgerCrypto.zero(dk);
+      if (restoreStaging.existsSync()) restoreStaging.deleteSync(recursive: true);
+      rethrow;
+    } finally {
+      if (_restoreIn.existsSync()) _restoreIn.deleteSync();
+    }
+    await openWithDataKey(dk);
+    // The snapshot inside a backup predates its own "last backup" stamp: count the backup we just restored from.
+    final last = lastBackup, made = verifiedCreated;
+    if (last == null || made.isAfter(last)) {
+      lastBackup = made;
+      await db?.setSetting('lastBackup', made.toIso8601String());
+      notifyListeners();
+    }
+  }
+
+  void cancelRestore() {
+    if (restoreStaging.existsSync()) restoreStaging.deleteSync(recursive: true);
+    if (_restoreIn.existsSync()) _restoreIn.deleteSync();
   }
 
   Future<void> setAllowScreenshots(bool v) async {
@@ -428,6 +509,8 @@ class AppController extends ChangeNotifier {
         quarterly: quarterlyReminders,
         checkInDays: days,
         lastCheckIn: lastCheckIn,
+        backupReminder: true,
+        lastBackup: lastBackup,
       ),
     );
   }

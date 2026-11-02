@@ -13,6 +13,7 @@ import 'package:ledgerlock/data/database.dart';
 import 'package:ledgerlock/data/tax_rules.dart';
 import 'package:ledgerlock/security/biometric_reset.dart';
 import 'package:ledgerlock/security/vault.dart';
+import 'package:ledgerlock/ui/backup_screens.dart';
 import 'package:ledgerlock/ui/design/components.dart';
 import 'package:ledgerlock/ui/design/theme.dart';
 import 'package:ledgerlock/ui/ledger/entry_screen.dart';
@@ -175,7 +176,8 @@ void main() {
 
   for (final b in Brightness.values) {
     testWidgets('home ${b.name}', (t) => shoot(t, 'home', const AppShell(), b, data: true));
-    testWidgets('welcome ${b.name}', (t) => shoot(t, 'welcome', WelcomeScreen(onStart: () {}), b));
+    testWidgets('welcome ${b.name}', (t) => shoot(t, 'welcome', WelcomeScreen(onStart: () {}, onRestore: () {}), b));
+    testWidgets('restore ${b.name}', (t) => shoot(t, 'restore', const RestoreScreen(replacing: true), b));
     testWidgets(
       'business_type ${b.name}',
       (t) => shoot(t, 'business_type', BusinessTypeScreen(initial: const {'services'}, onDone: (_) async {}), b),

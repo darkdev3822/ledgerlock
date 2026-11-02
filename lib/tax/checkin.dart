@@ -183,6 +183,8 @@ List<ReminderItem> planReminders({
   required bool quarterly,
   required int checkInDays,
   DateTime? lastCheckIn,
+  bool backupReminder = false,
+  DateTime? lastBackup,
 }) {
   final out = <ReminderItem>[];
   if (quarterly) {
@@ -220,6 +222,15 @@ List<ReminderItem> planReminders({
       );
       n++;
     }
+  }
+  if (backupReminder) {
+    // Monthly backup nudge (SPEC §1): 30 days after the last backup, or tomorrow if there has never been one.
+    final base = lastBackup == null || lastBackup.isAfter(now) ? now.subtract(const Duration(days: 29)) : lastBackup;
+    var at = DateTime(base.year, base.month, base.day + 30, 10);
+    if (!at.isAfter(now)) at = DateTime(now.year, now.month, now.day + 1, 10);
+    out.add(
+      ReminderItem(9, at, 'Time to save a backup', 'Keep a copy of your records somewhere other than this phone.'),
+    ); // id 9: check-ins use 1..8, quarterly ids are year*100+…
   }
   out.sort((a, b) => a.at.compareTo(b.at));
   return out;

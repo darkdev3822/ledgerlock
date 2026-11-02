@@ -10,6 +10,7 @@ import '../../app/app_controller.dart';
 import '../../data/database.dart';
 import '../../data/ledger.dart';
 import '../../data/tax_rules.dart';
+import '../backup_screens.dart';
 import '../design/components.dart';
 import '../design/theme.dart';
 import '../ledger/category_icons.dart';
@@ -46,6 +47,7 @@ class HomeTab extends ConsumerWidget {
     final sections = <Widget>[
       _Greeting(today: today, rules: rules, s: s, hasEntries: entries.isNotEmpty),
       const CheckInCard(),
+      BackupNudge(hasData: entries.isNotEmpty),
       _HeroCard(year: year, s: s),
       if (entries.isNotEmpty)
         Row(
@@ -104,10 +106,13 @@ class HomeTab extends ConsumerWidget {
       padding: _pad,
       children: [
         for (final (i, w) in sections.indexed)
-          Padding(
-            padding: EdgeInsets.only(bottom: i == 0 || i == sections.length - 1 ? 0 : Space.md),
-            child: Reveal(index: i, child: w),
-          ),
+          // Cards that hide themselves (check-in, backup nudge) carry their own spacing, so no empty gaps.
+          i == 0 || w is CheckInCard || w is BackupNudge
+              ? Reveal(index: i, child: w)
+              : Padding(
+                  padding: EdgeInsets.only(bottom: i == sections.length - 1 ? 0 : Space.md),
+                  child: Reveal(index: i, child: w),
+                ),
       ],
     );
   }

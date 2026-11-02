@@ -176,6 +176,13 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   overflows at 1.3x/2x text and 320 px, pickers outside the year, payment undo). test/fuzz/ (4 fuzz files +
   442-case UI stress) now run as permanent regressions: 646 tests. Accepted: A1 (key rotation, revisit M9).
   Open for owner/M10: A2 release keystore + Gradle verification metadata.
+- M9 DONE (2026-11-02): encrypted backups. lib/backup/backup.dart (.llbackup = already-encrypted SQLCipher snapshot
+  via VACUUM INTO + .llf files + vault slots minus fingerprint; sealed manifest with SHA-256 per entry), streaming
+  save/pick in Kotlin (saveBackup/pickBackup, app-storage paths only), RestoreScreen (welcome "I have a backup" +
+  Settings, password or recovery key, staging + verify-then-swap), Home BackupNudge (>30 days / never), Settings
+  "Back up now" with last date, monthly backup reminder (id 9). Verified on emulator: backup -> pm clear ->
+  restore: records, 7 receipts decrypt, nudge cleared. SECURITY T25. 652 tests.
+  Next: short AI attack round on backups, then M8 leftovers (app icon, a11y pass, walkthrough), M10.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next: M9 backups (encrypted export/restore; owner's data-loss priority), then M8 leftovers (app icon, a11y

@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'app/app_controller.dart';
 import 'security/biometric_reset.dart';
 import 'ui/design/theme.dart';
+import 'ui/backup_screens.dart';
 import 'ui/lock_screens.dart';
 import 'ui/onboarding_screens.dart';
 import 'ui/recovery_screens.dart';
@@ -72,7 +73,10 @@ class _LedgerLockAppState extends ConsumerState<LedgerLockApp> {
           ? UnlockScreen(onSubmit: app.openWithPassword, onForgot: () => _forgot(app))
           : _welcomed
           ? SetupScreen(onSubmit: app.openWithPassword)
-          : WelcomeScreen(onStart: () => setState(() => _welcomed = true)),
+          : WelcomeScreen(
+              onStart: () => setState(() => _welcomed = true),
+              onRestore: () => _nav.currentState!.push(MaterialPageRoute(builder: (_) => const RestoreScreen())),
+            ),
     Stage.recoveryKey => RecoveryKeyScreen(code: app.pendingCode!, onConfirmed: app.confirmRecoveryKey),
     Stage.biometricOffer => BiometricOfferScreen(
       onEnable: () async {

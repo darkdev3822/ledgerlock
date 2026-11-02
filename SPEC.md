@@ -215,6 +215,6 @@ public under **GPL-3.0** so anyone can verify the privacy claims; F-Droid distri
 | M6 | Taxes tab: quarterly reminders, payments, 1099s, mileage, home office, CSV export, "What changed for you" + free resources (§2.12), check-ins + invoiced status (§2.13) | Matches the desktop Tax Keeper on the same data |
 | M7 | Advanced: OCR, rules, imports, PDF packet (paywall/purchases/trial dropped: app is free) | Done 2026-11-02 |
 | M8 | Polish: motion, haptics, accessibility, onboarding, empty states, app icon | The owner's sign-off on video walkthroughs |
-| M9 | Backups and resilience: encrypted export/restore, migration tests | Restore on a fresh install works |
+| M9 | Backups and resilience: encrypted export/restore, migration tests | Restore on a fresh install works (done 2026-11-02, verified on emulator) |
 | M9.5 | Security assessment: debugging, polish, AI-assisted white-hat attacks (APK reverse engineering, root/forensic file attacks, fuzzing every parser, brute-force and tamper scenarios, AI-driven attack agents); see SECURITY.md | No open High findings; every finding has a regression test |
 | M10 | Launch (Android): public GPL-3.0 repo, listing, screenshots, privacy policy, Play closed test (personal account: 12+ testers for 14 days) → production; F-Droid submission | Live on Google Play; F-Droid submitted |

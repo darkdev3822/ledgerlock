@@ -124,4 +124,21 @@ void main() {
     }
     expect(planReminders(now: DateTime(2026, 9, 10), rules: [_rules], quarterly: false, checkInDays: 0), isEmpty);
   });
+
+  test('monthly backup reminder: 30 days after the last backup, tomorrow if never; text stays generic', () {
+    final now = DateTime(2026, 11, 2, 12);
+    List<ReminderItem> plan(DateTime? last) => planReminders(
+      now: now,
+      rules: const [],
+      quarterly: false,
+      checkInDays: 0,
+      backupReminder: true,
+      lastBackup: last,
+    );
+    expect(plan(DateTime(2026, 10, 20)).single.at, DateTime(2026, 11, 19, 10));
+    expect(plan(null).single.at, DateTime(2026, 11, 3, 10));
+    expect(plan(DateTime(2026, 9, 1)).single.at, DateTime(2026, 11, 3, 10), reason: 'overdue: tomorrow');
+    final r = plan(null).single;
+    expect('${r.title} ${r.body}'.contains(r'$'), isFalse);
+  });
 }

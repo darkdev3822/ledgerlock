@@ -1,10 +1,12 @@
 // Settings: recovery health, security, appearance, privacy facts.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../app/app_controller.dart';
 import '../data/business_types.dart';
 import '../security/vault.dart';
+import 'backup_screens.dart';
 import 'design/components.dart';
 import 'design/theme.dart';
 import 'ledger/import_screen.dart';
@@ -112,11 +114,24 @@ class SettingsScreen extends ConsumerWidget {
                   child: Text(app.slots.contains(Slot.questions) ? 'Change' : 'Set up'),
                 ),
               ),
-              const ListTile(
-                leading: Icon(Icons.backup_outlined),
-                title: Text('Encrypted backup'),
-                subtitle: Text('Protects you if this phone is lost. Coming in M9.'),
-                enabled: false,
+              ListTile(
+                leading: const Icon(Icons.backup_outlined),
+                title: const Text('Back up now'),
+                subtitle: Text(
+                  app.lastBackup == null
+                      ? 'Never. A backup is the only way back if this phone is lost.'
+                      : 'Last: ${DateFormat.yMMMd().format(app.lastBackup!)}. Saved where you choose, still encrypted.',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => runBackup(context, app),
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings_backup_restore_rounded),
+                title: const Text('Restore from a backup'),
+                subtitle: const Text('Replaces the records on this phone'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () =>
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RestoreScreen(replacing: true))),
               ),
             ],
           ),

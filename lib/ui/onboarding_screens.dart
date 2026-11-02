@@ -73,7 +73,8 @@ class _OnboardingShell extends StatelessWidget {
 /// Step 1: the promise. Shown only before a vault exists.
 class WelcomeScreen extends StatelessWidget {
   final VoidCallback onStart;
-  const WelcomeScreen({super.key, required this.onStart});
+  final VoidCallback? onRestore;
+  const WelcomeScreen({super.key, required this.onStart, this.onRestore});
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +107,9 @@ class WelcomeScreen extends StatelessWidget {
     return _OnboardingShell(
       step: 0,
       action: FilledButton(onPressed: onStart, child: const Text('Get started')),
+      secondary: onRestore == null
+          ? null
+          : TextButton(onPressed: onRestore, child: const Text('I have a backup to restore')),
       children: [
         const SizedBox(height: Space.lg),
         const Center(child: Illustration(Art.ledger, width: 200)),
