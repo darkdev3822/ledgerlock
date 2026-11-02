@@ -54,10 +54,7 @@ void main() {
       await v.setBiometricSecret(dk, LedgerCrypto.randomBytes(32));
       await v.setRecoveryKey(dk, RecoveryKey.generate());
       for (var i = 0; i < 10; i++) {
-        await expectLater(
-          v.recoverWithBiometricSecret(LedgerCrypto.randomBytes(32)),
-          throwsA(isA<RecoveryFailed>()),
-        );
+        await expectLater(v.recoverWithBiometricSecret(LedgerCrypto.randomBytes(32)), throwsA(isA<RecoveryFailed>()));
       }
       expect(v.guard.failures, 0);
       for (var i = 0; i < 5; i++) {

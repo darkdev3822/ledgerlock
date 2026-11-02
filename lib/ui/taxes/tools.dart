@@ -10,6 +10,7 @@ import '../../app/app_controller.dart';
 import '../../data/csv_export.dart';
 import '../../data/database.dart';
 import '../../data/ledger.dart';
+import '../../data/tax_packet.dart';
 import '../../data/tax_rules.dart';
 import '../../platform/save_file.dart';
 import '../design/components.dart';
@@ -465,15 +466,6 @@ class HomeOfficeScreen extends ConsumerWidget {
 
 // ============================== 1099 tracker ==============================
 
-/// Recorded gross income (received) whose platform or payer matches [payer], case-insensitive.
-int recordedFrom(String payer, Iterable<LedgerEntry> entries) {
-  final p = payer.trim().toLowerCase();
-  if (p.isEmpty) return 0;
-  return entries
-      .where((e) => e.isIncome && e.paid && (e.platform.trim().toLowerCase() == p || e.party.trim().toLowerCase() == p))
-      .fold(0, (a, e) => a + e.amountCents);
-}
-
 class Forms1099Screen extends ConsumerWidget {
   final int year;
   const Forms1099Screen(this.year, {super.key});
@@ -617,6 +609,40 @@ Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) asyn
             ),
           ),
           const SizedBox(height: Space.sm),
+          ListTile(
+            leading: const Icon(Icons.picture_as_pdf_outlined),
+            title: Text('Tax packet for a preparer ($year)'),
+            subtitle: const Text('PDF summary: Schedule C lines, categories, 1099s, payments, mileage'),
+            trailing: const Icon(Icons.download_rounded),
+            onTap: () async {
+              Navigator.pop(c);
+              try {
+                final trips = await db.watchTrips(year).first;
+                final sqft = ref.read(appControllerProvider).homeOfficeSqft[year] ?? 0;
+                final bytes = await buildTaxPacket(
+                  PacketInput(
+                    year: year,
+                    rules: rules,
+                    summary: ref.read(summaryProvider(year)),
+                    entries: await db.watchYear(year).first,
+                    trips: trips,
+                    payments: await db.watchPayments(year).first,
+                    forms: await db.watchForms1099(year).first,
+                    mileageCents: mileageDeductionCents(trips.map((t) => (t.date, t.milesTenths)), rules),
+                    homeOfficeCents: homeOfficeCents(sqft, rules) ?? 0,
+                    generated: DateTime.now(),
+                  ),
+                );
+                final name = 'ledgerlock-$year-tax-packet.pdf';
+                final ok = await saveWithPicker(name, bytes, mime: 'application/pdf');
+                if (ok && context.mounted) _toast(context, 'Saved $name');
+              } on PlatformException {
+                if (context.mounted) _toast(context, 'Couldn’t save the file.');
+              } on MissingPluginException {
+                if (context.mounted) _toast(context, 'Export isn’t available here yet.');
+              }
+            },
+          ),
           for (final (icon, label, name, build) in <(IconData, String, String, Future<String> Function())>[
             (
               Icons.list_alt_rounded,

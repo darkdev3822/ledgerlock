@@ -138,8 +138,9 @@ void main() {
         }
       });
       final firstShell =
-          (await db.customSelect("SELECT id FROM ledger_entries WHERE party = 'Shell' LIMIT 1").getSingle())
-              .read<int>('id');
+          (await db.customSelect("SELECT id FROM ledger_entries WHERE party = 'Shell' LIMIT 1").getSingle()).read<int>(
+            'id',
+          );
       await db.addAttachment(
         AttachmentsCompanion.insert(
           folder: 'receipt',
@@ -217,10 +218,7 @@ void main() {
         await runSearch(db, p(evil));
       }
       expect(p(List.filled(5000, 'ab').join(' ')).terms.length, lessThanOrEqualTo(maxQueryWords));
-      expect(
-        (await db.customSelect('SELECT count(*) AS c FROM ledger_entries').getSingle()).read<int>('c'),
-        10000,
-      );
+      expect((await db.customSelect('SELECT count(*) AS c FROM ledger_entries').getSingle()).read<int>('c'), 10000);
     });
 
     test('< 50 ms on 10k records (SPEC §4)', () async {

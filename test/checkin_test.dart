@@ -122,9 +122,6 @@ void main() {
     for (final r in plan) {
       expect(r.title + r.body, isNot(contains(r'$')), reason: 'no amounts in notifications');
     }
-    expect(
-      planReminders(now: DateTime(2026, 9, 10), rules: [_rules], quarterly: false, checkInDays: 0),
-      isEmpty,
-    );
+    expect(planReminders(now: DateTime(2026, 9, 10), rules: [_rules], quarterly: false, checkInDays: 0), isEmpty);
   });
 }

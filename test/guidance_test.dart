@@ -12,20 +12,16 @@ List<Resource> _bundled() => [
     Resource.fromJson(r as Map<String, dynamic>),
 ];
 
-Resource _r(
-  String id,
-  List<String> when, {
-  Map<int, int?> limits = const {},
-  String? verified = '2026-12-01',
-}) => Resource(
-  id: id,
-  name: id,
-  purpose: 'p',
-  url: 'https://www.irs.gov/$id',
-  when: when,
-  incomeLimitCents: limits,
-  verified: verified,
-);
+Resource _r(String id, List<String> when, {Map<int, int?> limits = const {}, String? verified = '2026-12-01'}) =>
+    Resource(
+      id: id,
+      name: id,
+      purpose: 'p',
+      url: 'https://www.irs.gov/$id',
+      when: when,
+      incomeLimitCents: limits,
+      verified: verified,
+    );
 
 void main() {
   group('links (SPEC §2.12: no user data, official hosts only)', () {
@@ -210,33 +206,25 @@ void main() {
   });
 
   group('what changed', () {
-    TaxRules rules(int y, {String? verified = 'x', double meals = .5, double seRate = .153, num? k1099}) =>
-        TaxRules(
-          year: y,
-          quarterlyDue: const [],
-          verified: verified,
-          seNetEarningsFactor: .9235,
-          seRate: seRate,
-          expenseCategories: [
-            Category(
-              id: 'meals',
-              name: 'Meals',
-              line: '24b',
-              hint: '',
-              isIncome: false,
-              deductibleShare: meals,
-            ),
-          ],
-          keyFigures: [
-            KeyFigure(
-              id: 'form_1099k_threshold',
-              name: '1099-K threshold',
-              unit: 'dollars',
-              value: k1099,
-              verified: k1099 == null ? null : 'x',
-            ),
-          ],
-        );
+    TaxRules rules(int y, {String? verified = 'x', double meals = .5, double seRate = .153, num? k1099}) => TaxRules(
+      year: y,
+      quarterlyDue: const [],
+      verified: verified,
+      seNetEarningsFactor: .9235,
+      seRate: seRate,
+      expenseCategories: [
+        Category(id: 'meals', name: 'Meals', line: '24b', hint: '', isIncome: false, deductibleShare: meals),
+      ],
+      keyFigures: [
+        KeyFigure(
+          id: 'form_1099k_threshold',
+          name: '1099-K threshold',
+          unit: 'dollars',
+          value: k1099,
+          verified: k1099 == null ? null : 'x',
+        ),
+      ],
+    );
 
     test('nothing until both years are verified', () {
       expect(whatChanged(rules(2025, verified: null), rules(2026, meals: 1)), isEmpty);
@@ -251,11 +239,7 @@ void main() {
         expenseByCategory: {'meals': 40000},
         largestPlatformIncomeCents: 300000,
       );
-      expect(c.map((x) => x.title), [
-        'Self-employment tax rate',
-        'Meals: deductible share',
-        '1099-K threshold',
-      ]);
+      expect(c.map((x) => x.title), ['Self-employment tax rate', 'Meals: deductible share', '1099-K threshold']);
       expect(c[0].forYou, contains('more'));
       expect(c[1].detail, '50% → 100%');
       expect(c[1].forYou, contains(r'$200'));
@@ -272,8 +256,7 @@ void main() {
         detail: 'in more than 200 transactions, per platform',
         verified: 'x',
       );
-      TaxRules r(int y, num v) =>
-          TaxRules(year: y, quarterlyDue: const [], verified: 'x', keyFigures: [k(v)]);
+      TaxRules r(int y, num v) => TaxRules(year: y, quarterlyDue: const [], verified: 'x', keyFigures: [k(v)]);
       final over = whatChanged(r(2025, 5000), r(2026, 20000), largestPlatformIncomeCents: 2500000).single;
       expect(over.detail, contains('200 transactions'));
       expect(over.forYou, contains('if you also meet the rest'));
@@ -294,15 +277,8 @@ void main() {
       });
       expect(k.valueOn(DateTime(2026, 6, 30)), 72.5);
       expect(k.valueOn(DateTime(2026, 7, 1)), 76);
-      const old = KeyFigure(
-        id: 'mileage_rate',
-        name: 'Mileage',
-        unit: 'cents_per_mile',
-        value: 70,
-        verified: 'x',
-      );
-      TaxRules r(int y, KeyFigure f) =>
-          TaxRules(year: y, quarterlyDue: const [], verified: 'x', keyFigures: [f]);
+      const old = KeyFigure(id: 'mileage_rate', name: 'Mileage', unit: 'cents_per_mile', value: 70, verified: 'x');
+      TaxRules r(int y, KeyFigure f) => TaxRules(year: y, quarterlyDue: const [], verified: 'x', keyFigures: [f]);
       final c = whatChanged(r(2025, old), r(2026, k)).single;
       expect(c.detail, '70¢ a mile → 72.5¢ a mile, then 76¢ a mile from Jul 1');
     });

@@ -41,10 +41,7 @@ void main() {
       expect(() => LedgerCrypto.decrypt(a, key, aad: [2]), throwsA(isA<DecryptionFailed>()));
       final t = Uint8List.fromList(a)..[20] ^= 1;
       expect(() => LedgerCrypto.decrypt(t, key, aad: [1]), throwsA(isA<DecryptionFailed>()));
-      expect(
-        () => LedgerCrypto.decrypt(a, LedgerCrypto.randomBytes(32), aad: [1]),
-        throwsA(isA<DecryptionFailed>()),
-      );
+      expect(() => LedgerCrypto.decrypt(a, LedgerCrypto.randomBytes(32), aad: [1]), throwsA(isA<DecryptionFailed>()));
     });
 
     test('Argon2id is deterministic per salt and differs across salts', () async {
@@ -102,8 +99,7 @@ void main() {
         expect(containsBytes(f.readAsBytesSync(), utf8.encode('STAPLES')), isFalse);
       }
       // Swap the two files on disk: AAD binding must reject it.
-      File('${store.dir.path}/$id2.llf')
-          .writeAsBytesSync(File('${store.dir.path}/$id.llf').readAsBytesSync());
+      File('${store.dir.path}/$id2.llf').writeAsBytesSync(File('${store.dir.path}/$id.llf').readAsBytesSync());
       expect(() => store.get(id2), throwsA(isA<DecryptionFailed>()));
       expect(() => store.get('../etc'), throwsArgumentError);
       await store.delete(id);

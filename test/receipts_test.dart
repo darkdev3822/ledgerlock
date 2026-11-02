@@ -98,13 +98,7 @@ void main() {
       final r = finishReceipt(scene(), detectCorners(scene()));
       final id = await docs.saveReceipt(r, year: 2026);
       final pdf = Uint8List.fromList('%PDF-1.7 W-2 Wage and Tax Statement'.codeUnits);
-      await docs.importFile(
-        name: 'w2.pdf',
-        mime: 'application/pdf',
-        bytes: pdf,
-        folder: 'tax_form',
-        year: 2026,
-      );
+      await docs.importFile(name: 'w2.pdf', mime: 'application/pdf', bytes: pdf, folder: 'tax_form', year: 2026);
 
       final files = dir.listSync(recursive: true).whereType<File>().toList();
       for (final f in files) {

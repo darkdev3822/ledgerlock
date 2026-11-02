@@ -55,10 +55,7 @@ void main() {
       expect(() => v.recoverWithKey(RecoveryKey.generate()), throwsA(isA<RecoveryFailed>()));
       expect(() => v.recoverWithKey('short'), throwsA(isA<RecoveryFailed>()));
       expect(() => v.recoverWithAnswers(['rex', 'elm street', 'saab']), throwsA(isA<RecoveryFailed>()));
-      expect(
-        () => v.recoverWithBiometricSecret(LedgerCrypto.randomBytes(32)),
-        throwsA(isA<RecoveryFailed>()),
-      );
+      expect(() => v.recoverWithBiometricSecret(LedgerCrypto.randomBytes(32)), throwsA(isA<RecoveryFailed>()));
     });
 
     test('forgot password: recover, set new password, old one stops working, data intact', () async {
@@ -102,9 +99,8 @@ void main() {
       final dk = LedgerCrypto.randomBytes(32);
       final kek = await LedgerCrypto.deriveKey('pw', params);
       final wrapped = await LedgerCrypto.encrypt(dk, kek, aad: utf8.encode('ledgerlock/v1/data-key'));
-      File(
-        '${dir.path}/vault.json',
-      ).writeAsStringSync(jsonEncode({'v': 1, 'kdf': params.toJson(), 'wrappedKey': base64.encode(wrapped)}));
+      File('${dir.path}/vault.json')
+          .writeAsStringSync(jsonEncode({'v': 1, 'kdf': params.toJson(), 'wrappedKey': base64.encode(wrapped)}));
 
       final v = fastVault(dir);
       expect(await v.unlock('pw'), dk);

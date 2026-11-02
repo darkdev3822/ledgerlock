@@ -11,8 +11,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final records = (jsonDecode(File('test/fixtures/ledger_records.json').readAsStringSync()) as List)
       .cast<Map<String, dynamic>>();
-  final expected =
-      jsonDecode(File('test/fixtures/ledger_expected.json').readAsStringSync()) as Map<String, dynamic>;
+  final expected = jsonDecode(File('test/fixtures/ledger_expected.json').readAsStringSync()) as Map<String, dynamic>;
   final entries = [
     for (final r in records)
       EntryData(
@@ -47,8 +46,7 @@ void main() {
 
   test('SE tax is zero below the \$400 net-earnings threshold, and losses set nothing aside', () async {
     final rules = await TaxRules.load(2026);
-    EntryData inc(int c) =>
-        EntryData(isIncome: true, date: DateTime(2026, 3, 1), amountCents: c, category: 'services');
+    EntryData inc(int c) => EntryData(isIncome: true, date: DateTime(2026, 3, 1), amountCents: c, category: 'services');
     expect(summarize([inc(43300)], rules).seTaxCents, 0); // 433.00 * 0.9235 = 399.88
     expect(summarize([inc(43400)], rules).seTaxCents, greaterThan(0)); // 400.80
     final loss = summarize([

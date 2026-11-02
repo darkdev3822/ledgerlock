@@ -10,9 +10,7 @@ KeyFigure _k(String id, num v, {List<(DateTime, num)> changes = const [], bool o
 TaxRules _rules({bool verified = true}) => TaxRules(
   year: 2026,
   quarterlyDue: const [],
-  expenseCategories: const [
-    Category(id: 'supplies', name: 'Supplies', line: '22', hint: '', isIncome: false),
-  ],
+  expenseCategories: const [Category(id: 'supplies', name: 'Supplies', line: '22', hint: '', isIncome: false)],
   incomeCategories: const [Category(id: 'services', name: 'Services', line: '1', hint: '', isIncome: true)],
   keyFigures: [
     _k('mileage_rate', 72.5, changes: [(DateTime(2026, 7, 1), 76)], ok: verified),
@@ -48,13 +46,7 @@ void main() {
   test('invoiced, not paid income is not counted (cash basis)', () {
     final s = summarize([
       EntryData(isIncome: true, date: DateTime(2026, 2, 1), amountCents: 50000, category: 'services'),
-      EntryData(
-        isIncome: true,
-        date: DateTime(2026, 2, 3),
-        amountCents: 70000,
-        category: 'services',
-        paid: false,
-      ),
+      EntryData(isIncome: true, date: DateTime(2026, 2, 3), amountCents: 70000, category: 'services', paid: false),
     ], _rules());
     expect(s.grossCents, 50000);
   });

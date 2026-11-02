@@ -11,13 +11,7 @@ TaxRules _rules({bool verifiedBase = true}) => TaxRules(
   seSocialSecurityRate: .124,
   seMinimumNetEarningsCents: 40000,
   keyFigures: [
-    KeyFigure(
-      id: 'ss_wage_base',
-      name: 'base',
-      unit: 'dollars',
-      value: 184500,
-      verified: verifiedBase ? 'x' : null,
-    ),
+    KeyFigure(id: 'ss_wage_base', name: 'base', unit: 'dollars', value: 184500, verified: verifiedBase ? 'x' : null),
   ],
 );
 

@@ -24,6 +24,7 @@ import 'package:ledgerlock/ui/settings_screen.dart';
 import 'package:ledgerlock/tax/checkin.dart';
 import 'package:ledgerlock/ui/taxes/checkin_screen.dart';
 import 'package:ledgerlock/ui/taxes/guidance_section.dart';
+import 'package:ledgerlock/data/tax_packet.dart';
 import 'package:ledgerlock/ui/ledger/import_screen.dart';
 import 'package:ledgerlock/ui/taxes/tools.dart';
 import 'package:ledgerlock/ui/shell/app_shell.dart';

@@ -115,6 +115,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   guessed from header names (no hard-coded bank formats), mapping saved per header signature, US dates, sign or
   debit/credit, fees, duplicates unticked, rules/last-used categories, review queue, one transaction. SECURITY T15.
   142 tests. Device check: import a real bank/PayPal CSV.
+- M7 part 3: tax packet PDF (lib/data/tax_packet.dart; Taxes > Export sheet): summary, Schedule C lines,
+  categories (business % + meals share), 1099 check, payments, mileage; "not a tax return" on every page.
+  SECURITY T16. 144 tests. Receipts appendix (zip) not done: it would export decrypted receipts -> decide later.
+  Polish: keep a section heading with its table across page breaks.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).
