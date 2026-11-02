@@ -251,6 +251,11 @@ ThemeData buildTheme(Brightness b) {
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
+      backgroundColor: b == Brightness.light ? const Color(0xFF23261F) : const Color(0xFFE9E6DC),
+      contentTextStyle: text.bodyMedium?.copyWith(
+        color: b == Brightness.light ? const Color(0xFFF4F2EA) : const Color(0xFF16190F),
+      ),
+      actionTextColor: c.accent == LLColors.light.accent ? const Color(0xFF7FE0C2) : const Color(0xFF0B7A62),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.input)),
     ),
     switchTheme: SwitchThemeData(trackOutlineColor: WidgetStateProperty.all(Colors.transparent)),

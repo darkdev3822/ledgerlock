@@ -166,6 +166,11 @@ class PaymentLogScreen extends ConsumerWidget {
             method: Value(method.text.trim()),
           ),
         );
+        if (!context.mounted) return true;
+        showSuccess(
+          ScaffoldMessenger.maybeOf(context),
+          'Logged ${formatCents(c)}${quarter.isEmpty ? '' : ' for $quarter'}. It now counts toward your payments.',
+        );
         return true;
       },
     );

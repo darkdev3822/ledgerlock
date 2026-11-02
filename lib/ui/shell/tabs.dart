@@ -497,25 +497,36 @@ class EntryTile extends StatelessWidget {
     ];
     return ListTile(
       onTap: () => openEntry(context, existing: entry),
-      leading: CircleAvatar(
-        backgroundColor: entry.isIncome ? ll.accentSoft : ll.surfaceAlt,
-        foregroundColor: entry.isIncome ? ll.accent : ll.muted,
-        child: Icon(categoryIcon(entry.category), size: 20),
+      leading: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: entry.isIncome ? ll.accentSoft : ll.surfaceAlt,
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Icon(categoryIcon(entry.category), size: 20, color: entry.isIncome ? ll.accent : ll.muted),
       ),
       title: HighlightText(title, highlight, maxLines: 1),
       subtitle: Text(
-        [
-          if (entry.party.isNotEmpty) cat?.name ?? '',
-          DateFormat.MMMd().format(entry.day),
-          if (entry.isIncome && !entry.paid) 'Invoiced, unpaid',
-          ...extra,
-        ].join(' · '),
+        [if (entry.party.isNotEmpty) cat?.name ?? '', DateFormat.MMMd().format(entry.day), ...extra].join(' · '),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: Text(
-        '$sign${formatCents(entry.amountCents)}',
-        style: context.text.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w600, fontFeatures: tabular),
+      trailing: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            '$sign${formatCents(entry.amountCents)}',
+            style: context.text.titleSmall?.copyWith(
+              color: entry.isIncome && !entry.paid ? ll.muted : color,
+              fontFamily: Fonts.ui,
+              fontWeight: FontWeight.w700,
+              fontFeatures: tabular,
+            ),
+          ),
+          if (entry.isIncome && !entry.paid) ...[const SizedBox(height: 3), Pill('Unpaid', color: ll.warning)],
+        ],
       ),
     );
   }
@@ -561,6 +572,8 @@ class _RecordsTabState extends ConsumerState<RecordsTab> {
     for (final e in shown) {
       byMonth.putIfAbsent(e.day.month, () => []).add(e);
     }
+    int sum(Iterable<LedgerEntry> l, bool income) =>
+        l.where((e) => e.isIncome == income && (!income || e.paid)).fold(0, (a, e) => a + e.amountCents);
     return ListView(
       padding: _pad,
       children: [
@@ -573,26 +586,22 @@ class _RecordsTabState extends ConsumerState<RecordsTab> {
           ),
         ),
         const SizedBox(height: Space.md),
-        Wrap(
-          spacing: Space.sm,
-          children: [
-            for (final (f, label) in const [
-              (_Filter.all, 'All'),
-              (_Filter.income, 'Income'),
-              (_Filter.expenses, 'Expenses'),
-            ])
-              FilterChip(
-                label: Text(label),
-                selected: _filter == f,
-                showCheckmark: false,
-                onSelected: (_) => setState(() => _filter = f),
-              ),
-          ],
+        LLSegmented<_Filter>(
+          options: const [(_Filter.all, 'All'), (_Filter.income, 'Income'), (_Filter.expenses, 'Expenses')],
+          value: _filter,
+          onChanged: (f) => setState(() => _filter = f),
         ),
-        const SizedBox(height: Space.sm),
+        if (all.isNotEmpty) ...[
+          const SizedBox(height: Space.lg),
+          _InOutStrip(
+            inCents: _filter == _Filter.expenses ? null : sum(all, true),
+            outCents: _filter == _Filter.income ? null : sum(all, false),
+            count: shown.length,
+          ),
+        ],
         if (all.isEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: Space.sm),
+            padding: const EdgeInsets.only(top: Space.lg),
             child: EmptyState(
               icon: Icons.receipt_long_rounded,
               title: 'No records for $year yet',
@@ -605,39 +614,143 @@ class _RecordsTabState extends ConsumerState<RecordsTab> {
           Padding(
             padding: const EdgeInsets.all(Space.xxl),
             child: Text(
-              'Nothing matches. Try another word or amount.',
+              'Nothing here yet for this filter.',
               textAlign: TextAlign.center,
               style: context.text.bodySmall,
             ),
           )
         else
-          for (final m in byMonth.entries) ...[
-            SectionHeader(
-              DateFormat.MMMM().format(DateTime(year, m.key)),
-              trailing: Text(
-                '${m.value.length} ${m.value.length == 1 ? 'record' : 'records'}',
-                style: context.text.labelMedium,
-              ),
-            ),
-            LLGroup(
+          AnimatedSwitcher(
+            duration: Motion.reduced(context) ? Duration.zero : Motion.medium,
+            switchInCurve: Motion.enter,
+            child: Column(
+              key: ValueKey(_filter),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final e in m.value)
-                  Dismissible(
-                    key: ValueKey(e.id),
-                    direction: DismissDirection.endToStart,
-                    background: Container(
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: Space.xl),
-                      color: ll.expense,
-                      child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                for (final (i, m) in byMonth.entries.indexed)
+                  Reveal(
+                    index: i,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _MonthHeader(
+                          month: DateTime(year, m.key),
+                          count: m.value.length,
+                          netCents: sum(m.value, true) - sum(m.value, false),
+                        ),
+                        LLGroup(
+                          children: [
+                            for (final e in m.value)
+                              Dismissible(
+                                key: ValueKey(e.id),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: Space.xl),
+                                  color: ll.expense,
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                      ),
+                                      SizedBox(width: Space.sm),
+                                      Icon(Icons.delete_outline_rounded, color: Colors.white),
+                                    ],
+                                  ),
+                                ),
+                                onDismissed: (_) => _delete(e),
+                                child: EntryTile(entry: e, rules: rules!),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
-                    onDismissed: (_) => _delete(e),
-                    child: EntryTile(entry: e, rules: rules!),
                   ),
               ],
             ),
-          ],
+          ),
       ],
+    );
+  }
+}
+
+/// Money in / out for the current filter. Counts when the filter changes.
+class _InOutStrip extends StatelessWidget {
+  final int? inCents, outCents;
+  final int count;
+  const _InOutStrip({required this.inCents, required this.outCents, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final ll = context.ll;
+    Widget cell(String label, int cents, Color color, IconData icon) => Expanded(
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(width: Space.sm),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: context.text.labelMedium),
+                AnimatedMoney(cents, style: context.text.titleMedium),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          if (inCents != null) cell('Money in', inCents!, ll.income, Icons.south_west_rounded),
+          if (outCents != null) cell('Money out', outCents!, ll.expense, Icons.north_east_rounded),
+          Text('$count record${count == 1 ? '' : 's'}', style: context.text.labelMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthHeader extends StatelessWidget {
+  final DateTime month;
+  final int count, netCents;
+  const _MonthHeader({required this.month, required this.count, required this.netCents});
+
+  @override
+  Widget build(BuildContext context) {
+    final ll = context.ll;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, Space.xl, 4, Space.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Text(
+            DateFormat.MMMM().format(month),
+            style: context.text.titleLarge?.copyWith(fontFamily: Fonts.voice, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(width: Space.sm),
+          Text('$count record${count == 1 ? '' : 's'}', style: context.text.labelMedium),
+          const Spacer(),
+          Text(
+            '${netCents >= 0 ? '+' : '−'}${formatCents(netCents.abs())}',
+            semanticsLabel: '${netCents >= 0 ? 'net' : 'net minus'} ${formatCents(netCents.abs())}',
+            style: context.text.labelLarge?.copyWith(
+              color: netCents >= 0 ? ll.income : ll.muted,
+              fontFeatures: tabular,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

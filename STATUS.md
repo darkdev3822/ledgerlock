@@ -124,7 +124,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   Warm paper palette + heroGlow; Motion tokens (Motion.reduced honours system setting; Motion.ambient=false in
   goldens). Components: Pressable (LLCard with onTap), AnimatedMoney (count-up), Reveal (staggered entrance).
   Home: greeting by time of day + status line is the title, ambient glow hero, chart highlights current month.
-  Next design passes: Records/Taxes/Vault entrances, success moments (payment logged, check-in done), tab
+- Design pass 2: Records (LLSegmented sliding filter, money in/out strip that counts, serif month headers with
+  month net, rounded-square icons, Unpaid pill, staggered month groups, filter crossfade). showSuccess() toast
+  (pop-in check + haptic + plain line) on record save, payment logged, check-in done. Warm snackbar colours.
+  Golden renderer draws elevation shadows solid black (snackbar, FAB, hero): confirm on device.
+  Next design passes: Taxes/Vault, tab
   transitions, empty-state illustrations, onboarding. Device check: shadows render as hard ledges in goldens.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.

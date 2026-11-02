@@ -292,3 +292,116 @@ class LLGroup extends StatelessWidget {
     ),
   );
 }
+
+/// Segmented switch with a sliding pill (continuity: the selection moves rather than blinking).
+class LLSegmented<T> extends StatelessWidget {
+  final List<(T, String)> options;
+  final T value;
+  final ValueChanged<T> onChanged;
+  const LLSegmented({super.key, required this.options, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final ll = context.ll;
+    final i = options.indexWhere((o) => o.$1 == value).clamp(0, options.length - 1);
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(color: ll.surfaceAlt, borderRadius: BorderRadius.circular(Radii.pill)),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth / options.length;
+          return Stack(
+            children: [
+              AnimatedPositioned(
+                duration: Motion.reduced(context) ? Duration.zero : Motion.medium,
+                curve: Motion.enter,
+                left: w * i,
+                top: 0,
+                bottom: 0,
+                width: w,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: ll.surface,
+                    borderRadius: BorderRadius.circular(Radii.pill),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  for (final (j, (v, label)) in options.indexed)
+                    Expanded(
+                      child: Semantics(
+                        button: true,
+                        selected: j == i,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(Radii.pill),
+                          onTap: () {
+                            if (v == value) return;
+                            tick();
+                            onChanged(v);
+                          },
+                          child: Center(
+                            child: AnimatedDefaultTextStyle(
+                              duration: Motion.fast,
+                              style: context.text.labelLarge!.copyWith(color: j == i ? ll.text : ll.muted),
+                              child: Text(label),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Success moment (peak-end rule): a check that pops in, a firm haptic, one plain line saying what happened.
+/// Pass the messenger captured before popping a route.
+void showSuccess(ScaffoldMessengerState? messenger, String message) {
+  HapticFeedback.mediumImpact();
+  messenger
+    ?..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        duration: const Duration(milliseconds: 2600),
+        content: Row(
+          children: [
+            const _PopCheck(),
+            const SizedBox(width: Space.md),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
+    );
+}
+
+class _PopCheck extends StatelessWidget {
+  const _PopCheck();
+  @override
+  Widget build(BuildContext context) {
+    final ll = context.ll;
+    final circle = Container(
+      width: 26,
+      height: 26,
+      decoration: BoxDecoration(color: ll.accent, shape: BoxShape.circle),
+      child: Icon(Icons.check_rounded, size: 18, color: ll.onAccent),
+    );
+    if (Motion.reduced(context)) return circle;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 450),
+      curve: Motion.success,
+      builder: (_, v, c) => Transform.scale(scale: v, child: c),
+      child: circle,
+    );
+  }
+}

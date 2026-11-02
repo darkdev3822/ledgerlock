@@ -13,6 +13,7 @@ import 'package:ledgerlock/data/database.dart';
 import 'package:ledgerlock/data/tax_rules.dart';
 import 'package:ledgerlock/security/biometric_reset.dart';
 import 'package:ledgerlock/security/vault.dart';
+import 'package:ledgerlock/ui/design/components.dart';
 import 'package:ledgerlock/ui/design/theme.dart';
 import 'package:ledgerlock/ui/ledger/entry_screen.dart';
 import 'package:ledgerlock/ui/lock_screens.dart';
@@ -137,6 +138,37 @@ void main() {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await t.pumpAndSettle();
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/${name}_${b.name}.png'));
+  }
+
+  for (final b in Brightness.values) {
+    testWidgets('success ${b.name}', (t) async {
+      t.view.physicalSize = const Size(390, 300);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: buildTheme(b),
+          home: Builder(
+            builder: (c) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  onPressed: () => showSuccess(
+                    ScaffoldMessenger.of(c),
+                    'Logged \$450.00 for Q4. It now counts toward your payments.',
+                  ),
+                  child: const Text('go'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await t.tap(find.text('go'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 800));
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/success_${b.name}.png'));
+    });
   }
 
   for (final b in Brightness.values) {

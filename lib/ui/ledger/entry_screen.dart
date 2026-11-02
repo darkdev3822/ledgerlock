@@ -157,8 +157,17 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       }
     }
     await db.learnFromSave(isIncome: _income, party: _party.text, category: category);
-    HapticFeedback.mediumImpact();
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    Navigator.of(context).pop();
+    showSuccess(
+      messenger,
+      _editing
+          ? 'Changes saved.'
+          : _income && !_paid
+          ? 'Saved as unpaid. Mark it received when the money lands.'
+          : 'Saved to ${DateFormat.MMMM().format(_date)}.',
+    );
   }
 
   Future<void> _delete() async {

@@ -149,7 +149,16 @@ class CheckInScreen extends ConsumerWidget {
           FilledButton(
             onPressed: () async {
               await app.finishCheckIn(DateTime.now());
-              if (context.mounted) Navigator.of(context).pop();
+              if (!context.mounted) return;
+              final messenger = ScaffoldMessenger.maybeOf(context);
+              final days = checkInFrequencies[app.checkInFrequency] ?? 0;
+              Navigator.of(context).pop();
+              showSuccess(
+                messenger,
+                days == 0
+                    ? 'Check-in done. Nice work keeping things tidy.'
+                    : 'Check-in done. Next one in ${days == 7 ? 'a week' : '$days days'}.',
+              );
             },
             child: const Text('Done for now'),
           ),
