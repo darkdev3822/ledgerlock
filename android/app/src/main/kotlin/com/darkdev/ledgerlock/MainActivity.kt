@@ -28,12 +28,15 @@ class MainActivity : FlutterFragmentActivity() {
 
     // "Save as" via the system picker: the user chooses where the (plaintext) export goes; nothing is
     // written into app storage first.
-    private val createDocument = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri: Uri? ->
-        val (result, bytes) = pendingSave ?: return@registerForActivityResult
+    private val createCsv = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { onSaveTarget(it) }
+    private val createPdf = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { onSaveTarget(it) }
+
+    private fun onSaveTarget(uri: Uri?) {
+        val (result, bytes) = pendingSave ?: return
         pendingSave = null
         if (uri == null) {
             result.success(false)
-            return@registerForActivityResult
+            return
         }
         Thread {
             try {
@@ -104,7 +107,7 @@ class MainActivity : FlutterFragmentActivity() {
                         return@setMethodCallHandler
                     }
                     pendingSave = result to bytes
-                    createDocument.launch(name)
+                    if (call.argument<String>("mime") == "application/pdf") createPdf.launch(name) else createCsv.launch(name)
                 }
                 "requestNotifications" -> {
                     if (android.os.Build.VERSION.SDK_INT < 33 ||

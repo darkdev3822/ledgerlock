@@ -96,7 +96,7 @@ class ReminderReceiver : BroadcastReceiver() {
         )
         val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) android.app.Notification.Builder(ctx, Reminders.CHANNEL)
         else @Suppress("DEPRECATION") android.app.Notification.Builder(ctx)
-        val n = b.setSmallIcon(R.mipmap.ic_launcher)
+        val n = b.setSmallIcon(R.drawable.ic_stat_ledgerlock)
             .setContentTitle(intent.getStringExtra("title") ?: "LedgerLock")
             .setContentText(intent.getStringExtra("body") ?: "")
             .setContentIntent(open)

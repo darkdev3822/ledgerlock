@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 
 import '../security/attempt_guard.dart';
 import '../security/biometric_reset.dart';
+import '../platform/save_file.dart';
 import '../security/crypto.dart';
+import '../security/emergency_kit.dart';
 import '../security/vault.dart';
 import 'lock_screens.dart';
 
@@ -27,12 +29,7 @@ class RecoveryKeyScreen extends StatefulWidget {
   final String code;
   final VoidCallback onConfirmed;
   final bool isRegeneration;
-  const RecoveryKeyScreen({
-    super.key,
-    required this.code,
-    required this.onConfirmed,
-    this.isRegeneration = false,
-  });
+  const RecoveryKeyScreen({super.key, required this.code, required this.onConfirmed, this.isRegeneration = false});
   @override
   State<RecoveryKeyScreen> createState() => _RecoveryKeyScreenState();
 }
@@ -48,6 +45,20 @@ class _RecoveryKeyScreenState extends State<RecoveryKeyScreen> {
   void dispose() {
     _check.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveKit() async {
+    final m = ScaffoldMessenger.maybeOf(context);
+    try {
+      final ok = await saveWithPicker(
+        'LedgerLock-Emergency-Kit.pdf',
+        await buildEmergencyKit(),
+        mime: 'application/pdf',
+      );
+      if (ok) m?.showSnackBar(const SnackBar(content: Text('Saved. Print it, then write your key in the boxes.')));
+    } catch (_) {
+      m?.showSnackBar(const SnackBar(content: Text('Couldn\'t save the kit. Try another folder.')));
+    }
   }
 
   @override
@@ -78,15 +89,26 @@ class _RecoveryKeyScreenState extends State<RecoveryKeyScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            widget.isRegeneration ? 'Your old recovery key no longer works.' : 'Don\'t screenshot it or store it in a notes app: anyone with this key can open your vault.',
+            widget.isRegeneration
+                ? 'Your old recovery key no longer works.'
+                : 'Don\'t screenshot it or store it in a notes app: anyone with this key can open your vault.',
+            style: t.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            key: const Key('saveKit'),
+            onPressed: _saveKit,
+            icon: const Icon(Icons.print_outlined),
+            label: const Text('Save a printable Emergency Kit'),
+          ),
+          Text(
+            'A blank sheet to print and write this key on by hand. The key itself is not in the file.',
             style: t.bodySmall,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          FilledButton(
-            onPressed: () => setState(() => _confirming = true),
-            child: const Text('I\'ve written it down'),
-          ),
+          FilledButton(onPressed: () => setState(() => _confirming = true), child: const Text('I\'ve written it down')),
         ],
       );
     }
@@ -102,11 +124,7 @@ class _RecoveryKeyScreenState extends State<RecoveryKeyScreen> {
           controller: _check,
           autofocus: true,
           textCapitalization: TextCapitalization.characters,
-          decoration: InputDecoration(
-            hintText: 'XXXXX-XXXXX',
-            border: const OutlineInputBorder(),
-            errorText: _error,
-          ),
+          decoration: InputDecoration(hintText: 'XXXXX-XXXXX', border: const OutlineInputBorder(), errorText: _error),
         ),
         const SizedBox(height: 24),
         FilledButton(
@@ -175,8 +193,7 @@ class _SecurityQuestionsSetupScreenState extends State<SecurityQuestionsSetupScr
     super.dispose();
   }
 
-  bool get _valid =>
-      _questions.toSet().length == 3 && _answers.every((c) => normalizeAnswer(c.text).length >= 2);
+  bool get _valid => _questions.toSet().length == 3 && _answers.every((c) => normalizeAnswer(c.text).length >= 2);
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -247,12 +264,7 @@ class ForgotPasswordScreen extends StatefulWidget {
   final Vault vault;
   final BiometricSecretStore biometrics;
   final Future<void> Function(Uint8List dataKey) onRecovered;
-  const ForgotPasswordScreen({
-    super.key,
-    required this.vault,
-    required this.biometrics,
-    required this.onRecovered,
-  });
+  const ForgotPasswordScreen({super.key, required this.vault, required this.biometrics, required this.onRecovered});
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
@@ -321,12 +333,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     child: Padding(padding: const EdgeInsets.all(16), child: Text(_message!)),
                   ),
                 if (s.contains(Slot.biometric))
-                  _Method(
-                    Icons.fingerprint,
-                    'Use fingerprint or face',
-                    'Quickest, on this phone',
-                    _biometric,
-                  ),
+                  _Method(Icons.fingerprint, 'Use fingerprint or face', 'Quickest, on this phone', _biometric),
                 if (s.contains(Slot.recovery))
                   _Method(Icons.key, 'Enter recovery key', 'The 30-character key you wrote down', () {
                     Navigator.of(context).push(
@@ -336,21 +343,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     );
                   }),
                 if (s.contains(Slot.questions))
-                  _Method(
-                    Icons.quiz_outlined,
-                    'Answer security questions',
-                    'All three answers needed',
-                    () async {
-                      final qs = await widget.vault.securityQuestions();
-                      if (!context.mounted) return;
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              _QuestionsEntry(vault: widget.vault, questions: qs, onRecovered: _done),
-                        ),
-                      );
-                    },
-                  ),
+                  _Method(Icons.quiz_outlined, 'Answer security questions', 'All three answers needed', () async {
+                    final qs = await widget.vault.securityQuestions();
+                    if (!context.mounted) return;
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => _QuestionsEntry(vault: widget.vault, questions: qs, onRecovered: _done),
+                      ),
+                    );
+                  }),
                 if (!s.contains(Slot.recovery) && !s.contains(Slot.biometric) && !s.contains(Slot.questions))
                   const ListTile(
                     title: Text('No recovery methods are set up. Restore from an encrypted backup instead.'),
@@ -438,10 +439,7 @@ class _RecoveryKeyEntryState extends State<_RecoveryKeyEntry> {
           onSubmitted: (_) => _submit(),
         ),
         const SizedBox(height: 24),
-        FilledButton(
-          onPressed: _busy ? null : _submit,
-          child: _busy ? const BusyDot() : const Text('Continue'),
-        ),
+        FilledButton(onPressed: _busy ? null : _submit, child: _busy ? const BusyDot() : const Text('Continue')),
       ],
     ),
   );
@@ -506,10 +504,7 @@ class _QuestionsEntryState extends State<_QuestionsEntry> {
         ],
         if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
         const SizedBox(height: 8),
-        FilledButton(
-          onPressed: _busy ? null : _submit,
-          child: _busy ? const BusyDot() : const Text('Continue'),
-        ),
+        FilledButton(onPressed: _busy ? null : _submit, child: _busy ? const BusyDot() : const Text('Continue')),
       ],
     ),
   );

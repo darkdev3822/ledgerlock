@@ -36,7 +36,7 @@ better design and search.** Lead with privacy in every store listing and screens
   never lose their data). The random data key is wrapped separately by each method, so any one of them unlocks it
   and then lets the user set a new master password (re-wrap only; data is not re-encrypted):
   1. **Recovery key** (required at setup): a random 150-bit code (30 Crockford base32 chars, 6 groups of 5) shown
-     once, plus a printable "Emergency Kit" page (added with the PDF work in M6). The user must re-type part of it to confirm they saved it. Can be regenerated
+     once, plus a printable "Emergency Kit" page (M6: blank boxes the user writes the key into by hand; the file never contains the key). The user must re-type part of it to confirm they saved it. Can be regenerated
      in Settings (the old one stops working).
   2. **Biometric reset** (offered at setup): a Keystore / Secure Enclave key, gated by biometrics and invalidated
      when new fingerprints/faces are enrolled, wraps the data key. "Forgot password?" → biometric → new password.

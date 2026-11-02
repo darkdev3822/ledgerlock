@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 
 const _ch = MethodChannel('ledgerlock/files');
 
-Future<bool> saveWithPicker(String name, Uint8List bytes) async {
-  final ok = await _ch.invokeMethod<bool>('save', {'name': name, 'bytes': bytes});
+Future<bool> saveWithPicker(String name, Uint8List bytes, {String mime = 'text/csv'}) async {
+  final ok = await _ch.invokeMethod<bool>('save', {'name': name, 'bytes': bytes, 'mime': mime});
   return ok ?? false;
 }

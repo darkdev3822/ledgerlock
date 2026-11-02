@@ -100,13 +100,16 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   POST_NOTIFICATIONS), rescheduled on unlock/change; CheckInScreen + Home CheckInCard (only when due AND questions
   exist); actions open entry / payment log / 1099s / search. SECURITY T12. 129 tests. Release APK: +POST_NOTIFICATIONS,
   +RECEIVE_BOOT_COMPLETED, still no INTERNET.
-- M6 code-complete except Emergency Kit PDF. **Device check NOT done (needs owner):** auto mode refused typing the
+- M6 code-complete (2026-11-01, later): Emergency Kit PDF done (`pdf` 3.13.1 vetted; kit has blank boxes, never the
+  key: SECURITY T13; save channel takes a mime). Mono notification icon (drawable/ic_stat_ledgerlock). 130 tests.
+  **Device check NOT done (needs owner):** auto mode refused typing the
   emulator screen PIN / app password (credential entry). Owner: unlock the emulator + app (or tell Claude the test
   password / allow it), then verify: Export CSV save picker writes a file; Settings > Reminders asks for notification
   permission and `adb shell dumpsys alarm | grep ledgerlock` shows alarms; check-in card; FAB outline (goldens show a
-  black outline, likely test-only focus highlight). Notification small icon uses the launcher icon (polish: mono icon).
-- Emergency Kit PDF (M6) + draft return (M7) need a PDF library: vet `pdf` (pure Dart) for networking + license;
-  form-FILLING libraries are often commercial -> owner decision.
+  black outline, likely test-only focus highlight). Also: Emergency Kit save writes a .pdf; reminder shows padlock icon.
+  Owner said "go ahead"/"continue" but auto mode still blocked PIN entry: needs explicit permission or owner unlocks.
+- Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
+  if a commercial library is needed.
 - Next session: device check with owner, then M7 (Pro: OCR, rules, imports, tax packet + draft return, paywall).
   Tax-rules review window opens 2026-12-01: do the open items FIRST then.
   -> quarterly reminders + check-ins (§2.13), emulator check of all M6 screens (FAB black outline seen in goldens:
@@ -116,7 +119,7 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.
 - Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
   (only tested on synthetic + emulator scene); PDF preview (M6); iOS document picker channel (M10).
-- Still open: Emergency Kit PDF (M6), custom security questions, backup-age banner (M9), FLAG_SECURE toggle,
+- Still open: custom security questions, backup-age banner (M9), FLAG_SECURE toggle,
   Argon2id tuning on a real phone, templates for frequent entries, 50-receipt free limit (M7).
 
 ## Gotchas
