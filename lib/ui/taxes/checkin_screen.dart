@@ -40,9 +40,13 @@ final checkInProvider = Provider<List<CheckInQuestion>>((ref) {
       ...ref.watch(entriesProvider(y - 1)).value ?? const <LedgerEntry>[],
     ],
     entriesWithReceipt: ref.watch(receiptEntryIdsProvider(y)).value ?? const {},
-    payments: ref.watch(paymentsProvider(y)).value ?? const [],
+    payments: [
+      ...ref.watch(paymentsProvider(y)).value ?? const <TaxPayment>[],
+      ...ref.watch(paymentsProvider(y - 1)).value ?? const <TaxPayment>[],
+    ],
     formsLastYear: ref.watch(forms1099Provider(y - 1)).value ?? const [],
     rules: supported ? ref.watch(taxRulesProvider(y)).value : null,
+    previousRules: TaxRules.supportedYears.contains(y - 1) ? ref.watch(taxRulesProvider(y - 1)).value : null,
     dismissed: app.dismissedCheckIns,
   );
 });
@@ -53,7 +57,7 @@ final checkInDueProvider = Provider<bool>((ref) {
   final days = checkInFrequencies[app.checkInFrequency] ?? 0;
   if (days == 0) return false;
   final last = app.lastCheckIn;
-  final due = last == null || ref.watch(todayProvider).difference(last).inDays >= days;
+  final due = last == null || daysBetween(last, ref.watch(todayProvider)) >= days;
   return due && ref.watch(checkInProvider).isNotEmpty;
 });
 

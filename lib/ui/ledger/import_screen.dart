@@ -135,7 +135,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             category: p.category,
             party: Value(p.row.payee),
             platform: Value(_source.text.trim()),
-            notes: Value(p.row.notes.length > 200 ? p.row.notes.substring(0, 200) : p.row.notes),
+            notes: Value(safeTake(p.row.notes, 200)),
           ),
       ]);
       await db.setSetting(headerSignature(rows.first), jsonEncode(_map.toJson()));
@@ -225,6 +225,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           pick('Money in (credit)', _map.credit, (v) => _map.copyWith(credit: v), optional: true),
         ],
         pick('Fee (optional)', _map.fee, (v) => _map.copyWith(fee: v), optional: true),
+        pick('Income or expense column (optional)', _map.kind, (v) => _map.copyWith(kind: v), optional: true),
         pick('Notes (optional)', _map.notes, (v) => _map.copyWith(notes: v), optional: true),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,

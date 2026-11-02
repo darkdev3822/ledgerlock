@@ -165,6 +165,17 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   account ($25) + 12 closed testers for 14 days, privacy policy page.
   F-Droid blockers to solve in M10: SQLCipher prebuilt binary download at build time, Tesseract4Android via
   JitPack (F-Droid builds from source; may need srclibs), Flutter build recipe.
+- M9.5 security assessment, round 1 (2026-11-02): 4 parallel AI reviewers (crypto/auth, Android surface, fuzzing,
+  UI/logic) + own APK reverse engineering (apkanalyzer/dexdump: no network classes, analytics or ads; not
+  debuggable; exports safe) and rooted-emulator forensics (marker payee/amount absent from all files, logs,
+  shared storage; recents thumbnail covered). Fixed: T18 High (zero-key write after lock), T19-T24, plus 9 fuzz
+  bugs (decimal-comma amounts x100, letters in amounts, own-export re-import, formula apostrophe, rounding
+  totals, negative miles, future lastCheckIn, DST day counts, reminder loop) and UI bugs (double-tap Save dupes
+  + double pop, sheet controller disposal, Undo losing receipts, Undo bar surviving lock, onboarding skipped
+  after lock, emoji truncation, Jan Q4 check-in, never-expiring dismissals, "in 1 days", set-aside/4 estimate,
+  overflows at 1.3x/2x text and 320 px, pickers outside the year, payment undo). test/fuzz/ (4 fuzz files +
+  442-case UI stress) now run as permanent regressions: 646 tests. Accepted: A1 (key rotation, revisit M9).
+  Open for owner/M10: A2 release keystore + Gradle verification metadata.
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next: M9 backups (encrypted export/restore; owner's data-loss priority), then M8 leftovers (app icon, a11y

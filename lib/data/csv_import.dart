@@ -28,7 +28,7 @@ List<List<String>> parseCsv(List<int> bytes) {
   var quoted = false;
   void endCell() {
     var v = cell.toString();
-    if (v.length > maxCellChars) v = v.substring(0, maxCellChars);
+    v = safeTake(v, maxCellChars);
     row.add(v);
     cell.clear();
   }
@@ -82,6 +82,10 @@ String _sniffDelimiter(String text) {
 class ColumnMap {
   final int date, amount, debit, credit, payee, fee, notes;
 
+  /// Optional column saying Income/Expense (or Credit/Debit). When it is recognised it decides the sign (F3:
+  /// LedgerLock's own export has positive amounts plus a Type column).
+  final int kind;
+
   /// Bank style: negative = money out (expense). If true, positive amounts are expenses instead.
   final bool flipSign;
   const ColumnMap({
@@ -92,6 +96,7 @@ class ColumnMap {
     this.payee = -1,
     this.fee = -1,
     this.notes = -1,
+    this.kind = -1,
     this.flipSign = false,
   });
 
@@ -105,6 +110,7 @@ class ColumnMap {
     int? payee,
     int? fee,
     int? notes,
+    int? kind,
     bool? flipSign,
   }) => ColumnMap(
     date: date ?? this.date,
@@ -114,6 +120,7 @@ class ColumnMap {
     payee: payee ?? this.payee,
     fee: fee ?? this.fee,
     notes: notes ?? this.notes,
+    kind: kind ?? this.kind,
     flipSign: flipSign ?? this.flipSign,
   );
 
@@ -125,6 +132,7 @@ class ColumnMap {
     'payee': payee,
     'fee': fee,
     'notes': notes,
+    'kind': kind,
     'flip': flipSign,
   };
 
@@ -139,6 +147,7 @@ class ColumnMap {
       payee: g('payee'),
       fee: g('fee'),
       notes: g('notes'),
+      kind: g('kind'),
       flipSign: j['flip'] == true,
     );
   }
@@ -169,8 +178,10 @@ ColumnMap guessColumns(List<String> header) {
     ['payee', 'merchant', 'name', 'description', 'buyer', 'customer', 'counterparty', 'memo', 'details'],
     skip: {date, amount, fee},
   );
-  final notes = find(['memo', 'note', 'item title', 'item', 'reference', 'type'], skip: {date, amount, fee, payee});
+  final kind = find(['type', 'kind', 'direction'], skip: {date, amount, fee, payee});
+  final notes = find(['memo', 'note', 'item title', 'item', 'reference'], skip: {date, amount, fee, payee, kind});
   return ColumnMap(
+    kind: kind,
     date: date,
     amount: amount,
     debit: amount >= 0 ? -1 : debit,
@@ -220,7 +231,19 @@ int? parseImportAmount(String raw) {
     neg = true;
     s = s.substring(1, s.length - 1);
   }
-  s = s.replaceAll(RegExp(r'[A-Za-z$€£\s,]'), '');
+  // Currency symbols/codes only at the ends; letters in the middle make it not-a-number ("1e3", "INV 42": F2).
+  s = s.replaceAll(RegExp(r'^\s*(?:USD|EUR|GBP|CAD|AUD|[$€£])\s*|\s*(?:USD|EUR|GBP|CAD|AUD|[$€£])\s*$'), '');
+  s = s.replaceAll(RegExp(r'^[$€£]|[$€£]$'), '').replaceAll(RegExp(r'\s'), '');
+  if (RegExp(r'[A-Za-z]').hasMatch(s)) return null;
+  // Separators (F1): "5,00" / "1.234,56" are decimal-comma; "1,234.56" / "1,234" are thousands-comma.
+  final decimalComma = RegExp(r',\d{1,2}-?$').hasMatch(s) && (!s.contains('.') || s.lastIndexOf('.') < s.indexOf(','));
+  if (decimalComma) {
+    s = s.replaceAll('.', '').replaceAll(',', '.');
+  } else {
+    final intPart = s.split('.').first.replaceAll(RegExp(r'^[-+]|-$'), '');
+    if (intPart.contains(',') && !RegExp(r'^\d{1,3}(,\d{3})+$').hasMatch(intPart)) return null;
+    s = s.replaceAll(',', '');
+  }
   if (s.startsWith('-')) {
     neg = !neg;
     s = s.substring(1);
@@ -264,6 +287,9 @@ class ImportResult {
   const ImportResult(this.rows, this.skippedLines);
 }
 
+/// Undo our own CSV export's formula guard (a leading apostrophe before = + - @ tab CR), F4.
+String _unguard(String v) => v.length > 1 && v[0] == "'" && '=+-@\t\r'.contains(v[1]) ? v.substring(1) : v;
+
 String _dupKey(String isoDate, bool income, int cents, String payee) =>
     '$isoDate|${income ? 1 : 0}|$cents|${payee.trim().toLowerCase()}';
 
@@ -291,7 +317,17 @@ ImportResult buildImport(List<List<String>> data, ColumnMap map, {Iterable<Ledge
       skipped.add(line);
       continue;
     }
-    if (map.flipSign) signed = -signed;
+    final k = at(r, map.kind).toLowerCase();
+    final dir = RegExp(r'^(income|credit|deposit|money in)').hasMatch(k)
+        ? 1
+        : RegExp(r'^(expense|debit|withdrawal|purchase|money out)').hasMatch(k)
+        ? -1
+        : 0;
+    if (dir != 0) {
+      signed = dir * signed.abs();
+    } else if (map.flipSign) {
+      signed = -signed;
+    }
     final income = signed > 0;
     final cents = signed.abs();
     final payee = at(r, map.payee);
@@ -304,8 +340,8 @@ ImportResult buildImport(List<List<String>> data, ColumnMap map, {Iterable<Ledge
         isIncome: income,
         amountCents: cents,
         feeCents: fee,
-        payee: payee.length > 80 ? payee.substring(0, 80) : payee,
-        notes: at(r, map.notes),
+        payee: _unguard(safeTake(payee, 80)),
+        notes: _unguard(at(r, map.notes)),
         duplicate: !seen.add(key),
       ),
     );

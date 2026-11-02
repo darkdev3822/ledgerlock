@@ -192,7 +192,8 @@ class AppController extends ChangeNotifier {
       pendingCode = RecoveryKey.generate();
       stage = Stage.recoveryKey;
     } else {
-      stage = Stage.ready;
+      // An auto-lock or app kill mid-onboarding used to skip the rest of it (UI review A).
+      stage = onboarded ? Stage.ready : Stage.businessType;
     }
     notifyListeners();
   }

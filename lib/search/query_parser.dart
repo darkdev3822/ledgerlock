@@ -1,5 +1,6 @@
 // Natural-language search parser (SPEC §4): a small local parser, no AI service.
 // "fuel over 50 in 2026", "fiverr fees march", "no receipt > 75", "uncategorized last year".
+import '../data/database.dart' show safeTake;
 
 class SearchQuery {
   final List<String> terms; // free-text words for FTS
@@ -193,7 +194,7 @@ const _stop = {
 const maxQueryChars = 200, maxQueryWords = 24;
 
 SearchQuery parseQuery(String input, {required DateTime today}) {
-  if (input.length > maxQueryChars) input = input.substring(0, maxQueryChars);
+  input = safeTake(input, maxQueryChars);
   final words = input
       .toLowerCase()
       .replaceAllMapped(RegExp(r'(\d),(\d{3})\b'), (m) => '${m[1]}${m[2]}') // 1,000 -> 1000

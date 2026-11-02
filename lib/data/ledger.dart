@@ -113,27 +113,30 @@ LedgerSummary summarize(
     }
   }
   if (mileageCents > 0) add('9', mileageCents.toDouble());
-  final gross = (lines['1'] ?? 0) - (lines['2'] ?? 0) + (lines['6'] ?? 0);
-  final expenses = lines.entries.where((e) => !const {'1', '2', '6'}.contains(e.key)).fold(0.0, (a, e) => a + e.value);
+  // Round each Schedule C line once, then build every total from the rounded lines, so the totals always equal the
+  // sum of the lines shown (M9.5 fuzz F5: separately rounded totals could disagree by a cent).
+  final rl = <String, int>{
+    for (final e in lines.entries)
+      if (_r(e.value) != 0) e.key: _r(e.value),
+  };
+  final grossC = (rl['1'] ?? 0) - (rl['2'] ?? 0) + (rl['6'] ?? 0);
+  final expC = rl.entries.where((e) => !const {'1', '2', '6'}.contains(e.key)).fold(0, (a, e) => a + e.value);
   // Line 30 (home office, simplified method) can't create or increase a loss.
-  final tentative = gross - expenses;
-  final office = homeOfficeCents <= 0 || tentative <= 0
-      ? 0.0
-      : (homeOfficeCents < tentative ? homeOfficeCents.toDouble() : tentative);
-  if (office > 0) lines['30'] = office;
-  final net = tentative - office;
-  final seTax = seTaxFor(net, rules, w2WagesCents: w2WagesCents);
+  final tentativeC = grossC - expC;
+  final officeC = homeOfficeCents <= 0 || tentativeC <= 0
+      ? 0
+      : (homeOfficeCents < tentativeC ? homeOfficeCents : tentativeC);
+  if (officeC > 0) rl['30'] = officeC;
+  final netC = tentativeC - officeC;
+  final seTax = seTaxFor(netC.toDouble(), rules, w2WagesCents: w2WagesCents);
   final pct = setAsidePct ?? rules.defaultSetAsidePct;
   return LedgerSummary(
-    lines: {
-      for (final e in lines.entries)
-        if (e.value != 0) e.key: _r(e.value),
-    },
-    grossCents: _r(gross),
-    expensesCents: _r(expenses + office),
-    netCents: _r(net),
+    lines: rl,
+    grossCents: grossC,
+    expensesCents: expC + officeC,
+    netCents: netC,
     seTaxCents: _r(seTax < 0 ? 0 : seTax),
-    setAsideCents: _r((net < 0 ? 0 : net) * pct / 100),
+    setAsideCents: _r((netC < 0 ? 0 : netC) * pct / 100),
     setAsidePct: pct,
     monthly: {for (final m in monthly.entries) m.key: (_r(m.value.$1), _r(m.value.$2))},
   );
@@ -147,7 +150,7 @@ int mileageDeductionCents(Iterable<(String, int)> trips, TaxRules rules) {
   var cents = 0.0;
   for (final (date, tenths) in trips) {
     final r = rate.valueOn(DateTime.parse(date));
-    if (r != null) cents += tenths / 10 * r; // rate is in cents per mile
+    if (r != null && tenths > 0) cents += tenths / 10 * r; // cents per mile; negative miles ignored (fuzz F6)
   }
   return cents.round();
 }

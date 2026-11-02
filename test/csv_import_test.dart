@@ -52,7 +52,7 @@ void main() {
 
   test('column guess: bank (amount) and debit/credit layouts', () {
     final bank = guessColumns(['Posting Date', 'Description', 'Amount', 'Type', 'Balance']);
-    expect([bank.date, bank.payee, bank.amount, bank.notes], [0, 1, 2, 3]);
+    expect([bank.date, bank.payee, bank.amount, bank.kind, bank.notes], [0, 1, 2, 3, -1]);
     expect(bank.usable, isTrue);
     final dc = guessColumns(['Date', 'Payee', 'Debit', 'Credit']);
     expect([dc.amount, dc.debit, dc.credit, dc.payee], [-1, 2, 3, 1]);

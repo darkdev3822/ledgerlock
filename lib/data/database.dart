@@ -113,6 +113,21 @@ extension LedgerEntryMaths on LedgerEntry {
   );
 }
 
+/// At most [n] UTF-16 units of [s] without splitting a surrogate pair (an emoji cut in half is malformed text that
+/// throws when drawn; UI review U9).
+String safeTake(String s, int n) {
+  if (s.length <= n) return s;
+  var end = n;
+  final last = s.codeUnitAt(end - 1);
+  if (last >= 0xD800 && last <= 0xDBFF) end--; // don't keep a lone high surrogate
+  return s.substring(0, end);
+}
+
+/// Whole calendar days from [a] to [b] (dates only). Counts on UTC dates, so a 23- or 25-hour day at a
+/// daylight-saving change can't make it one short (M9.5 fuzz F8 / UI U5).
+int daysBetween(DateTime a, DateTime b) =>
+    DateTime.utc(b.year, b.month, b.day).difference(DateTime.utc(a.year, a.month, a.day)).inDays;
+
 String isoDay(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
@@ -251,10 +266,22 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> saveEntry(LedgerEntry e) => update(ledgerEntries).replace(e);
 
-  Future<void> deleteEntry(int id) => (delete(ledgerEntries)..where((e) => e.id.equals(id))).go();
+  /// Deletes the entry. Returns the ids of attachments that were linked to it (the FK unlinks them), so Undo can
+  /// relink them.
+  Future<List<int>> deleteEntry(int id) => transaction(() async {
+    final linked = await (select(attachments)..where((a) => a.entryId.equals(id))).map((a) => a.id).get();
+    await (delete(ledgerEntries)..where((e) => e.id.equals(id))).go();
+    return linked;
+  });
 
-  /// Undo for a delete: puts the row back with its original id.
-  Future<void> restoreEntry(LedgerEntry e) => into(ledgerEntries).insert(e, mode: InsertMode.insertOrReplace);
+  /// Undo for a delete: puts the row back with its original id and relinks its receipts (UI review U3: they used
+  /// to stay "unmatched" in the Vault).
+  Future<void> restoreEntry(LedgerEntry e, {List<int> attachmentIds = const []}) => transaction(() async {
+    await into(ledgerEntries).insert(e, mode: InsertMode.insertOrReplace);
+    for (final a in attachmentIds) {
+      await linkAttachment(a, e.id);
+    }
+  });
 
   /// Smart default (SPEC §5): the category last used for this payee, else for this kind.
   /// [anyPayee]: fall back to the last category used for this kind when the payee is new (manual entry). Imports

@@ -415,3 +415,50 @@ class _PopCheck extends StatelessWidget {
     );
   }
 }
+
+/// "Record deleted · Undo". Not persistent and short-lived, so it can't outlive an auto-lock and call into a
+/// closed database (UI review U4); main.dart also clears snackbars whenever the app locks.
+void showUndo(ScaffoldMessengerState messenger, String message, VoidCallback onUndo) {
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        persist: false,
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(label: 'Undo', onPressed: onUndo),
+      ),
+    );
+}
+
+/// Two-column tile grid whose rows grow with their content (text size), unlike GridView's fixed aspect ratio which
+/// overflowed at 1.3x text (UI review L2). Tiles in a row share the taller height.
+class TileGrid extends StatelessWidget {
+  final List<Widget> children;
+  final double minHeight;
+  const TileGrid({super.key, required this.children, this.minHeight = 112});
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      for (var i = 0; i < children.length; i += 2) ...[
+        if (i > 0) const SizedBox(height: Space.md),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: minHeight),
+                  child: children[i],
+                ),
+              ),
+              const SizedBox(width: Space.md),
+              Expanded(child: i + 1 < children.length ? children[i + 1] : const SizedBox.shrink()),
+            ],
+          ),
+        ),
+      ],
+    ],
+  );
+}

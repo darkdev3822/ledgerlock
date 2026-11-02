@@ -90,7 +90,7 @@ void main() {
     expect(g.remaining(), const Duration(hours: 1));
     wall = wall.add(const Duration(days: 3)); // attacker sets the clock forward
     expect(g.remaining(), const Duration(hours: 1), reason: 'boot clock has not moved');
-    up = up! + const Duration(minutes: 20);
+    up = up + const Duration(minutes: 20);
     expect(g.remaining(), const Duration(minutes: 40));
     up = const Duration(seconds: 30); // reboot
     expect(g.remaining(), const Duration(hours: 1), reason: 'restarts in full after reboot');

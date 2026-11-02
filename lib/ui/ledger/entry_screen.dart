@@ -167,7 +167,20 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
 
   int get _feeCents => ((double.tryParse(_fee.text.replaceAll(',', '')) ?? 0) * 100).round();
 
+  bool _saving = false;
+
   Future<void> _save(TaxRules rules) async {
+    // A double tap used to insert twice and pop twice, closing the main screen too (UI review U1).
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await _saveOnce(rules);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _saveOnce(TaxRules rules) async {
     final db = ref.read(appControllerProvider).db!;
     final category = _category!;
     final pct = _income ? 100 : _businessPct.round();
@@ -216,23 +229,20 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           ? 'Changes saved.'
           : _income && !_paid
           ? 'Saved as unpaid. Mark it received when the money lands.'
-          : 'Saved to ${DateFormat.MMMM().format(_date)}.',
+          : _date.year == ref.read(appControllerProvider).selectedYear
+          ? 'Saved to ${DateFormat.MMMM().format(_date)}.'
+          : 'Saved to ${DateFormat.yMMMM().format(_date)}. Switch the year to see it.',
     );
   }
 
   Future<void> _delete() async {
     final db = ref.read(appControllerProvider).db!;
     final e = widget.existing!;
-    await db.deleteEntry(e.id);
+    final linked = await db.deleteEntry(e.id);
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
-    messenger.showSnackBar(
-      SnackBar(
-        content: const Text('Record deleted'),
-        action: SnackBarAction(label: 'Undo', onPressed: () => db.restoreEntry(e)),
-      ),
-    );
+    showUndo(messenger, 'Record deleted', () => db.restoreEntry(e, attachmentIds: linked));
   }
 
   @override
@@ -474,7 +484,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                     if (!_textFocused) _Keypad(onKey: _key),
                     const SizedBox(height: Space.sm),
                     FilledButton(
-                      onPressed: _cents > 0 && _category != null ? () => _save(rules) : null,
+                      onPressed: _cents > 0 && _category != null && !_saving ? () => _save(rules) : null,
                       child: Text(_editing ? 'Save changes' : 'Save ${_income ? 'income' : 'expense'}'),
                     ),
                   ],

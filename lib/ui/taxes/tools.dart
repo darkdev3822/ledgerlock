@@ -46,15 +46,19 @@ TextField _field(TextEditingController c, String label, {bool money = false, boo
       decoration: _dec(label, helper: helper, prefix: money ? '\$' : null),
     );
 
-Future<DateTime?> _pickDate(BuildContext context, DateTime initial, int year) => showDatePicker(
-  context: context,
-  initialDate: initial,
-  firstDate: DateTime(year - 1),
-  lastDate: DateTime(year + 1, 12, 31),
-);
+/// Dates stay inside the tax year (a trip dated in another year vanished from the screen: UI review). Payments may
+/// fall in January of the next year (Q4 is due mid-January).
+Future<DateTime?> _pickDate(BuildContext context, DateTime initial, int year, {bool intoNextYear = false}) =>
+    showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(year),
+      lastDate: intoNextYear ? DateTime(year + 1, 1, 31) : DateTime(year, 12, 31),
+    );
 
 /// A simple form sheet: fields + Save. Returns true if saved.
 Future<bool> _sheet(BuildContext context, String title, List<Widget> fields, Future<bool> Function() save) async {
+  var saving = false;
   final ok = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -71,9 +75,19 @@ Future<bool> _sheet(BuildContext context, String title, List<Widget> fields, Fut
             ...fields,
             const SizedBox(height: Space.lg),
             FilledButton(
-              onPressed: () async {
-                if (await save() && c.mounted) Navigator.pop(c, true);
-              },
+              // One save at a time: a double tap used to log the same payment twice (UI review U2b).
+              onPressed: saving
+                  ? null
+                  : () async {
+                      set(() => saving = true);
+                      final ok = await save();
+                      if (!c.mounted) return;
+                      if (ok) {
+                        Navigator.pop(c, true);
+                      } else {
+                        set(() => saving = false);
+                      }
+                    },
               child: const Text('Save'),
             ),
           ],
@@ -81,6 +95,9 @@ Future<bool> _sheet(BuildContext context, String title, List<Widget> fields, Fut
       ),
     ),
   );
+  // Callers dispose their TextEditingControllers when this returns: wait for the sheet's exit animation so the
+  // fields are gone first (UI review U2: "used after being disposed").
+  await Future<void>.delayed(const Duration(milliseconds: 350));
   return ok ?? false;
 }
 
@@ -91,7 +108,8 @@ class _DateRow extends StatefulWidget {
   final DateTime initial;
   final int year;
   final ValueChanged<DateTime> onChanged;
-  const _DateRow({required this.initial, required this.year, required this.onChanged});
+  final bool intoNextYear;
+  const _DateRow({required this.initial, required this.year, required this.onChanged, this.intoNextYear = false});
   @override
   State<_DateRow> createState() => _DateRowState();
 }
@@ -105,7 +123,7 @@ class _DateRowState extends State<_DateRow> {
     title: Text(DateFormat.yMMMd().format(d)),
     trailing: const Icon(Icons.edit_calendar_outlined),
     onTap: () async {
-      final p = await _pickDate(context, d, widget.year);
+      final p = await _pickDate(context, d, widget.year, intoNextYear: widget.intoNextYear);
       if (p != null) {
         setState(() => d = p);
         widget.onChanged(p);
@@ -138,7 +156,7 @@ class PaymentLogScreen extends ConsumerWidget {
       context,
       'Log a payment for $year',
       [
-        _DateRow(initial: date, year: year, onChanged: (d) => date = d),
+        _DateRow(initial: date, year: year, onChanged: (d) => date = d, intoNextYear: true),
         DropdownButtonFormField<String>(
           initialValue: quarter,
           decoration: _dec('Quarter'),
@@ -243,7 +261,17 @@ class PaymentLogScreen extends ConsumerWidget {
                     key: ValueKey('pay${p.id}'),
                     direction: DismissDirection.endToStart,
                     background: _deleteBg(context),
-                    onDismissed: (_) => ref.read(appControllerProvider).db?.deletePayment(p.id),
+                    onDismissed: (_) async {
+                      final db = ref.read(appControllerProvider).db;
+                      if (db == null) return;
+                      await db.deletePayment(p.id);
+                      if (!context.mounted) return;
+                      showUndo(
+                        ScaffoldMessenger.of(context),
+                        'Payment deleted',
+                        () => db.addPayment(p.toCompanion(true)),
+                      );
+                    },
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: ll.surfaceAlt,

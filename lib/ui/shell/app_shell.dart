@@ -62,11 +62,22 @@ class _AppShellState extends ConsumerState<AppShell> {
           children: [
             // Home's greeting is its title (one hero per screen); other tabs name themselves.
             if (_tab != 0) ...[
-              AnimatedSwitcher(
-                duration: Motion.medium,
-                child: Text(_titles[_tab], key: ValueKey(_tab), style: context.text.headlineSmall),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: AnimatedSwitcher(
+                    duration: Motion.medium,
+                    child: Text(
+                      _titles[_tab],
+                      key: ValueKey(_tab),
+                      style: context.text.headlineSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: Space.sm),
             ],
             YearSwitcher(year: app.selectedYear, onChanged: app.setYear),
             if (_tab == 0) const Spacer(),
@@ -90,13 +101,17 @@ class _AppShellState extends ConsumerState<AppShell> {
             _TabFade(active: i == _tab, child: tab),
         ],
       ),
-      bottomNavigationBar: LLBottomBar(
-        index: _tab,
-        onTap: (i) {
-          HapticFeedback.selectionClick();
-          setState(() => _tab = i);
-        },
-        onScan: _scan,
+      // Nav labels stop growing at 1.3x text (common practice): five labels can't fit at 2x (UI review L4).
+      bottomNavigationBar: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.3,
+        child: LLBottomBar(
+          index: _tab,
+          onTap: (i) {
+            HapticFeedback.selectionClick();
+            setState(() => _tab = i);
+          },
+          onScan: _scan,
+        ),
       ),
     );
   }

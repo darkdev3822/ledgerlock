@@ -1,6 +1,7 @@
 // Turns OCR text from a receipt into suggested fields (SPEC §3: merchant, date, total, tax). Pure and
 // conservative: anything unsure is left null for the user to fill. Suggestions are always shown for review.
 import '../data/csv_import.dart' show parseImportDate;
+import '../data/database.dart' show daysBetween, safeTake;
 
 class ReceiptGuess {
   final String? merchant;
@@ -67,7 +68,7 @@ ReceiptGuess parseReceipt(String text, {required DateTime today}) {
       continue;
     }
     merchant = _titleCase(l.replaceAll(RegExp(r'[^A-Za-z0-9&\x27.\- ]'), '').trim());
-    if (merchant.length > 40) merchant = merchant.substring(0, 40).trim();
+    merchant = safeTake(merchant, 40).trim();
     break;
   }
 
@@ -77,7 +78,7 @@ ReceiptGuess parseReceipt(String text, {required DateTime today}) {
   for (final l in lines) {
     for (final m in _dateish.allMatches(l)) {
       final d = parseImportDate(m[0]!);
-      if (d != null && !d.isAfter(d0.add(const Duration(days: 1))) && d0.difference(d).inDays <= 730) {
+      if (d != null && !d.isAfter(d0.add(const Duration(days: 1))) && daysBetween(d, d0) <= 730) {
         date = d;
         break;
       }

@@ -28,9 +28,12 @@ List<CheckInQuestion> checkInQuestions({
   required DateTime today,
   required List<LedgerEntry> entries, // this year and last year
   required Set<int> entriesWithReceipt,
-  required List<TaxPayment> payments, // for today's tax year
+  required List<TaxPayment> payments, // this year and last (January: last year's Q4)
   required List<Form1099> formsLastYear,
   required TaxRules? rules,
+
+  /// Last year's rules: in January the previous year's Q4 payment is still due (UI review U8).
+  TaxRules? previousRules,
   Set<String> dismissed = const {},
   int max = 5,
 }) {
@@ -43,14 +46,17 @@ List<CheckInQuestion> checkInQuestions({
   final thisYear = entries.where((e) => e.day.year == today.year).toList();
 
   // 1. Quarterly payment due within 14 days and nothing logged for that quarter.
-  final next = rules?.nextDue(d0);
+  // Q4 of last year is due in mid-January; check it before this year's dates.
+  final prevNext = previousRules?.nextDue(d0);
+  final dueRules = prevNext != null ? previousRules : rules;
+  final next = prevNext ?? rules?.nextDue(d0);
   if (next != null) {
-    final days = next.due.difference(d0).inDays;
-    final paid = payments.any((p) => p.quarter == next.quarter);
+    final days = daysBetween(d0, next.due);
+    final paid = payments.any((p) => p.quarter == next.quarter && p.taxYear == dueRules!.year);
     if (days <= 14 && !paid) {
       ask(
         CheckInQuestion(
-          'due:${rules!.year}:${next.quarter}',
+          'due:${dueRules!.year}:${next.quarter}',
           '${next.quarter} estimated tax is due ${DateFormat.MMMd().format(next.due)}. Have you paid? Log it so your '
               'numbers stay right.',
           CheckInAction.paymentLog,
@@ -62,7 +68,7 @@ List<CheckInQuestion> checkInQuestions({
   // 2. Nothing recorded for 3+ weeks (only once the user has started recording).
   if (entries.isNotEmpty) {
     final last = entries.map((e) => e.day).reduce((a, b) => a.isAfter(b) ? a : b);
-    if (d0.difference(last).inDays >= 21) {
+    if (daysBetween(last, d0) >= 21) {
       ask(
         CheckInQuestion(
           'quiet:${isoDay(last)}',
@@ -101,7 +107,7 @@ List<CheckInQuestion> checkInQuestions({
   }
 
   // 4. Invoices still unpaid after 30 days.
-  final stale = thisYear.where((e) => e.isIncome && !e.paid && d0.difference(e.day).inDays >= 30).length;
+  final stale = thisYear.where((e) => e.isIncome && !e.paid && daysBetween(e.day, d0) >= 30).length;
   if (stale > 0) {
     ask(
       CheckInQuestion(
@@ -118,7 +124,7 @@ List<CheckInQuestion> checkInQuestions({
   if (noReceipt > 0) {
     ask(
       CheckInQuestion(
-        'receipts:$noReceipt',
+        'receipts:${today.year}:$noReceipt',
         '$noReceipt expense${noReceipt == 1 ? ' has' : 's have'} no receipt attached. Add the ones you have?',
         CheckInAction.receipts,
         query: 'no receipt',
@@ -131,7 +137,7 @@ List<CheckInQuestion> checkInQuestions({
   if (other > 0) {
     ask(
       CheckInQuestion(
-        'other:$other',
+        'other:${today.year}:$other',
         '$other record${other == 1 ? ' is' : 's are'} in "Other". A specific category makes your Schedule C clearer.',
         CheckInAction.categorize,
         query: 'uncategorized',
@@ -195,13 +201,15 @@ List<ReminderItem> planReminders({
     }
   }
   if (checkInDays > 0) {
-    var at = DateTime((lastCheckIn ?? now).year, (lastCheckIn ?? now).month, (lastCheckIn ?? now).day, 18);
-    for (var n = 0; n < 8; n++) {
-      at = DateTime(at.year, at.month, at.day + checkInDays, 18);
-      if (!at.isAfter(now)) {
-        n--;
-        continue;
-      }
+    // A lastCheckIn in the future (clock was once set ahead) would silence check-ins for years (fuzz F7).
+    final base = lastCheckIn == null || lastCheckIn.isAfter(now) ? now : lastCheckIn;
+    final start = DateTime(base.year, base.month, base.day, 18);
+    // Jump straight to the first slot after now instead of stepping one interval at a time.
+    final gap = daysBetween(start, now);
+    var k = gap <= 0 ? 1 : (gap ~/ checkInDays) + 1;
+    for (var n = 0; n < 8; k++) {
+      final at = DateTime(start.year, start.month, start.day + k * checkInDays, 18);
+      if (!at.isAfter(now)) continue;
       out.add(
         ReminderItem(
           1 + n, // check-ins 1..8; quarterly ids are year*100+…
@@ -210,6 +218,7 @@ List<ReminderItem> planReminders({
           'A few questions to catch anything you missed.',
         ),
       );
+      n++;
     }
   }
   out.sort((a, b) => a.at.compareTo(b.at));

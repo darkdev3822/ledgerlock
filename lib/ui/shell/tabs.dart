@@ -19,6 +19,9 @@ import '../taxes/checkin_screen.dart';
 import '../taxes/guidance_section.dart';
 import '../taxes/tools.dart';
 
+/// "today" / "tomorrow" / "in N days" (never "in 1 days" or "in 0 days": UI review U6).
+String dueIn(int days) => days <= 0 ? 'today' : (days == 1 ? 'tomorrow' : 'in $days days');
+
 const _pad = EdgeInsets.fromLTRB(Space.gutter, Space.sm, Space.gutter, Space.xxl);
 
 // ============================== Home ==============================
@@ -33,6 +36,13 @@ class HomeTab extends ConsumerWidget {
     final s = ref.watch(summaryProvider(year));
     final entries = ref.watch(entriesProvider(year)).value ?? const [];
     final today = ref.watch(todayProvider);
+    // What's set aside so far minus what's been paid: the honest "about $X" for the next payment (UI review B;
+    // set-aside / 4 understated it early in the year).
+    final paid = (ref.watch(paymentsProvider(year)).value ?? const <TaxPayment>[]).fold<int>(
+      0,
+      (a, p) => a + p.amountCents,
+    );
+    final toPay = math.max(0, s.setAsideCents - paid);
     final sections = <Widget>[
       _Greeting(today: today, rules: rules, s: s, hasEntries: entries.isNotEmpty),
       const CheckInCard(),
@@ -54,7 +64,7 @@ class HomeTab extends ConsumerWidget {
             ),
           ],
         ),
-      if (rules != null) _NextDueCard(rules: rules, today: today, perQuarterCents: s.setAsideCents ~/ 4),
+      if (rules != null) _NextDueCard(rules: rules, today: today, perQuarterCents: toPay),
       if (entries.isNotEmpty)
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -123,9 +133,9 @@ class _Greeting extends StatelessWidget {
     final next = rules?.nextDue(today);
     if (s.netCents <= 0) return 'Expenses are ahead of income so far. That’s common early on.';
     if (next == null) return 'This year’s quarterly payments are behind you.';
-    final days = next.due.difference(DateTime(today.year, today.month, today.day)).inDays;
-    if (days <= 14) return '${next.quarter} is due in $days day${days == 1 ? '' : 's'}. Worth a look today.';
-    return 'You’re up ${formatCents(s.netCents)} this year. ${next.quarter} is due in $days days.';
+    final days = daysBetween(today, next.due);
+    if (days <= 14) return '${next.quarter} is due ${dueIn(days)}. Worth a look today.';
+    return 'You’re up ${formatCents(s.netCents)} this year. ${next.quarter} is due ${dueIn(days)}.';
   }
 
   @override
@@ -174,29 +184,42 @@ class _HeroCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      '${s.netCents < 0 ? 'Net loss' : 'Net profit'} · $year',
-                      style: context.text.titleSmall?.copyWith(
-                        color: dim,
-                        fontFamily: Fonts.voice,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
+                    Expanded(
+                      child: Text(
+                        '${s.netCents < 0 ? 'Net loss' : 'Net profit'} · $year',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.text.titleSmall?.copyWith(
+                          color: dim,
+                          fontFamily: Fonts.voice,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: onHero.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(Radii.pill),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.lock_rounded, size: 12, color: dim),
-                          const SizedBox(width: 4),
-                          Text('On this phone only', style: context.text.labelSmall?.copyWith(color: dim)),
-                        ],
+                    const SizedBox(width: Space.sm),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: onHero.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(Radii.pill),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.lock_rounded, size: 12, color: dim),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                'On this phone only',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.text.labelSmall?.copyWith(color: dim),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -327,7 +350,7 @@ class _NextDueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final next = rules.nextDue(today);
     final ll = context.ll;
-    final days = next?.due.difference(DateTime(today.year, today.month, today.day)).inDays;
+    final days = next == null ? null : daysBetween(today, next.due);
     return LLCard(
       child: Row(
         children: [
@@ -357,7 +380,11 @@ class _NextDueCard extends StatelessWidget {
               ],
             ),
           ),
-          if (days != null) Pill(days == 0 ? 'Today' : 'in $days days', color: days <= 14 ? ll.warning : ll.accent),
+          if (days != null)
+            Pill(
+              days == 0 ? 'Today' : (days == 1 ? 'Tomorrow' : 'in $days days'),
+              color: days <= 14 ? ll.warning : ll.accent,
+            ),
         ],
       ),
     );
@@ -513,21 +540,29 @@ class EntryTile extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            '$sign${formatCents(entry.amountCents)}',
-            style: context.text.titleSmall?.copyWith(
-              color: entry.isIncome && !entry.paid ? ll.muted : color,
-              fontFamily: Fonts.ui,
-              fontWeight: FontWeight.w700,
-              fontFeatures: tabular,
-            ),
+      // Huge amounts shrink rather than squeezing the payee out (UI review L4).
+      trailing: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.38),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$sign${formatCents(entry.amountCents)}',
+                style: context.text.titleSmall?.copyWith(
+                  color: entry.isIncome && !entry.paid ? ll.muted : color,
+                  fontFamily: Fonts.ui,
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: tabular,
+                ),
+              ),
+              if (entry.isIncome && !entry.paid) ...[const SizedBox(height: 3), Pill('Unpaid', color: ll.warning)],
+            ],
           ),
-          if (entry.isIncome && !entry.paid) ...[const SizedBox(height: 3), Pill('Unpaid', color: ll.warning)],
-        ],
+        ),
       ),
     );
   }
@@ -550,16 +585,9 @@ class _RecordsTabState extends ConsumerState<RecordsTab> {
     final db = ref.read(appControllerProvider).db;
     if (db == null) return;
     HapticFeedback.mediumImpact();
-    await db.deleteEntry(e.id);
+    final linked = await db.deleteEntry(e.id);
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: const Text('Record deleted'),
-          action: SnackBarAction(label: 'Undo', onPressed: () => db.restoreEntry(e)),
-        ),
-      );
+    showUndo(ScaffoldMessenger.of(context), 'Record deleted', () => db.restoreEntry(e, attachmentIds: linked));
   }
 
   @override
@@ -730,26 +758,47 @@ class _MonthHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ll = context.ll;
+    final net = Text(
+      '${netCents >= 0 ? '+' : '−'}${formatCents(netCents.abs())}',
+      semanticsLabel: '${netCents >= 0 ? 'net' : 'net minus'} ${formatCents(netCents.abs())}',
+      style: context.text.labelLarge?.copyWith(color: netCents >= 0 ? ll.income : ll.muted, fontFeatures: tabular),
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, Space.xl, 4, Space.sm),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
         children: [
-          Text(
-            DateFormat.MMMM().format(month),
-            style: context.text.titleLarge?.copyWith(fontFamily: Fonts.voice, fontWeight: FontWeight.w600),
+          // The month name gets the room; the count truncates first; the total shrinks rather than overflow.
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Flexible(
+                  flex: 3,
+                  child: Text(
+                    DateFormat.MMMM().format(month),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.titleLarge?.copyWith(fontFamily: Fonts.voice, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: Space.sm),
+                Flexible(
+                  flex: 2,
+                  child: Text(
+                    '$count record${count == 1 ? '' : 's'}',
+                    style: context.text.labelMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: Space.sm),
-          Text('$count record${count == 1 ? '' : 's'}', style: context.text.labelMedium),
-          const Spacer(),
-          Text(
-            '${netCents >= 0 ? '+' : '−'}${formatCents(netCents.abs())}',
-            semanticsLabel: '${netCents >= 0 ? 'net' : 'net minus'} ${formatCents(netCents.abs())}',
-            style: context.text.labelLarge?.copyWith(
-              color: netCents >= 0 ? ll.income : ll.muted,
-              fontFeatures: tabular,
-            ),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.4),
+            child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerRight, child: net),
           ),
         ],
       ),
@@ -773,7 +822,7 @@ class TaxesTab extends ConsumerWidget {
     final today = ref.watch(todayProvider);
     final ll = context.ll;
     final payments = ref.watch(paymentsProvider(year)).value ?? const <TaxPayment>[];
-    final perQuarter = s.setAsideCents ~/ 4;
+    final perQuarter = math.max(0, s.setAsideCents - payments.fold<int>(0, (a, p) => a + p.amountCents));
     final sections = <Widget>[
       if (rules != null) _QuarterTimeline(rules: rules, today: today, payments: payments, perQuarterCents: perQuarter),
       LLCard(
@@ -862,7 +911,7 @@ class TaxesTab extends ConsumerWidget {
                   children: [
                     AnimatedMoney(s.setAsideCents, style: context.text.titleLarge),
                     if (perQuarter > 0)
-                      Text('≈ ${formatCents(perQuarter)} per payment', style: context.text.labelMedium),
+                      Text('≈ ${formatCents(perQuarter)} not paid yet', style: context.text.labelMedium),
                   ],
                 ),
               ],
@@ -912,13 +961,7 @@ class TaxesTab extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SectionHeader('Tools'),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: Space.md,
-            crossAxisSpacing: Space.md,
-            childAspectRatio: 1.45,
+          TileGrid(
             children: [
               for (final (icon, title, sub, Widget screen) in [
                 (Icons.payments_outlined, 'Payment log', 'What you\'ve paid', PaymentLogScreen(year)),
@@ -1011,15 +1054,15 @@ class _QuarterTimeline extends StatelessWidget {
         for (var i = 0; i < qs.length; i++) {
           if (d0.isBefore(qs[i].due)) {
             final prev = i == 0 ? DateTime(rules.year) : qs[i - 1].due;
-            final span = qs[i].due.difference(prev).inDays;
-            final f = span <= 0 ? 0 : d0.difference(prev).inDays / span;
+            final span = daysBetween(prev, qs[i].due);
+            final f = span <= 0 ? 0 : daysBetween(prev, d0) / span;
             fill = ((i - 1 + f.clamp(0, 1)) / (qs.length - 1)).clamp(0, 1).toDouble();
             break;
           }
         }
       }
     }
-    final days = next?.due.difference(d0).inDays;
+    final days = next == null ? null : daysBetween(d0, next.due);
     final missed = [
       for (final q in qs)
         if (q.due.isBefore(d0) && !paid(q)) q.quarter,
@@ -1030,8 +1073,8 @@ class _QuarterTimeline extends StatelessWidget {
               '${missed.length == 1 ? 'has' : 'have'} no payment logged.';
     final status = next == null
         ? 'All ${rules.year} quarters are behind you.$missedLine'
-        : '${next.quarter} is due ${DateFormat.MMMd().format(next.due)}, in $days day${days == 1 ? '' : 's'}'
-              '${perQuarterCents > 0 ? '. About ${formatCents(perQuarterCents)} keeps you on pace.' : '.'}$missedLine';
+        : '${next.quarter} is due ${DateFormat.MMMd().format(next.due)}, ${dueIn(days!)}'
+              '${perQuarterCents > 0 ? '. About ${formatCents(perQuarterCents)} more keeps you on pace.' : '.'}$missedLine';
     return LLCard(
       padding: const EdgeInsets.fromLTRB(Space.lg, Space.lg, Space.lg, Space.lg),
       child: Column(
@@ -1049,7 +1092,7 @@ class _QuarterTimeline extends StatelessWidget {
           Text(status, style: context.text.bodySmall),
           const SizedBox(height: Space.lg),
           SizedBox(
-            height: 72,
+            height: 36 + 48 * MediaQuery.textScalerOf(context).scale(1), // grows with text size (UI review L3)
             child: LayoutBuilder(
               builder: (context, c) {
                 const dot = 30.0, cell = 56.0;

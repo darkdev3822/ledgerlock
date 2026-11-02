@@ -186,6 +186,7 @@ ProcessedReceipt finishReceipt(img.Image src, Quad q) {
 /// Largest image we'll decode: a crafted file can claim huge dimensions in a few KB and
 /// make the decoder allocate gigabytes (decompression bomb, SECURITY.md T2). 40 MP covers phone cameras.
 const maxDecodePixels = 40000000;
+const maxDecodeBytes = 160 * 1024 * 1024;
 
 /// Decodes only after checking the header's dimensions. Returns null for unknown,
 /// corrupt or oversized images instead of throwing or exhausting memory.
@@ -196,6 +197,18 @@ img.Image? safeDecode(Uint8List bytes) {
     final info = decoder.startDecode(bytes);
     if (info == null || info.width <= 0 || info.height <= 0) return null;
     if (info.width * info.height > maxDecodePixels) return null;
+    // Also cap the decoded size in BYTES: a 300 KB 16-bit RGBA PNG under the pixel cap still expands to ~320 MB
+    // (M9.5 fuzz F9). 8-bit RGB photos at 40 MP stay allowed (~120 MB).
+    if (info is img.PngInfo) {
+      final channels = switch (info.colorType) {
+        0 => 1, // grey
+        4 => 2, // grey + alpha
+        6 => 4, // RGBA
+        _ => 3, // RGB, palette (expanded)
+      };
+      final bytesPerChannel = info.bits > 8 ? 2 : 1;
+      if (info.width * info.height * channels * bytesPerChannel > maxDecodeBytes) return null;
+    }
     final im = decoder.decode(bytes, frame: 0);
     return im == null ? null : normalize8(im);
   } catch (_) {

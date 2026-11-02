@@ -104,13 +104,7 @@ class VaultTab extends ConsumerWidget {
           ],
         ),
       ),
-      GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: Space.md,
-        crossAxisSpacing: Space.md,
-        childAspectRatio: 1.45,
+      TileGrid(
         children: [
           for (final f in vaultFolders.entries.where((f) => f.key != 'other' || (counts['other'] ?? 0) > 0))
             LLCard(
