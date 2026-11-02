@@ -187,7 +187,7 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   password change (rotation planned). test/fuzz/backup_fuzz_test.dart (14 tests). 665 tests.
 - Brand (2026-11-02): "locked ledger" icon (padlock whose body is an open ledger + gold coin keyhole), adaptive
   vectors + themed monochrome + PNG fallbacks, Android 12 splash, in-app BrandMark, docs/brand/ (icon.svg, Play
-  512 icon, 1024x500 feature graphic). See docs/DESIGN.md "Brand". Not yet seen on a real launcher: check on device.
+  512 icon, 1024x500 feature graphic). See docs/DESIGN.md "Brand". Checked on the emulator launcher (round mask).
   Next: M8 leftovers (a11y pass, walkthrough video for owner sign-off), M10 (owner: keystore, Play, testers).
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
