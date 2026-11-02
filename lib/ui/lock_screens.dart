@@ -1,6 +1,7 @@
 // Functional M1 lock screens. Visual design comes in M2.
 import 'package:flutter/material.dart';
 
+import 'design/brand.dart';
 import 'design/theme.dart';
 
 import '../security/attempt_guard.dart';
@@ -67,7 +68,10 @@ class LockShell extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: Icon(icon, size: 34, color: Colors.white),
+                      // The default lock screens show the brand mark; screens with their own icon keep it.
+                      child: icon == Icons.lock_rounded
+                          ? const BrandMark(size: 72)
+                          : Icon(icon, size: 34, color: Colors.white),
                     ),
                   ),
                   const SizedBox(height: 24),

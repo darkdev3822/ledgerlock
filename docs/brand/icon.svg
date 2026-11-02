@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="432" height="432">
+  <defs>
+    <linearGradient id="bg" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#14906F"/><stop offset="0.55" stop-color="#0D6B55"/><stop offset="1" stop-color="#083F33"/>
+    </linearGradient>
+    <radialGradient id="hl" cx="0.25" cy="0.12" r="0.7">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBF7EC"/><stop offset="1" stop-color="#EFE6D1"/>
+    </linearGradient>
+  </defs>
+  <rect width="108" height="108" fill="url(#bg)"/>
+  <rect width="108" height="108" fill="url(#hl)"/>
+  <!-- shackle -->
+  <path d="M43.5 49 V41.5 a10.5 10.5 0 0 1 21 0 V49" fill="none" stroke="#FBF7EC" stroke-width="6.4" stroke-linecap="round"/>
+  <!-- book body: flat top, pages dipping at the spine along the bottom -->
+  <path d="M39 46 H69 a7 7 0 0 1 7 7 V73 a5 5 0 0 1 -5 5 C64 78 58 78.4 54 81 C50 78.4 44 78 37 78 a5 5 0 0 1 -5 -5 V53 a7 7 0 0 1 7 -7 Z" fill="url(#paper)"/>
+  <!-- spine -->
+  <path d="M54 50 V79.5" stroke="#0D6B55" stroke-opacity="0.28" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- ledger lines, left page -->
+  <rect x="37.5" y="55" width="12.5" height="2.8" rx="1.4" fill="#0D6B55"/>
+  <rect x="37.5" y="61" width="9" height="2.8" rx="1.4" fill="#0D6B55" fill-opacity="0.7"/>
+  <rect x="37.5" y="67" width="11" height="2.8" rx="1.4" fill="#0D6B55" fill-opacity="0.5"/>
+  <!-- gold coin keyhole, right page -->
+  <circle cx="64.5" cy="62.5" r="6.3" fill="#E7B648"/>
+  <circle cx="64.5" cy="62.5" r="6.3" fill="none" stroke="#C9952C" stroke-width="0.9"/>
+  <circle cx="64.5" cy="61.2" r="1.7" fill="#083F33"/>
+  <path d="M63.6 62 h1.8 l0.5 4.4 h-2.8 z" fill="#083F33"/>
+</svg>

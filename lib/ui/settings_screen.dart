@@ -7,6 +7,7 @@ import '../app/app_controller.dart';
 import '../data/business_types.dart';
 import '../security/vault.dart';
 import 'backup_screens.dart';
+import 'design/brand.dart';
 import 'design/components.dart';
 import 'design/theme.dart';
 import 'ledger/import_screen.dart';
@@ -307,7 +308,7 @@ class SettingsScreen extends ConsumerWidget {
           LLGroup(
             children: [
               ListTile(
-                leading: const Icon(Icons.favorite_outline_rounded),
+                leading: const BrandMark(size: 36),
                 title: const Text('Free and open source'),
                 subtitle: const Text(
                   'No paid tier, no ads, nothing locked. Licensed under GPL-3.0, so anyone can '

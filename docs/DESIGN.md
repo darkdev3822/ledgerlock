@@ -41,3 +41,15 @@ signal, dynamic type up to 1.3x without clipping.
 
 ## Not doing
 Confetti, mascots, sounds, parallax tilt. They read as gimmicks in a finance app and they cost battery.
+
+## Brand
+- **Mark:** a padlock whose body is an open ledger: ledger lines on the left page, a gold coin keyhole on the
+  right, pages dipping at the spine. "A locked ledger" is the name made visible. Source: `docs/brand/icon.svg`
+  (108-unit adaptive-icon grid, mark inside the 66-unit safe zone).
+- **Colours:** emerald `#14906F → #0D6B55 → #083F33`, paper `#FBF7EC / #EFE6D1`, gold `#E7B648` (edge `#C9952C`).
+  Gold appears only on the coin, so it stays the focal point.
+- **Android:** adaptive icon as vectors (`res/drawable/ic_launcher_{background,foreground,monochrome}.xml`), themed
+  (monochrome) layer for Android 13+, PNG fallbacks in `mipmap-*`, splash = mark on emerald over paper (dark: near
+  black). In-app: `BrandMark` (lib/ui/design/brand.dart) paints the same geometry.
+- **Store:** `docs/brand/play-icon-512.png`, `docs/brand/play-feature-1024x500.png` (wordmark in Fraunces 600,
+  tagline in Manrope, gold badge line "FREE · OFFLINE · ENCRYPTED · OPEN SOURCE").
