@@ -21,7 +21,7 @@ import '../platform/reminders.dart';
 import '../tax/checkin.dart';
 import '../tax/guidance.dart';
 
-enum Stage { locked, recoveryKey, biometricOffer, ready }
+enum Stage { locked, recoveryKey, biometricOffer, businessType, firstSteps, ready }
 
 class AppController extends ChangeNotifier {
   final Directory dataDir;
@@ -35,6 +35,15 @@ class AppController extends ChangeNotifier {
 
   Session? _session;
   Stage stage = Stage.locked;
+
+  /// Onboarding finished (business type + first steps seen). Stored in the encrypted DB.
+  bool onboarded = true;
+
+  /// Chosen business types (lib/data/business_types.dart): only reorders categories.
+  Set<String> businessTypes = {};
+
+  /// What the user picked on "You're all set" ('scan' | 'add'); AppShell takes it once.
+  String? firstAction;
   String? pendingCode;
   Set<Slot> slots = {};
   bool biometricsAvailable = false;
@@ -144,6 +153,8 @@ class AppController extends ChangeNotifier {
     }
     quarterlyReminders = await db.getSetting('quarterlyReminders') == 'true';
     checkInFrequency = await db.getSetting('checkInFrequency') ?? 'off';
+    onboarded = await db.getSetting('onboarded') == 'true';
+    businessTypes = (await db.getSetting('businessTypes') ?? '').split(',').where((t) => t.isNotEmpty).toSet();
     lastCheckIn = DateTime.tryParse(await db.getSetting('lastCheckIn') ?? '');
     dismissedCheckIns = (await db.getSetting('dismissedCheckIns') ?? '').split('\n').where((k) => k.isNotEmpty).toSet();
     slots = await vault.enabledSlots();
@@ -168,6 +179,7 @@ class AppController extends ChangeNotifier {
     age60OptIn = irsProblemOptIn = false;
     w2WagesCents = {}; // sensitive answers: reload from the encrypted DB on unlock
     homeOfficeSqft = {};
+    businessTypes = {};
     stage = Stage.locked;
     notifyListeners();
     s.lock();
@@ -191,13 +203,43 @@ class AppController extends ChangeNotifier {
     await vault.setRecoveryKey(_session!.dataKey, pendingCode!);
     pendingCode = null;
     slots = await vault.enabledSlots();
-    stage = biometricsAvailable && !slots.contains(Slot.biometric) ? Stage.biometricOffer : Stage.ready;
+    stage = biometricsAvailable && !slots.contains(Slot.biometric) ? Stage.biometricOffer : _afterSecurity;
     notifyListeners();
   }
 
+  Stage get _afterSecurity => onboarded ? Stage.ready : Stage.businessType;
+
   void finishBiometricOffer() {
+    stage = _afterSecurity;
+    notifyListeners();
+  }
+
+  Future<void> setBusinessTypes(Set<String> types) async {
+    businessTypes = {...types};
+    await db?.setSetting('businessTypes', types.join(','));
+    notifyListeners();
+  }
+
+  /// Onboarding step: business type chosen (or skipped).
+  Future<void> finishBusinessType(Set<String> types) async {
+    await setBusinessTypes(types);
+    stage = Stage.firstSteps;
+    notifyListeners();
+  }
+
+  /// Last onboarding step. [action]: 'scan', 'add' or null (look around).
+  Future<void> finishOnboarding(String? action) async {
+    onboarded = true;
+    firstAction = action;
+    await db?.setSetting('onboarded', 'true');
     stage = Stage.ready;
     notifyListeners();
+  }
+
+  String? takeFirstAction() {
+    final a = firstAction;
+    firstAction = null;
+    return a;
   }
 
   // ---------- recovery methods ----------

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/app_controller.dart';
+import '../../data/business_types.dart';
 import '../../data/database.dart';
 import '../../data/tax_rules.dart';
 import '../design/components.dart';
@@ -191,7 +192,10 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     final rules = ref.watch(taxRulesProvider(_date.year)).value ?? ref.watch(taxRulesProvider(year)).value;
     final ll = context.ll;
     if (rules == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    final cats = rules.categories(_income);
+    final cats = orderCategories(
+      rules.categories(_income),
+      ref.watch(appControllerProvider.select((a) => a.businessTypes)),
+    );
     if (_category != null && !cats.any((c) => c.id == _category)) _category = null;
     final selected = _category == null ? null : rules.category(_category!);
     final amountColor = _cents == 0 ? ll.muted : (_income ? ll.income : ll.text);

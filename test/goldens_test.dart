@@ -27,6 +27,7 @@ import 'package:ledgerlock/ui/taxes/checkin_screen.dart';
 import 'package:ledgerlock/ui/taxes/guidance_section.dart';
 import 'package:ledgerlock/data/tax_packet.dart';
 import 'package:ledgerlock/ui/ledger/import_screen.dart';
+import 'package:ledgerlock/ui/onboarding_screens.dart';
 import 'package:ledgerlock/ui/taxes/tools.dart';
 import 'package:ledgerlock/ui/shell/app_shell.dart';
 
@@ -174,6 +175,12 @@ void main() {
 
   for (final b in Brightness.values) {
     testWidgets('home ${b.name}', (t) => shoot(t, 'home', const AppShell(), b, data: true));
+    testWidgets('welcome ${b.name}', (t) => shoot(t, 'welcome', WelcomeScreen(onStart: () {}), b));
+    testWidgets(
+      'business_type ${b.name}',
+      (t) => shoot(t, 'business_type', BusinessTypeScreen(initial: const {'services'}, onDone: (_) async {}), b),
+    );
+    testWidgets('first_steps ${b.name}', (t) => shoot(t, 'first_steps', FirstStepsScreen(onDone: (_) {}), b));
     testWidgets('entry_expense ${b.name}', (t) => shoot(t, 'entry_expense', const EntryScreen(), b));
     testWidgets('entry_income ${b.name}', (t) => shoot(t, 'entry_income', const EntryScreen(startIncome: true), b));
     testWidgets('home_empty ${b.name}', (t) => shoot(t, 'home_empty', const AppShell(), b));

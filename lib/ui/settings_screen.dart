@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/app_controller.dart';
+import '../data/business_types.dart';
 import '../security/vault.dart';
 import 'design/components.dart';
 import 'design/theme.dart';
 import 'ledger/import_screen.dart';
+import 'onboarding_screens.dart';
 import 'lock_screens.dart';
 import 'recovery_screens.dart';
 import 'taxes/tools.dart';
@@ -147,6 +149,28 @@ class SettingsScreen extends ConsumerWidget {
           const SectionHeader('Records'),
           LLGroup(
             children: [
+              ListTile(
+                leading: const Icon(Icons.work_outline_rounded),
+                title: const Text('Business type'),
+                subtitle: Text(
+                  app.businessTypes.isEmpty
+                      ? 'Not set: categories in the usual order'
+                      : [for (final t in app.businessTypes) businessTypes[t]?.$1 ?? t].join(', '),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (c) => BusinessTypeScreen(
+                      settings: true,
+                      initial: app.businessTypes,
+                      onDone: (t) async {
+                        await app.setBusinessTypes(t);
+                        if (c.mounted) Navigator.of(c).pop();
+                      },
+                    ),
+                  ),
+                ),
+              ),
               ListTile(
                 leading: const Icon(Icons.auto_fix_high_outlined),
                 title: const Text('Smart rules'),

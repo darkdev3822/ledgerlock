@@ -9,6 +9,7 @@ import 'app/app_controller.dart';
 import 'security/biometric_reset.dart';
 import 'ui/design/theme.dart';
 import 'ui/lock_screens.dart';
+import 'ui/onboarding_screens.dart';
 import 'ui/recovery_screens.dart';
 import 'ui/shell/app_shell.dart';
 
@@ -33,6 +34,7 @@ class LedgerLockApp extends ConsumerStatefulWidget {
 class _LedgerLockAppState extends ConsumerState<LedgerLockApp> {
   final _nav = GlobalKey<NavigatorState>();
   Stage? _lastStage;
+  bool _welcomed = false; // first run: privacy promise before choosing a password
 
   void _forgot(AppController app) => _nav.currentState!.push(
     MaterialPageRoute(
@@ -45,7 +47,9 @@ class _LedgerLockAppState extends ConsumerState<LedgerLockApp> {
     Stage.locked =>
       app.vaultExists
           ? UnlockScreen(onSubmit: app.openWithPassword, onForgot: () => _forgot(app))
-          : SetupScreen(onSubmit: app.openWithPassword),
+          : _welcomed
+          ? SetupScreen(onSubmit: app.openWithPassword)
+          : WelcomeScreen(onStart: () => setState(() => _welcomed = true)),
     Stage.recoveryKey => RecoveryKeyScreen(code: app.pendingCode!, onConfirmed: app.confirmRecoveryKey),
     Stage.biometricOffer => BiometricOfferScreen(
       onEnable: () async {
@@ -54,6 +58,8 @@ class _LedgerLockAppState extends ConsumerState<LedgerLockApp> {
       },
       onSkip: app.finishBiometricOffer,
     ),
+    Stage.businessType => BusinessTypeScreen(initial: app.businessTypes, onDone: app.finishBusinessType),
+    Stage.firstSteps => FirstStepsScreen(onDone: app.finishOnboarding),
     Stage.ready => const AppShell(),
   };
 

@@ -135,8 +135,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   switch fade-and-rise keeping tab state (_TabFade in app_shell).
 - Design pass 5: in-house illustrations (lib/ui/design/illustrations.dart, CustomPainter, theme colours, own
   dark paper tones, slow float off in tests/reduce-motion): Art.ledger (Home/Records empty), Art.receipt (Vault).
-  Next design pass: onboarding (SPEC §5: privacy promise -> password -> biometrics -> business type -> first
-  scan); business type needs a data decision (which categories to show). Device check: shadows render as hard ledges in goldens.
+- Onboarding (SPEC §5) DONE: WelcomeScreen (promise, before vault exists) -> password -> recovery key ->
+  biometric -> BusinessTypeScreen (Stage.businessType; multi-select, only reorders categories via
+  orderCategories; also in Settings > Records) -> FirstStepsScreen (Stage.firstSteps; scan / add / look around,
+  handed to AppShell via takeFirstAction). 'onboarded' + 'businessTypes' in encrypted DB, cleared on lock.
+  Verified end to end on emulator from a clean install. 157 tests. Device check: shadows render as hard ledges in goldens.
 - Device check (2026-11-01, emulator): PASS for CSV export via picker (file + BOM correct), tax packet PDF
   save, Emergency Kit save (pdftotext: no key groups in file), notification permission prompt, quarterly + weekly
   check-in alarms in dumpsys, triggered reminder shows padlock icon + generic text, check-in card appears only with

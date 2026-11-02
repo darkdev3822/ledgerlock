@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'illustrations.dart';
 import 'theme.dart';
 
-export 'illustrations.dart' show Art;
+export 'illustrations.dart' show Art, Illustration;
 
 final _usd = NumberFormat.currency(locale: 'en_US', symbol: r'$');
 

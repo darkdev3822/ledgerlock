@@ -26,6 +26,21 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   static const _titles = ['Home', 'Records', 'Vault', 'Taxes'];
 
+  @override
+  void initState() {
+    super.initState();
+    // Onboarding's last step may ask for a first action.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      switch (ref.read(appControllerProvider).takeFirstAction()) {
+        case 'scan':
+          _scan();
+        case 'add':
+          openEntry(context);
+      }
+    });
+  }
+
   Future<void> _scan() async {
     HapticFeedback.mediumImpact();
     final app = ref.read(appControllerProvider);
