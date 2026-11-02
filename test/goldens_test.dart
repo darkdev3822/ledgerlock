@@ -43,6 +43,31 @@ class FakeBiometrics implements BiometricSecretStore {
   Future<void> delete() async {}
 }
 
+/// Accessibility audit on every golden screen (M8): Android tap targets (48 dp) and labelled tap targets.
+/// Contrast is checked exactly on the palette in a11y_palette_test.dart (the pixel-sampling guideline misreads
+/// anti-aliased small text at 1x). LL_A11Y=report prints instead of failing; LL_A11Y=contrast adds the sampler.
+Future<void> _audit(WidgetTester t, String name) async {
+  final handle = t.ensureSemantics();
+  try {
+    for (final (label, g) in [
+      ('tap-target', androidTapTargetGuideline),
+      ('label', labeledTapTargetGuideline),
+      if (Platform.environment['LL_A11Y'] == 'contrast') ('contrast', textContrastGuideline),
+    ]) {
+      final r = await g.evaluate(t);
+      if (r.passed) continue;
+      if (Platform.environment['LL_A11Y'] != null) {
+        // ignore: avoid_print
+        print('A11Y $name $label: ${(r.reason ?? '').replaceAll('\n', ' | ')}');
+      } else {
+        fail('A11Y $name $label: ${r.reason}');
+      }
+    }
+  } finally {
+    handle.dispose();
+  }
+}
+
 Future<void> loadFonts() async {
   final dir = '${Platform.environment['HOME']}/flutter/bin/cache/artifacts/material_fonts';
   Future<void> load(String family, List<String> files) async {
@@ -141,6 +166,7 @@ void main() {
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await t.pumpAndSettle();
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/${name}_${b.name}.png'));
+    await _audit(t, '${name}_${b.name}');
   }
 
   for (final b in Brightness.values) {

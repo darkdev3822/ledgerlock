@@ -261,7 +261,11 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+          tooltip: 'Close',
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(_editing ? 'Edit record' : (_income ? 'New income' : 'New expense')),
         actions: [
           if (_editing)
@@ -509,7 +513,7 @@ class _Keypad extends StatelessWidget {
       crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 2.6,
+      childAspectRatio: 2.2, // keys >= 48 dp tall even on a 320 px phone (M8 a11y)
       children: [
         for (final k in keys)
           InkWell(

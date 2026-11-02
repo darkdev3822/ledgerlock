@@ -64,13 +64,13 @@ class LLColors extends ThemeExtension<LLColors> {
     surfaceAlt: Color(0xFFEFECE4),
     border: Color(0xFFE5E1D6),
     text: Color(0xFF16190F),
-    muted: Color(0xFF66665C),
-    accent: Color(0xFF0B7A62),
+    muted: Color(0xFF5E5E54),
+    accent: Color(0xFF086A55), // 4.5:1+ on every surface and its own 12% pill (M8 a11y)
     onAccent: Color(0xFFFFFFFF),
     accentSoft: Color(0xFFDCEFE7),
-    income: Color(0xFF0B7A62),
-    expense: Color(0xFFB4432F),
-    warning: Color(0xFFA5670F),
+    income: Color(0xFF086A55),
+    expense: Color(0xFFA63D2B),
+    warning: Color(0xFF85550B), // 4.5:1+ incl. on its own 12% pill (M8 a11y)
     heroStart: Color(0xFF0E7A61),
     heroEnd: Color(0xFF0A4F41),
     heroGlow: Color(0xFFE9C46A),

@@ -188,7 +188,12 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - Brand (2026-11-02): "locked ledger" icon (padlock whose body is an open ledger + gold coin keyhole), adaptive
   vectors + themed monochrome + PNG fallbacks, Android 12 splash, in-app BrandMark, docs/brand/ (icon.svg, Play
   512 icon, 1024x500 feature graphic). See docs/DESIGN.md "Brand". Checked on the emulator launcher (round mask).
-  Next: M8 leftovers (a11y pass, walkthrough video for owner sign-off), M10 (owner: keystore, Play, testers).
+- M8 a11y pass (2026-11-02): every golden screen (27 x 2 themes) audited with Flutter's androidTapTarget +
+  labeledTapTarget guidelines, now enforced in goldens_test. Fixed: year chip, filter segments, keypad, W-2 row to
+  48 dp; Close labels on entry/capture. Contrast checked EXACTLY in a11y_palette_test (pixel sampler misreads 1x
+  anti-aliasing): light accent #086A55, warning #85550B, muted #5E5E54, expense #A63D2B so every text colour is
+  >= 4.5:1 on all surfaces and its own 12% pill. 667 tests.
+  Next: walkthrough video for owner sign-off, then M10 (owner: keystore, Play, testers).
 - Draft return (M7): `pdf` can CREATE pages; filling official IRS PDF forms needs AcroForm support -> owner decision
   if a commercial library is needed.
 - Next: M9 backups (encrypted export/restore; owner's data-loss priority), then M8 leftovers (app icon, a11y

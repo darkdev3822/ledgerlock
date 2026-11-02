@@ -158,7 +158,7 @@ class YearSwitcher extends StatelessWidget {
             if (y != null && y != year) onChanged(y);
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), // 48 dp target
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

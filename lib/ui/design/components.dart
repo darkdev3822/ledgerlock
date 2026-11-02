@@ -315,7 +315,7 @@ class LLSegmented<T> extends StatelessWidget {
     final ll = context.ll;
     final i = options.indexWhere((o) => o.$1 == value).clamp(0, options.length - 1);
     return Container(
-      height: 44,
+      height: 56, // 48 dp segments inside the 4 px track (M8 a11y)
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(color: ll.surfaceAlt, borderRadius: BorderRadius.circular(Radii.pill)),
       child: LayoutBuilder(

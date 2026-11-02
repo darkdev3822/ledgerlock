@@ -172,7 +172,11 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         title: const Text('Scan receipt'),
-        leading: IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+          tooltip: 'Close',
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Column(
         children: [

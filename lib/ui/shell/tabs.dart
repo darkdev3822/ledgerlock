@@ -879,7 +879,7 @@ class TaxesTab extends ConsumerWidget {
             InkWell(
               onTap: () => _editW2(context, app, year),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: Space.md),
+                padding: const EdgeInsets.symmetric(vertical: Space.lg), // 48 dp target
                 child: Row(
                   children: [
                     Expanded(child: Text('W-2 wages this year (optional)', style: context.text.bodyMedium)),
