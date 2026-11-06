@@ -20,6 +20,7 @@ import '../taxes/checkin_screen.dart';
 import '../taxes/guidance_section.dart';
 import '../taxes/pending_card.dart';
 import '../taxes/tools.dart';
+import 'insights_card.dart';
 
 /// "today" / "tomorrow" / "in N days" (never "in 1 days" or "in 0 days": UI review U6).
 String dueIn(int days) => days <= 0 ? 'today' : (days == 1 ? 'tomorrow' : 'in $days days');
@@ -78,6 +79,7 @@ class HomeTab extends ConsumerWidget {
             ),
           ],
         ),
+      if (entries.isNotEmpty) InsightsCard(year: year),
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

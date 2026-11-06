@@ -29,6 +29,8 @@ import 'package:ledgerlock/ui/taxes/guidance_section.dart';
 import 'package:ledgerlock/data/tax_packet.dart';
 import 'package:ledgerlock/ui/ledger/import_screen.dart';
 import 'package:ledgerlock/ui/ledger/recurring_screen.dart';
+import 'package:ledgerlock/ui/shell/insights_card.dart';
+import 'package:ledgerlock/data/insights.dart';
 import 'package:ledgerlock/ui/onboarding_screens.dart';
 import 'package:ledgerlock/ui/taxes/tools.dart';
 import 'package:ledgerlock/ui/shell/app_shell.dart';
@@ -364,6 +366,28 @@ void main() {
               ),
               CategoryRule(id: 3, isIncome: false, contains: 'staples', category: 'office', learned: true),
             ]),
+          ),
+        ],
+      ),
+    );
+    testWidgets(
+      'insights ${b.name}',
+      (t) => shoot(
+        t,
+        'insights',
+        const Scaffold(
+          body: Padding(padding: EdgeInsets.all(16), child: InsightsCard(year: 2026)),
+        ),
+        b,
+        data: true,
+        extra: [
+          insightsProvider.overrideWith(
+            (ref, y) => const [
+              Insight('income', thisCents: 1245000, lastCents: 940000),
+              Insight('category', category: 'software', thisCents: 142000, lastCents: 98000),
+              Insight('new_category', category: 'travel', thisCents: 38750, lastCents: 0),
+              Insight('category', category: 'office', thisCents: 21000, lastCents: 64000),
+            ],
           ),
         ],
       ),

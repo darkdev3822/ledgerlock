@@ -258,6 +258,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   toast. SECURITY T31. Emulator-verified: v7 vault upgraded, weekly rule, clock +15 d -> 2 copies, +7 d -> 1 + toast.
   Gotcha: repeating INCOME copies are saved as received (paid). Next depth items (recommended order): year-over-year
   insights, tags + "Filed" year badge, budgets/income goal.
+- DEPTH 2 DONE: year-over-year insights (lib/data/insights.dart; Home "Compared with <last year>" card,
+  lib/ui/shell/insights_card.dart). Current year compares Jan 1-today with the same window last year; shows income
+  (>=10% and $100), categories (>=25% and $50, business share) and new categories (>=$100), max 4; with no last
+  year it shows the top category. insights_test + insights golden.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY
