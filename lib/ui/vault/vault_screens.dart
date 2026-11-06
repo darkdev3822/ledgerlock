@@ -45,14 +45,32 @@ class EncryptedThumb extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final docs = ref.watch(appControllerProvider.select((x) => x.documents));
     final ll = context.ll;
+    final glyph = Icon(
+      a.mime == 'application/pdf' ? Icons.picture_as_pdf_outlined : Icons.insert_drive_file_outlined,
+      color: ll.muted,
+      size: size * 0.4,
+    );
+    // Big tiles also show the file name: a grid of identical PDF icons was impossible to tell apart.
     Widget icon() => Container(
       color: ll.surfaceAlt,
       alignment: Alignment.center,
-      child: Icon(
-        a.mime == 'application/pdf' ? Icons.picture_as_pdf_outlined : Icons.insert_drive_file_outlined,
-        color: ll.muted,
-        size: size * 0.4,
-      ),
+      padding: const EdgeInsets.all(6),
+      child: size < 80 || a.name.isEmpty
+          ? glyph
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                glyph,
+                const SizedBox(height: 4),
+                Text(
+                  a.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: context.text.labelSmall,
+                ),
+              ],
+            ),
     );
     if (docs == null || a.thumbId == null) return icon();
     return FutureBuilder<Uint8List?>(
@@ -422,7 +440,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     style: context.text.bodySmall,
                   ),
                   const SizedBox(height: Space.sm),
-                  Text('In-app PDF preview arrives with the PDF tools (M6).', style: context.text.bodySmall),
+                  Text('PDFs can\'t be previewed inside LedgerLock yet.', style: context.text.bodySmall),
                 ],
               ),
             ),

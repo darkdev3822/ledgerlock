@@ -30,6 +30,7 @@ import 'package:ledgerlock/data/tax_packet.dart';
 import 'package:ledgerlock/ui/ledger/import_screen.dart';
 import 'package:ledgerlock/ui/ledger/recurring_screen.dart';
 import 'package:ledgerlock/ui/ledger/budgets_screen.dart';
+import 'package:ledgerlock/ui/vault/vault_screens.dart';
 import 'package:ledgerlock/ui/shell/insights_card.dart';
 import 'package:ledgerlock/data/insights.dart';
 import 'package:ledgerlock/ui/onboarding_screens.dart';
@@ -372,6 +373,34 @@ void main() {
         ],
       ),
     );
+    testWidgets('pdf tile shows the file name ${b.name}', (t) async {
+      final a = Attachment(
+        id: 1,
+        folder: 'tax_form',
+        year: 2026,
+        fileId: 'f',
+        name: '1099-NEC Acme.pdf',
+        mime: 'application/pdf',
+        sizeBytes: 1000,
+        createdAt: DateTime(2026),
+      );
+      await t.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appControllerProvider.overrideWith(
+              (ref) => AppController(dataDir: dir, biometrics: FakeBiometrics(), year: 2026),
+            ),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Center(child: SizedBox(width: 110, height: 140, child: EncryptedThumb(a))),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('1099-NEC Acme.pdf'), findsOneWidget);
+      expect(t.takeException(), isNull);
+    });
     AppController budgetApp() => AppController(dataDir: dir, biometrics: FakeBiometrics(), year: 2026)
       ..biometricsAvailable = true
       ..debugShowReady(slots: {Slot.password, Slot.recovery, Slot.biometric})
