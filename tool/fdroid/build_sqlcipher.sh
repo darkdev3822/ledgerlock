@@ -16,7 +16,7 @@ ABI="${1:?abi: arm64-v8a | armeabi-v7a | x86_64}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUT="$(mkdir -p "${2:-$ROOT/build/fdroid-native}" && cd "${2:-$ROOT/build/fdroid-native}" && pwd)"
 NDK="${ANDROID_NDK_ROOT:-${ANDROID_NDK_HOME:?set ANDROID_NDK_ROOT}}"
-API=24 # same as upstream (AndroidCodeConfig(targetNdkApi: 24)); app minSdk is higher
+API=24 # same as upstream (AndroidCodeConfig(targetNdkApi: 24)) and the app's minSdk
 
 OPENSSL_VER=4.0.3
 OPENSSL_URL="https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VER/openssl-$OPENSSL_VER.tar.gz"

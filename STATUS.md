@@ -222,8 +222,13 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   vault + record made with the prebuilt engine unlock fine on the from-source APK. SECURITY T27.
   F-Droid step 2 DONE: Tesseract4Android from source (tool/fdroid/fetch_tesseract.sh, then build with
   ORG_GRADLE_PROJECT_ledgerlockTesseractSrc=<dir>; ~5 min). Device-verified OCR same result as the AAR. SECURITY T28.
-  NEXT F-Droid: foojay JDK download (recipe: sed the foojay plugin out of settings.gradle.kts, use the server's
-  JDK 17), then fdroiddata
+  F-Droid step 3 DONE: fastlane/metadata/android/en-US (title, descriptions, icon, feature graphic, per-ABI
+  changelogs 1001/2001/4001, 6 store screenshots at 3x: `LL_STORE=1 flutter test test/goldens_test.dart
+  --update-goldens`). Recipe draft tool/fdroid/com.darkdev.ledgerlock.yml (per-ABI split builds, ndk r28c, foojay
+  sed out, both engines from source). Simulated locally for arm64: versionCode 2001, no INTERNET, 0 jitpack/foojay.
+  BLOCKED ON RELEASE GATE: tagging v1.0.0 = a release -> needs the tax-rules review done (open items only
+  publishable Jan/Feb 2027) + LL_RELEASE=1 rules_release_test passing. Owner decides: wait, or ship 1.0 with those
+  figures shown as unverified. Then owner: GitLab account (Dark Dev) + fdroiddata MR. Was: then fdroiddata
   metadata (one build per ABI: prebuild runs build_sqlcipher.sh), listing text + screenshots. Owner later: GitLab
   account (Dark Dev name) + submit the merge request.
 - After the review: device-check a link opening in the browser (none visible until items are verified).

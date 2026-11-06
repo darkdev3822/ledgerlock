@@ -16,7 +16,7 @@ if [ ! -d "$OUT/.git" ]; then
 fi
 [ "$(git -C "$OUT" rev-parse HEAD)" = "$COMMIT" ] || { echo "Tesseract4Android: unexpected commit" >&2; exit 1; }
 rm -rf "$OUT/sample" "$OUT/tesseract4android/src/androidTest" "$OUT/gradle/wrapper/gradle-wrapper.jar"
-left="$(find "$OUT" -path "$OUT/.git" -prune -o -type f \( -name '*.so' -o -name '*.a' -o -name '*.jar' -o -name '*.aar' -o -name '*.traineddata' \) -print)"
+left="$(find "$OUT" \( -path "$OUT/.git" -o -name .cxx -o -name build \) -prune -o -type f \( -name '*.so' -o -name '*.a' -o -name '*.jar' -o -name '*.aar' -o -name '*.traineddata' \) -print)"
 [ -z "$left" ] || { echo "binaries left in checkout:" >&2; echo "$left" >&2; exit 1; }
 echo "Tesseract4Android $TAG sources at $OUT"
 echo "export ORG_GRADLE_PROJECT_ledgerlockTesseractSrc=$OUT"

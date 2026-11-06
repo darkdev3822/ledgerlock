@@ -1,0 +1,24 @@
+<p>LedgerLock tracks your side-hustle income, expenses, receipts and mileage, maps them to IRS Schedule C, and shows what to set aside for quarterly estimated taxes. Everything stays on your phone.</p>
+
+<p><b>Private by construction</b></p>
+<ul>
+<li>No INTERNET permission: the app cannot send your data anywhere.</li>
+<li>Everything encrypted: SQLCipher database and an AES-256-GCM file vault, unlocked with your password (Argon2id).</li>
+<li>Offline ways back in if you forget your password: recovery key, fingerprint reset on the same phone, security questions.</li>
+<li>Receipt reading (OCR) runs on the phone. Photos never reach your gallery and are never written to disk unencrypted.</li>
+<li>No account, no ads, no analytics, no tracking.</li>
+</ul>
+
+<p><b>Features</b></p>
+<ul>
+<li>Add income and expenses in a few taps, with Schedule C categories and smart category rules.</li>
+<li>Dashboard: profit so far, what to set aside, estimated self-employment tax, next quarterly due date.</li>
+<li>Receipt scanning and a document vault per tax year.</li>
+<li>Search in plain words: "meals over 50", "no receipt", "last month".</li>
+<li>Quarterly reminders and a payment log; mileage at the IRS rate for each trip's date; home office simplified method; 1099 tracker.</li>
+<li>CSV import and export, a tax packet PDF for your preparer, and encrypted backups you keep yourself.</li>
+</ul>
+
+<p><b>Not tax advice.</b> LedgerLock is a record-keeping tool for US self-employed people. Its figures are estimates from what you enter. It does not file returns and is not a tax preparer. Tax figures are checked against IRS sources every year.</p>
+
+<p>Free and open source (GPL-3.0).</p>

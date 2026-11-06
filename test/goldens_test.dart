@@ -120,6 +120,18 @@ List<LedgerEntry> fixtureEntries() {
   ]..sort((a, b) => b.date.compareTo(a.date));
 }
 
+final _storeMode = Platform.environment['LL_STORE'] == '1';
+
+/// Screens for the store listing, in order (file name = order_name).
+const _storeShots = {
+  'home': '1_home',
+  'records_filled': '2_records',
+  'taxes_filled': '3_taxes',
+  'search_results': '4_search',
+  'vault': '5_vault',
+  'welcome': '6_privacy',
+};
+
 void main() {
   late Map<int, TaxRules> rules;
   late Directory dir;
@@ -141,8 +153,12 @@ void main() {
     List<Override> extra = const [],
     double height = 844,
   }) async {
-    t.view.physicalSize = Size(390, height); // logical phone size at 1x: small PNGs
-    t.view.devicePixelRatio = 1;
+    // LL_STORE=1 + --update-goldens: re-render the store screens at 3x into the F-Droid/fastlane listing instead.
+    final store = _storeShots[name];
+    if (_storeMode && (store == null || b != Brightness.light)) return;
+    final dpr = _storeMode ? 3.0 : 1.0;
+    t.view.physicalSize = Size(390 * dpr, height * dpr); // logical phone size at 1x: small PNGs
+    t.view.devicePixelRatio = dpr;
     addTearDown(t.view.reset);
     final controller = app ?? AppController(dataDir: dir, biometrics: FakeBiometrics(), year: 2026)
       ..biometricsAvailable = true;
@@ -165,6 +181,13 @@ void main() {
     // Stream overrides deliver on a real event-loop turn.
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await t.pumpAndSettle();
+    if (_storeMode) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('../fastlane/metadata/android/en-US/images/phoneScreenshots/$store.png'),
+      );
+      return;
+    }
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/${name}_${b.name}.png'));
     await _audit(t, '${name}_${b.name}');
   }
