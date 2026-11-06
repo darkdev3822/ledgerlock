@@ -117,7 +117,7 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   142 tests. Device check: import a real bank/PayPal CSV.
 - M7 part 3: tax packet PDF (lib/data/tax_packet.dart; Taxes > Export sheet): summary, Schedule C lines,
   categories (business % + meals share), 1099 check, payments, mileage; "not a tax return" on every page.
-  SECURITY T16. 144 tests. Receipts appendix (zip) not done: it would export decrypted receipts -> decide later.
+  SECURITY T16. 144 tests. Receipts appendix: DONE as PDF pages (owner OK'd 2026-11-06, see DEPTH 11).
   Polish: keep a section heading with its table across page breaks.
 - Design pass 1 (2026-11-01, owner: "feel alive"): docs/DESIGN.md brief (principles -> rules). Bundled fonts
   Fraunces (voice) + Manrope (UI, all numbers, tabular) as static instances, SIL OFL, licences in assets/fonts.
@@ -303,6 +303,9 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   widget_due_info.xml 2x1 resizable, home + keyguard). Reads only bundled rules JSON from the APK assets: no vault
   data by design (amounts would need a plaintext copy). Refresh: daily + inexact alarm after local midnight.
   Emulator-verified (release build over beta 2: Q4 · Jan 15 · in 70 days; tap opens app). SECURITY T37.
+- DEPTH 11 DONE: receipts appendix (Export sheet "Tax packet with receipts": a page per receipt image with record
+  caption, PDFs/overflow listed; PacketReceipt in tax_packet.dart; max 300 image pages). SECURITY T38.
+  Emulator-verified end to end. Next big item: multiple businesses (needs a plan: profile_id on every table).
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

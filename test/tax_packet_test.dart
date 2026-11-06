@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:image/image.dart' as img;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerlock/data/database.dart';
@@ -30,7 +34,8 @@ LedgerEntry _e(int id, bool income, int cents, String cat, {int pct = 100, bool 
       platform: platform,
       notes: '',
       paid: paid,
-      tags: '', createdAt: DateTime(2026),
+      tags: '',
+      createdAt: DateTime(2026),
     );
 
 final _entries = [
@@ -89,4 +94,33 @@ void main() {
       expect(src.contains(bad), isFalse, reason: bad);
     }
   });
+
+  test('receipts appendix: a page per image with its caption; PDFs, junk and overflow are listed', () async {
+    final jpg = Uint8List.fromList(img.encodeJpg(img.Image(width: 40, height: 60)));
+    final bytes = await buildTaxPacket(
+      PacketInput(
+        year: 2026,
+        rules: _rules,
+        summary: LedgerSummary.empty,
+        entries: _entries,
+        generated: DateTime(2026, 11, 1),
+        receipts: [
+          PacketReceipt(name: 'a.jpg', caption: 'Mar 1, 2026 · Staples · \$12.00', image: jpg),
+          PacketReceipt(name: 'b.jpg', caption: 'Not matched to a record', image: jpg),
+          const PacketReceipt(name: 'invoice.pdf', caption: 'Apr 2, 2026 · Adobe · \$20.00'),
+          PacketReceipt(name: 'broken.jpg', caption: 'junk', image: Uint8List.fromList([1, 2, 3])),
+        ],
+      ),
+    );
+    final dir = Directory.systemTemp.createTempSync('ll_pk');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final f = File('${dir.path}/p.pdf')..writeAsBytesSync(bytes);
+    final txt = (await Process.run('pdftotext', ['-layout', f.path, '-'], stdoutEncoding: utf8)).stdout as String;
+    expect(txt, contains('Receipt 1 · Mar 1, 2026 · Staples'));
+    expect(txt, contains('Receipt 2 · Not matched to a record'));
+    expect(txt, contains('Receipts not shown as pages'));
+    expect(txt, contains('invoice.pdf'));
+    expect(txt, contains('broken.jpg'), reason: 'undecodable image is listed, not fatal');
+    expect(txt, isNot(contains('Receipt 3 ·')));
+  }, skip: Process.runSync('which', ['pdftotext']).exitCode != 0 ? 'pdftotext not installed' : false);
 }

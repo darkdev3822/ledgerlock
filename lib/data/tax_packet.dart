@@ -26,6 +26,17 @@ const packetDisclaimer =
 final _usd = NumberFormat.currency(locale: 'en_US', symbol: r'$');
 String _money(int cents) => _usd.format(cents / 100);
 
+/// One receipt for the appendix: decrypted [image] bytes (JPEG/PNG) in memory only, or null for a PDF receipt
+/// (listed by name). [caption]: the record it belongs to, or "Not matched to a record".
+class PacketReceipt {
+  final String name, caption;
+  final Uint8List? image;
+  const PacketReceipt({required this.name, required this.caption, this.image});
+}
+
+/// At most this many receipt pages in one packet (memory on older phones; the rest are listed by name).
+const maxPacketReceiptPages = 300;
+
 /// Packet data, gathered by the caller so this stays testable.
 class PacketInput {
   final int year;
@@ -37,6 +48,9 @@ class PacketInput {
   final List<Form1099> forms;
   final int mileageCents, homeOfficeCents;
   final DateTime generated;
+
+  /// Receipts appendix (SPEC §3). Empty = no appendix.
+  final List<PacketReceipt> receipts;
   const PacketInput({
     required this.year,
     required this.rules,
@@ -48,6 +62,7 @@ class PacketInput {
     this.mileageCents = 0,
     this.homeOfficeCents = 0,
     required this.generated,
+    this.receipts = const [],
   });
 }
 
@@ -222,5 +237,64 @@ Future<Uint8List> buildTaxPacket(PacketInput p, {bool compress = true}) async {
       ],
     ),
   );
+  if (p.receipts.isNotEmpty) _receiptsAppendix(doc, p, small);
   return doc.save();
+}
+
+/// Appendix: one page per receipt image (scaled to fit), then a list of receipts without a page (PDF receipts, or
+/// past [maxPacketReceiptPages]). A receipt that can't be decoded gets listed instead of breaking the packet.
+void _receiptsAppendix(pw.Document doc, PacketInput p, pw.TextStyle small) {
+  final listed = <PacketReceipt>[];
+  var pages = 0;
+  for (final r in p.receipts) {
+    pw.MemoryImage? img;
+    if (r.image != null && pages < maxPacketReceiptPages) {
+      try {
+        img = pw.MemoryImage(r.image!);
+      } catch (_) {
+        img = null;
+      }
+    }
+    if (img == null) {
+      listed.add(r);
+      continue;
+    }
+    pages++;
+    final image = img, n = pages; // page builders run later (at save): capture this page's number now
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.letter,
+        margin: const pw.EdgeInsets.all(48),
+        build: (_) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text('Receipt $n · ${r.caption}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            pw.Text(r.name, style: small),
+            pw.SizedBox(height: 8),
+            pw.Expanded(
+              child: pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
+            ),
+            pw.Text('LedgerLock tax packet ${p.year} · receipts appendix · not a tax return', style: small),
+          ],
+        ),
+      ),
+    );
+  }
+  if (listed.isEmpty) return;
+  doc.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.letter,
+      margin: const pw.EdgeInsets.all(48),
+      build: (_) => [
+        pw.Text('Receipts not shown as pages', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          'PDF receipts, or more than $maxPacketReceiptPages images. They are in the LedgerLock vault.',
+          style: small,
+        ),
+        pw.SizedBox(height: 8),
+        for (final r in listed) pw.Bullet(text: '${r.name} · ${r.caption}', style: small),
+      ],
+    ),
+  );
 }

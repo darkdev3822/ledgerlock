@@ -625,6 +625,60 @@ Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) asyn
     }
   }
 
+  Future<void> packet({required bool withReceipts}) async {
+    final app = ref.read(appControllerProvider);
+    try {
+      if (withReceipts && context.mounted) _toast(context, 'Building the packet with receipts…');
+      final trips = await db.watchTrips(year).first;
+      final entries = await db.watchYear(year).first;
+      final sqft = app.homeOfficeSqft[year] ?? 0;
+      final receipts = <PacketReceipt>[];
+      final docs = app.documents;
+      if (withReceipts && docs != null) {
+        final byId = {for (final e in entries) e.id: e};
+        for (final a in await db.watchAttachments(year, folder: 'receipt').first) {
+          final e = a.entryId == null ? null : byId[a.entryId];
+          final caption = e == null
+              ? 'Not matched to a record'
+              : '${DateFormat.yMMMd().format(e.day)} · '
+                    '${e.party.isNotEmpty ? e.party : (rules.category(e.category)?.name ?? e.category)} · '
+                    '${formatCents(e.amountCents)}';
+          Uint8List? image;
+          if (a.mime.startsWith('image/') && receipts.where((r) => r.image != null).length < maxPacketReceiptPages) {
+            try {
+              image = await docs.read(a); // decrypted in memory only, for this file
+            } catch (_) {}
+          }
+          receipts.add(
+            PacketReceipt(name: a.name.isEmpty ? 'Receipt ${a.id}' : a.name, caption: caption, image: image),
+          );
+        }
+      }
+      final bytes = await buildTaxPacket(
+        PacketInput(
+          year: year,
+          rules: rules,
+          summary: ref.read(summaryProvider(year)),
+          entries: entries,
+          trips: trips,
+          payments: await db.watchPayments(year).first,
+          forms: await db.watchForms1099(year).first,
+          mileageCents: mileageDeductionCents(trips.map((t) => (t.date, t.milesTenths)), rules),
+          homeOfficeCents: homeOfficeCents(sqft, rules) ?? 0,
+          generated: DateTime.now(),
+          receipts: receipts,
+        ),
+      );
+      final name = 'ledgerlock-$year-tax-packet${withReceipts ? '-with-receipts' : ''}.pdf';
+      final ok = await saveWithPicker(name, bytes, mime: 'application/pdf');
+      if (ok && context.mounted) _toast(context, 'Saved $name');
+    } on PlatformException {
+      if (context.mounted) _toast(context, 'Couldn’t save the file.');
+    } on MissingPluginException {
+      if (context.mounted) _toast(context, 'Export isn’t available here yet.');
+    }
+  }
+
   await showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
@@ -647,33 +701,19 @@ Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) asyn
             title: Text('Tax packet for a preparer ($year)'),
             subtitle: const Text('PDF summary: Schedule C lines, categories, 1099s, payments, mileage'),
             trailing: const Icon(Icons.download_rounded),
-            onTap: () async {
+            onTap: () {
               Navigator.pop(c);
-              try {
-                final trips = await db.watchTrips(year).first;
-                final sqft = ref.read(appControllerProvider).homeOfficeSqft[year] ?? 0;
-                final bytes = await buildTaxPacket(
-                  PacketInput(
-                    year: year,
-                    rules: rules,
-                    summary: ref.read(summaryProvider(year)),
-                    entries: await db.watchYear(year).first,
-                    trips: trips,
-                    payments: await db.watchPayments(year).first,
-                    forms: await db.watchForms1099(year).first,
-                    mileageCents: mileageDeductionCents(trips.map((t) => (t.date, t.milesTenths)), rules),
-                    homeOfficeCents: homeOfficeCents(sqft, rules) ?? 0,
-                    generated: DateTime.now(),
-                  ),
-                );
-                final name = 'ledgerlock-$year-tax-packet.pdf';
-                final ok = await saveWithPicker(name, bytes, mime: 'application/pdf');
-                if (ok && context.mounted) _toast(context, 'Saved $name');
-              } on PlatformException {
-                if (context.mounted) _toast(context, 'Couldn’t save the file.');
-              } on MissingPluginException {
-                if (context.mounted) _toast(context, 'Export isn’t available here yet.');
-              }
+              packet(withReceipts: false);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.receipt_long_outlined),
+            title: Text('Tax packet with receipts ($year)'),
+            subtitle: const Text('The same PDF plus a page for each receipt photo. A bigger file.'),
+            trailing: const Icon(Icons.download_rounded),
+            onTap: () {
+              Navigator.pop(c);
+              packet(withReceipts: true);
             },
           ),
           for (final (icon, label, name, build) in <(IconData, String, String, Future<String> Function())>[
