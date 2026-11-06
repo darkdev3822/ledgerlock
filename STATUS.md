@@ -299,6 +299,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   build (chip on entry screen, line 11 on Taxes).
 - Polish: Vault PDF/file tiles show the file name (EncryptedThumb, tiles >= 80 px); PDF viewer no longer shows
   the internal "(M6)" milestone text to users.
+- DEPTH 10 DONE: home-screen widget "Next estimated tax" (DueWidget.kt, layout widget_due.xml, light/dark colors,
+  widget_due_info.xml 2x1 resizable, home + keyguard). Reads only bundled rules JSON from the APK assets: no vault
+  data by design (amounts would need a plaintext copy). Refresh: daily + inexact alarm after local midnight.
+  Emulator-verified (release build over beta 2: Q4 · Jan 15 · in 70 days; tap opens app). SECURITY T37.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

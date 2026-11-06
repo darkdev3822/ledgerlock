@@ -2,4 +2,7 @@
 <resources>
     <color name="ll_splash_bg">#FFF6F4EE</color>
     <color name="ll_emerald">#FF0D6B55</color>
+    <color name="ll_widget_bg">#FFFFFDF8</color>
+    <color name="ll_widget_text">#FF1F1F1A</color>
+    <color name="ll_widget_muted">#FF5E5E54</color>
 </resources>

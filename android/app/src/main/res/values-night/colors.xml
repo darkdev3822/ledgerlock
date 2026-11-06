@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ll_splash_bg">#FF0E0F0C</color>
+    <color name="ll_widget_bg">#FF1C1D1A</color>
+    <color name="ll_widget_text">#FFF2F1EA</color>
+    <color name="ll_widget_muted">#FFB7B6AC</color>
 </resources>

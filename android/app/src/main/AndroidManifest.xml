@@ -48,6 +48,14 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <!-- Home-screen widget: next IRS due date from the bundled rules only, never vault data. Exported only
+             because the launcher must send it APPWIDGET_UPDATE; it reads no extras beyond widget ids. -->
+        <receiver android:name=".DueWidget" android:exported="true" android:label="Next tax date">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_due_info" />
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
