@@ -233,8 +233,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   Step 1 DONE: lib/app/build_info.dart (appVersion, isBeta; build_info_test = pubspec), review.pending in both
   rules files -> PendingFiguresCard on Taxes ("Waiting on the IRS" + Beta pill), Settings > About version line.
   Release gate: beta passes iff every unverified year/keyFigure is disclosed in review.pending; 1.0.0 still needs
-  the full review. NEXT: step 2 owner fills keystore passwords in android/key.properties (walk through; never
-  read/print them); step 3 build signed per-ABI APKs + verify signer (apksigner) + emulator smoke; step 4 owner
+  the full review. Steps 2+3 DONE: old keystore's password unknown -> kept as ~/ledgerlock-release.jks.old-unknown-
+  password; NEW key ~/ledgerlock-release.jks (PKCS12, RSA 4096, CN=Dark Dev only), cert SHA-256 115b9496...e410.
+  Signed split APKs verified (apksigner: CN=Dark Dev; 1001/2001/4001; no INTERNET); emulator smoke: onboarding,
+  Taxes "Waiting on the IRS" card, Settings version line. NEXT step 4 owner
   approves: tag v1.0.0-beta.1, GitHub pre-release with APKs + SHA-256s + README beta line + "F-Droid later:
   backup -> reinstall -> restore" note.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
@@ -278,4 +280,6 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   `setsid chromium <url>`; PDFs the owner downloads land in ~/Downloads (read with pdftotext).
 - Don't Read goldens while --update-goldens runs in the background: you'll see the old image.
 - Golden failure images go to test/failures/ (gitignored now). SearchScreen takes searchOverride for goldens.
+- Emulator screenshots are BLACK by design (FLAG_SECURE, T22). In the test vault turn on Settings > Allow
+  screenshots first, and check every PNG (non-black) before showing the owner.
 - On-device plaintext audit: adb root, pull /data/data/com.darkdev.ledgerlock, scan for FF D8 FF / %PDF / 89 PNG.
