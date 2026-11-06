@@ -1,0 +1,1 @@
+Beta 2: fixes the amount keypad disappearing after typing in a field, and a layout bug on foldables and tablets. New: repeating records, tags, budgets and an income goal, year-over-year insights, your own categories, saved searches, duplicate a record, Filed badge for past years.

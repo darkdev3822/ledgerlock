@@ -2,7 +2,7 @@
 
 **Private bookkeeping and tax prep for side hustles. Free, open source, and it never leaves your phone.**
 
-> **Beta:** [1.0.0-beta.1](https://github.com/darkdev3822/ledgerlock/releases) is a pre-release. A few 2026 tax
+> **Beta:** [1.0.0-beta.2](https://github.com/darkdev3822/ledgerlock/releases) is a pre-release. A few 2026 tax
 > figures are still waiting on the IRS and are listed in the app's Taxes tab ("Waiting on the IRS").
 
 LedgerLock tracks your side-hustle income, expenses, receipts and mileage, maps them to IRS Schedule C, and shows

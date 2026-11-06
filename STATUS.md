@@ -288,6 +288,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   its line + deductible share; delete moves records/repeats/rules to the base). SECURITY T36. Not device-checked:
   the emulator now has the signed beta (4001) installed again; the debug build can't install over it without wiping
   it, so ask the owner first.
+- BETA 2 (2026-11-06, owner: "go ahead with beta 2"): 1.0.0-beta.2+2 (appVersion + pubspec), changelogs
+  1002/2002/4002, README line. LL_RELEASE=1 gate passes (beta, all pending disclosed; no rules edits since beta 1).
+  Signed split APKs: versionCodes 1002/2002/4002, no network permissions, same cert 115b9496...e410 (in-place
+  upgrade). Emulator: beta 1 -> beta 2 upgrade kept the vault (DB v7 -> v10), keypad-after-Back + save OK.
+  GitHub pre-release v1.0.0-beta.2. Next release: bump appVersion + pubspec together again.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY
