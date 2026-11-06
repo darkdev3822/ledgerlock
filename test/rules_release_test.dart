@@ -1,10 +1,13 @@
-// RELEASE GATE (SPEC §2.12, docs/ANNUAL_RULES_REVIEW.md): nothing unverified ships.
+// RELEASE GATE (SPEC §2.12, docs/ANNUAL_RULES_REVIEW.md): nothing unverified ships in a final release. A beta
+// (appVersion with a "-") may ship only if every unverified year/figure is disclosed in review.pending (shown on the
+// Taxes tab).
 // Run before every release:  LL_RELEASE=1 flutter test test/rules_release_test.dart
 // Skipped in day-to-day runs so unfinished reviews don't hide other failures. It is NOT optional for releases.
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ledgerlock/app/build_info.dart';
 import 'package:ledgerlock/data/tax_rules.dart';
 import 'package:ledgerlock/tax/guidance.dart';
 
@@ -17,9 +20,10 @@ void main() {
     final missing = <String>[];
     for (final y in TaxRules.supportedYears) {
       final r = TaxRules.fromJson(jsonDecode(File('assets/tax_rules/$y.json').readAsStringSync()));
-      if (r.verified == null) missing.add('$y.json: review.verified');
+      final disclosed = {for (final p in r.pending) p.figure};
+      if (r.verified == null && !(isBeta && r.pending.isNotEmpty)) missing.add('$y.json: review.verified');
       for (final k in r.keyFigures) {
-        if (!k.usable) missing.add('$y.json: ${k.id}');
+        if (!k.usable && !(isBeta && disclosed.contains(k.id))) missing.add('$y.json: ${k.id}');
       }
     }
     final res = jsonDecode(File('assets/tax_rules/resources.json').readAsStringSync())['resources'] as List;

@@ -3,7 +3,27 @@
   "source": "IRS Form 1040-ES (2026). Verify each year against the IRS calendar.",
   "review": {
     "verified": null,
-    "note": "Owner-led review: docs/ANNUAL_RULES_REVIEW.md. null = not checked, must not ship."
+    "note": "Owner-led review: docs/ANNUAL_RULES_REVIEW.md. null = not checked, must not ship.",
+    "pending": [
+      {
+        "what": "Self-employment earnings factor (92.35%)",
+        "source": "2026 Schedule SE",
+        "expected": "Jan–Feb 2027",
+        "meanwhile": "Uses 92.35% from the 2025 Schedule SE."
+      },
+      {
+        "what": "Meals deduction limit (50%)",
+        "source": "2026 Publication 463",
+        "expected": "Jan–Feb 2027",
+        "meanwhile": "Uses 50% from the 2025 Publication 463."
+      },
+      {
+        "what": "Free File and VITA income limits",
+        "source": "IRS Free File and VITA pages",
+        "expected": "January 2027",
+        "meanwhile": "Your income isn't compared with these limits until they're published."
+      }
+    ]
   },
   "quarterlyDue": [
     {

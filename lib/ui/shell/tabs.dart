@@ -18,6 +18,7 @@ import '../ledger/entry_screen.dart';
 import '../search/search_screen.dart';
 import '../taxes/checkin_screen.dart';
 import '../taxes/guidance_section.dart';
+import '../taxes/pending_card.dart';
 import '../taxes/tools.dart';
 
 /// "today" / "tomorrow" / "in N days" (never "in 1 days" or "in 0 days": UI review U6).
@@ -961,6 +962,7 @@ class TaxesTab extends ConsumerWidget {
             ),
           ],
         ),
+      if (rules != null && rules.pending.isNotEmpty) PendingFiguresCard(rules: rules),
       GuidanceSection(year: year),
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

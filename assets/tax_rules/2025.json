@@ -3,7 +3,16 @@
   "source": "IRS Form 1040-ES (2025). Jun 15 2025 fell on a Sunday, so Q2 moved to Jun 16.",
   "review": {
     "verified": null,
-    "note": "Owner-led review: docs/ANNUAL_RULES_REVIEW.md. null = not checked, must not ship."
+    "note": "Owner-led review: docs/ANNUAL_RULES_REVIEW.md. null = not checked, must not ship.",
+    "pending": [
+      {
+        "figure": "form_1099k_threshold",
+        "what": "1099-K reporting threshold",
+        "source": "Form 1099-K instructions (they name no year)",
+        "expected": "When the IRS states it",
+        "meanwhile": "Not used in any calculation."
+      }
+    ]
   },
   "quarterlyDue": [
     {

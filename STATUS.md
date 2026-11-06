@@ -229,6 +229,14 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   BLOCKED ON RELEASE GATE: tagging v1.0.0 = a release -> needs the tax-rules review done (open items only
   publishable Jan/Feb 2027) + LL_RELEASE=1 rules_release_test passing. Owner decides: wait, or ship 1.0 with those
   figures shown as unverified. Then owner: GitLab account (Dark Dev) + fdroiddata MR.
+- GitHub BETA plan (2026-11-06, owner chose): 1.0.0-beta.1 as a GitHub pre-release before the review completes.
+  Step 1 DONE: lib/app/build_info.dart (appVersion, isBeta; build_info_test = pubspec), review.pending in both
+  rules files -> PendingFiguresCard on Taxes ("Waiting on the IRS" + Beta pill), Settings > About version line.
+  Release gate: beta passes iff every unverified year/keyFigure is disclosed in review.pending; 1.0.0 still needs
+  the full review. NEXT: step 2 owner fills keystore passwords in android/key.properties (walk through; never
+  read/print them); step 3 build signed per-ABI APKs + verify signer (apksigner) + emulator smoke; step 4 owner
+  approves: tag v1.0.0-beta.1, GitHub pre-release with APKs + SHA-256s + README beta line + "F-Droid later:
+  backup -> reinstall -> restore" note.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers: tappable/removable filter chips (date range, platform, tag, tax line, business %), pull-down-
   to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.

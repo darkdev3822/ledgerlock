@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../app/app_controller.dart';
+import '../app/build_info.dart';
 import '../data/business_types.dart';
 import '../security/vault.dart';
 import 'backup_screens.dart';
@@ -316,10 +317,17 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
               ListTile(
+                leading: const Icon(Icons.info_outline_rounded),
+                title: Text('Version $appVersion'),
+                subtitle: isBeta
+                    ? const Text('Beta: some tax figures are still waiting on the IRS (see the Taxes tab).')
+                    : null,
+              ),
+              ListTile(
                 leading: const Icon(Icons.description_outlined),
                 title: const Text('Open-source licences'),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => showLicensePage(context: context, applicationName: 'LedgerLock'),
+                onTap: () => showLicensePage(context: context, applicationName: 'LedgerLock', applicationVersion: appVersion),
               ),
             ],
           ),

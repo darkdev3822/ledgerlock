@@ -104,9 +104,12 @@ class TaxRules {
   final int seMinimumNetEarningsCents;
   final double defaultSetAsidePct;
 
-  /// Date the owner verified this file's numbers against the IRS (null = not yet; never ship).
+  /// Date the owner verified this file's numbers against the IRS (null = not yet; never ship as a final release).
   final String? verified;
   final List<KeyFigure> keyFigures;
+
+  /// Figures the IRS hasn't published yet (review.pending). Shown on the Taxes tab; a beta may ship with them listed.
+  final List<PendingFigure> pending;
 
   const TaxRules({
     required this.year,
@@ -121,6 +124,7 @@ class TaxRules {
     this.defaultSetAsidePct = 25,
     this.verified,
     this.keyFigures = const [],
+    this.pending = const [],
   });
 
   factory TaxRules.fromJson(Map<String, dynamic> j) {
@@ -145,6 +149,10 @@ class TaxRules {
       defaultSetAsidePct: (j['defaultSetAsidePct'] as num?)?.toDouble() ?? 25,
       verified: (j['review'] as Map<String, dynamic>?)?['verified'] as String?,
       keyFigures: [for (final k in j['keyFigures'] as List? ?? const []) KeyFigure.fromJson(k as Map<String, dynamic>)],
+      pending: [
+        for (final p in (j['review'] as Map<String, dynamic>?)?['pending'] as List? ?? const [])
+          PendingFigure.fromJson(p as Map<String, dynamic>),
+      ],
     );
   }
 
@@ -189,4 +197,24 @@ class TaxRules {
     final s = await (bundle ?? rootBundle).loadString('assets/tax_rules/$year.json');
     return TaxRules.fromJson(jsonDecode(s) as Map<String, dynamic>);
   }
+}
+
+/// A figure still waiting for its IRS source, and what the app does meanwhile.
+class PendingFigure {
+  final String what;
+  final String source;
+  final String expected;
+  final String meanwhile;
+
+  /// keyFigures id, when the pending item is one (lets the release gate match them up).
+  final String? figure;
+  const PendingFigure({required this.what, this.source = '', this.expected = '', this.meanwhile = '', this.figure});
+
+  factory PendingFigure.fromJson(Map<String, dynamic> j) => PendingFigure(
+    what: j['what'] as String? ?? '',
+    source: j['source'] as String? ?? '',
+    expected: j['expected'] as String? ?? '',
+    meanwhile: j['meanwhile'] as String? ?? '',
+    figure: j['figure'] as String?,
+  );
 }
