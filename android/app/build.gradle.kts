@@ -40,7 +40,8 @@ android {
     }
 
     signingConfigs {
-        if (keyProps.getProperty("storeFile") != null) {
+        // Only when the owner has filled in the password: an empty one would fail the build instead of falling back.
+        if (!keyProps.getProperty("storeFile").isNullOrBlank() && !keyProps.getProperty("storePassword").isNullOrBlank()) {
             create("release") {
                 storeFile = file(keyProps.getProperty("storeFile"))
                 storePassword = keyProps.getProperty("storePassword")

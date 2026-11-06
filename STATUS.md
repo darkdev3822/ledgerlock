@@ -216,6 +216,13 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   recomputes on lock/unlock (was frozen per run: stale "today" past midnight); entry screen uses it (goldens were
   drifting with the real date). Release signing reads gitignored android/key.properties (keystore outside repo);
   owner still has to type the passwords, until then release = debug key. 667 tests.
+- F-Droid step 1 DONE (2026-11-06): SQLCipher from source. tool/fdroid/build_sqlcipher.sh <abi> (OpenSSL 4.0.3 +
+  SQLCipher 4.19.0, sha256-pinned, = what package:sqlite3 3.8.0 CI builds) + use_source_sqlcipher.sh (rewrites
+  pubspec hook to `source: source`; NEVER commit that pubspec, `git checkout pubspec.yaml` after). Device-verified:
+  vault + record made with the prebuilt engine unlock fine on the from-source APK. SECURITY T27.
+  NEXT F-Droid: Tesseract4Android from source (replace JitPack AAR), drop foojay JDK download, then fdroiddata
+  metadata (one build per ABI: prebuild runs build_sqlcipher.sh), listing text + screenshots. Owner later: GitLab
+  account (Dark Dev name) + submit the merge request.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers: tappable/removable filter chips (date range, platform, tag, tax line, business %), pull-down-
   to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.
