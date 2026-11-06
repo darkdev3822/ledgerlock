@@ -13,7 +13,13 @@ class SearchResults {
   static const empty = SearchResults([], [], Duration.zero);
 }
 
-Future<SearchResults> runSearch(AppDatabase db, SearchQuery q, {int limit = 200}) async {
+/// [lineCategories]: Schedule C line -> category ids (from the year rules, custom categories included), for "line 9".
+Future<SearchResults> runSearch(
+  AppDatabase db,
+  SearchQuery q, {
+  int limit = 200,
+  Map<String, Set<String>> lineCategories = const {},
+}) async {
   if (q.isEmpty) return SearchResults.empty;
   final sw = Stopwatch()..start();
   final where = <String>[];
@@ -23,7 +29,15 @@ Future<SearchResults> runSearch(AppDatabase db, SearchQuery q, {int limit = 200}
     where.add('e.id IN (SELECT rowid FROM search_fts WHERE search_fts MATCH ? AND rowid > 0)');
     args.add(Variable.withString(match));
   }
-  if (q.year != null) {
+  Variable<String> mm(int m) => Variable.withString(m.toString().padLeft(2, '0'));
+  if (q.month != null && q.monthTo != null) {
+    where.add('substr(e.date, 6, 2) BETWEEN ? AND ?');
+    args.addAll([mm(q.month!), mm(q.monthTo!)]);
+    if (q.year != null) {
+      where.add('e.date LIKE ?');
+      args.add(Variable.withString('${q.year}-%'));
+    }
+  } else if (q.year != null) {
     where.add('e.date LIKE ?');
     args.add(
       Variable.withString(q.month == null ? '${q.year}-%' : '${q.year}-${q.month.toString().padLeft(2, '0')}-%'),
@@ -55,6 +69,16 @@ Future<SearchResults> runSearch(AppDatabase db, SearchQuery q, {int limit = 200}
       args.add(Variable.withString(text));
     }
   }
+  if (q.lines.isNotEmpty) {
+    final cats = {for (final l in q.lines) ...?lineCategories[l]};
+    if (cats.isEmpty) {
+      where.add('0'); // a line with no categories: nothing matches
+    } else {
+      where.add('e.category IN (${List.filled(cats.length, '?').join(', ')})');
+      args.addAll(cats.map(Variable.withString));
+    }
+  }
+  if (q.mixedUse) where.add('(e.is_income = 0 AND e.business_pct < 100)');
   for (final t in q.tags) {
     where.add('instr(e.tags, ?) > 0'); // stored ' a b ': exact tag, no LIKE wildcards
     args.add(Variable.withString(' $t '));

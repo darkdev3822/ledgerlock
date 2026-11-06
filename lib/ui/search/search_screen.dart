@@ -139,7 +139,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Future<void> _run(String text) async {
     final db = ref.read(appControllerProvider).db;
-    final search = widget.searchOverride ?? (db == null ? null : (SearchQuery q) => runSearch(db, q));
+    final lineCats = <String, Set<String>>{};
+    for (final y in TaxRules.supportedYears) {
+      for (final c in [
+        ...?ref.read(taxRulesProvider(y)).value?.expenseCategories,
+        ...?ref.read(taxRulesProvider(y)).value?.incomeCategories,
+      ]) {
+        (lineCats[c.line] ??= {}).add(c.id);
+      }
+    }
+    final search =
+        widget.searchOverride ?? (db == null ? null : (SearchQuery q) => runSearch(db, q, lineCategories: lineCats));
     if (search == null) return;
     final q = parseQuery(text, today: ref.read(todayProvider));
     final seq = ++_seq;

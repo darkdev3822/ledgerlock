@@ -21,6 +21,15 @@ class SearchQuery {
   /// '#tag' words, normalised like stored tags (all must match).
   final List<String> tags;
 
+  /// End of a month range ("q2", "march to may"): [month]..[monthTo]. Null = single month or none.
+  final int? monthTo;
+
+  /// Schedule C lines ("line 9", "line 27a"); resolved to categories by the search service.
+  final List<String> lines;
+
+  /// Expenses not fully for business ("mixed use", "personal use").
+  final bool mixedUse;
+
   /// What the parser understood, one removable chip each, with the words it came from.
   final List<UnderstoodChip> chips;
 
@@ -52,6 +61,9 @@ class SearchQuery {
     this.unpaidOnly = false,
     this.feesOnly = false,
     this.tags = const [],
+    this.monthTo,
+    this.lines = const [],
+    this.mixedUse = false,
     this.chips = const [],
     this.words = const [],
   });
@@ -67,7 +79,9 @@ class SearchQuery {
       hasReceipt == null &&
       !unpaidOnly &&
       !feesOnly &&
-      tags.isEmpty;
+      tags.isEmpty &&
+      lines.isEmpty &&
+      !mixedUse;
 
   /// Only text (and maybe a year): documents are worth searching too.
   bool get documentsApply =>
@@ -78,7 +92,9 @@ class SearchQuery {
       isIncome == null &&
       hasReceipt == null &&
       !unpaidOnly &&
-      tags.isEmpty;
+      tags.isEmpty &&
+      lines.isEmpty &&
+      !mixedUse;
 
   /// FTS5 MATCH expression built only from letters/digits, each term quoted and prefix-matched,
   /// so user input can never inject FTS syntax (SECURITY.md T6). Null if there's nothing to match.
@@ -244,6 +260,9 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
   var unpaid = false;
   var fees = false;
   final tags = <String>[];
+  final lines = <String>[];
+  int? monthTo;
+  var mixed = false;
 
   int? money(String w) {
     final m = RegExp(r'^\$?(\d{1,9})(?:\.(\d{1,2}))?$').firstMatch(w);
@@ -326,9 +345,58 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
       understood('$yr', i, 1);
       continue;
     }
+    // Quarters: "q2" = Apr-Jun (calendar quarters, not the IRS payment periods).
+    final qm = RegExp(r'^q([1-4])$').firstMatch(w);
+    if (qm != null) {
+      final q = int.parse(qm[1]!);
+      month = q * 3 - 2;
+      monthTo = q * 3;
+      understood('Q$q (${_monthNames[month]}-${_monthNames[monthTo]})', i, 1);
+      continue;
+    }
+    // Month ranges: "march to may", "mar - may", "jan-mar".
+    final dash = RegExp(r'^([a-z]+)-([a-z]+)$').firstMatch(w);
+    if (dash != null && _months.containsKey(dash[1]) && _months.containsKey(dash[2])) {
+      final a = _months[dash[1]]!, b = _months[dash[2]]!;
+      (month, monthTo) = a <= b ? (a, b) : (b, a);
+      understood('${_monthNames[month]}-${_monthNames[monthTo]}', i, 1);
+      continue;
+    }
+    if (_months.containsKey(w) &&
+        {'to', 'through', 'thru', 'until', '-'}.contains(next()) &&
+        next(2) != null &&
+        _months.containsKey(next(2))) {
+      final a = _months[w]!, b = _months[next(2)]!;
+      (month, monthTo) = a <= b ? (a, b) : (b, a);
+      understood('${_monthNames[month]}-${_monthNames[monthTo]}', i, 3);
+      i += 2;
+      continue;
+    }
     if (_months.containsKey(w) && !(w == 'may' && month != null)) {
       month = _months[w];
+      monthTo = null;
       understood(_monthNames[month!], i, 1);
+      continue;
+    }
+    // Schedule C line: "line 9", "line 27a".
+    if (w == 'line' && next() != null && RegExp(r'^\d{1,2}[a-z]?$').hasMatch(next()!)) {
+      if (!lines.contains(next()!)) lines.add(next()!);
+      understood('Line ${next()}', i, 2);
+      i++;
+      continue;
+    }
+    // Expenses that are partly personal.
+    if ((w == 'mixed' && next() == 'use') ||
+        (w == 'personal' && next() == 'use') ||
+        ({'part', 'partly'}.contains(w) && next() == 'personal')) {
+      mixed = true;
+      understood('Mixed use', i, 2);
+      i++;
+      continue;
+    }
+    if (w == 'mixed') {
+      mixed = true;
+      understood('Mixed use', i, 1);
       continue;
     }
     // Type, fees, categories.
@@ -396,6 +464,9 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
     unpaidOnly: unpaid,
     feesOnly: fees,
     tags: tags,
+    monthTo: monthTo,
+    lines: lines,
+    mixedUse: mixed,
     chips: chips,
     words: words,
   );

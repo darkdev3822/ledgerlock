@@ -105,6 +105,60 @@ void main() {
     });
   });
 
+  group('ranges, lines and mixed use (M5 leftovers)', () {
+    test('parser', () {
+      expect((p('q2').month, p('q2').monthTo), (4, 6));
+      expect(p('q2').understood, ['Q2 (Apr-Jun)']);
+      final r = p('fuel march to may 2026');
+      expect((r.month, r.monthTo, r.year), (3, 5, 2026));
+      expect(r.terms, ['fuel']);
+      expect(r.understood, ['Mar-May', '2026']);
+      expect((p('may-jan').month, p('may-jan').monthTo), (1, 5));
+      expect(p('line 27a over 10').lines, ['27a']);
+      expect(p('line 27a').understood, ['Line 27a']);
+      expect(p('line abc').lines, isEmpty);
+      expect(p('mixed use').mixedUse, isTrue);
+      expect(p('part personal').mixedUse, isTrue);
+      expect(p('personal trainer').mixedUse, isFalse, reason: 'a payee word alone is text, not a filter');
+      expect(p('march').monthTo, isNull);
+      expect(p(p('q2 fuel').without(0)).month, isNull, reason: 'removing the chip removes the range');
+    });
+
+    test('database', () async {
+      final dir = Directory.systemTemp.createTempSync('ll_rng');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final db = AppDatabase.open(File('${dir.path}/r.db'), LedgerCrypto.randomBytes(32));
+      Future<void> add(String d, String cat, {int pct = 100}) => db.addEntry(
+        LedgerEntriesCompanion.insert(
+          isIncome: false,
+          date: d,
+          amountCents: 100,
+          category: cat,
+          businessPct: Value(pct),
+        ),
+      );
+      await add('2026-02-01', 'office');
+      await add('2026-04-01', 'office', pct: 60);
+      await add('2026-06-30', 'car');
+      await add('2025-05-01', 'car');
+      Future<List<String>> f(String q) async => (await runSearch(
+        db,
+        parseQuery(q, today: today),
+        lineCategories: const {
+          '9': {'car'},
+          '18': {'office'},
+        },
+      )).entries.map((e) => e.date).toList()..sort();
+      expect(await f('q2'), ['2025-05-01', '2026-04-01', '2026-06-30']);
+      expect(await f('q2 2026'), ['2026-04-01', '2026-06-30']);
+      expect(await f('jan to apr 2026'), ['2026-02-01', '2026-04-01']);
+      expect(await f('line 9'), ['2025-05-01', '2026-06-30']);
+      expect(await f('line 99'), isEmpty);
+      expect(await f('mixed use'), ['2026-04-01']);
+      await db.close();
+    });
+  });
+
   group('search over the encrypted DB', () {
     late Directory dir;
     late AppDatabase db;

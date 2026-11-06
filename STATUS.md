@@ -293,11 +293,15 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   Signed split APKs: versionCodes 1002/2002/4002, no network permissions, same cert 115b9496...e410 (in-place
   upgrade). Emulator: beta 1 -> beta 2 upgrade kept the vault (DB v7 -> v10), keypad-after-Back + save OK.
   GitHub pre-release v1.0.0-beta.2. Next release: bump appVersion + pubspec together again.
+- DEPTH 9 DONE: search ranges + filters: "q1".."q4", "march to may" / "jan-mar" (monthTo), "line 9"/"line 27a"
+  (runSearch lineCategories from rules incl. custom), "mixed use"/"personal use"/"part personal" (business % < 100).
+  Platform needs no filter (already in the text index). Custom categories device-checked on the beta 2 release
+  build (chip on entry screen, line 11 on Taxes).
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY
   T29 (none). 669 tests. Device check still owed.
-- M5 leftovers: chips for filters the parser can't express yet (date range, platform, tax line, business %), device check of search on the emulator.
+- M5 leftovers: device check of search on the emulator.
 - Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
   (only tested on synthetic + emulator scene); PDF preview (M6); iOS document picker channel (M10).
 - Still open: custom security questions, backup-age banner (M9), FLAG_SECURE toggle,
