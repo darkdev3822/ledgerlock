@@ -242,6 +242,14 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   (build_info_test). 1.0.0 after the Dec-Jan review. Was step 4 owner
   approves: tag v1.0.0-beta.1, GitHub pre-release with APKs + SHA-256s + README beta line + "F-Droid later:
   backup -> reinstall -> restore" note.
+- TESTER BUG FIXES (2026-11-06; tester phone = Samsung Galaxy Z Fold 8): (1) keypad vanished for good after typing in
+  any text field (FocusScope kept focus after unfocus -> no way to enter an amount -> Save never enabled); now hides
+  only while a TEXT field has focus, and Android Back closing the keyboard also unfocuses. (2) Keypad keys sized by
+  WIDTH (aspect ratio) filled a wide/unfolded screen and pushed out the category chips; now height-based 48-64 dp,
+  keypad + Save max 480 dp wide. (3) Disabled Save now says why ("Type an amount" / "Pick a category"). (4) Keypad
+  + onboarding cards showed no ripple (ink under a coloured Container). Tests U10-U13 + stress layouts at 880x950 and
+  980x680 for every screen. Emulator-verified at phone size and 2208x1768 (expense + income saved). 817+ tests.
+  Testers only get this in a new build: owner decides on 1.0.0-beta.2 (bump appVersion + pubspec together).
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

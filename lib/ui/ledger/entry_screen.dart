@@ -115,7 +115,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   void initState() {
     super.initState();
     _userPickedCategory = _editing;
-    _focus.addListener(() => setState(() => _textFocused = _focus.hasFocus));
+    FocusManager.instance.addListener(_onFocusChange);
     _party.addListener(_maybeSuggest);
     _loadSuggestions();
     if (widget.receiptId != null) {
@@ -150,8 +150,27 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     for (final c in [_party, _platform, _fee, _notes]) {
       c.dispose();
     }
+    FocusManager.instance.removeListener(_onFocusChange);
     _focus.dispose();
     super.dispose();
+  }
+
+  /// The keypad hides only while a TEXT field has focus. Watching _focus.hasFocus alone kept it hidden for good:
+  /// unfocusing a field moves focus to the enclosing scope, which still "has focus" (tester report U10).
+  void _onFocusChange() {
+    final p = FocusManager.instance.primaryFocus;
+    final text =
+        _focus.hasFocus && p != null && p != _focus && p.context?.findAncestorWidgetOfExactType<EditableText>() != null;
+    if (mounted && text != _textFocused) setState(() => _textFocused = text);
+  }
+
+  /// Android Back closes the soft keyboard but leaves the field focused: drop focus too, so the keypad returns.
+  double _lastInset = 0;
+  void _watchKeyboard(double inset) {
+    if (_lastInset > 0 && inset == 0 && _textFocused) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => FocusManager.instance.primaryFocus?.unfocus());
+    }
+    _lastInset = inset;
   }
 
   void _key(String k) {
@@ -258,6 +277,12 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     if (_category != null && !cats.any((c) => c.id == _category)) _category = null;
     final selected = _category == null ? null : rules.category(_category!);
     final amountColor = _cents == 0 ? ll.muted : (_income ? ll.income : ll.text);
+    _watchKeyboard(MediaQuery.viewInsetsOf(context).bottom);
+    final missing = _cents == 0
+        ? 'Type an amount on the keypad.'
+        : _category == null
+        ? 'Pick a category above to save.'
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -473,25 +498,36 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
               ),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: ll.surface,
-              border: Border(top: BorderSide(color: ll.border)),
-            ),
+          // A Material (not a coloured Container) so the keypad's ink ripples are painted where you can see them.
+          Material(
+            color: ll.surface,
+            shape: Border(top: BorderSide(color: ll.border)),
             child: SafeArea(
               top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(Space.gutter, Space.sm, Space.gutter, Space.md),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!_textFocused) _Keypad(onKey: _key),
-                    const SizedBox(height: Space.sm),
-                    FilledButton(
-                      onPressed: _cents > 0 && _category != null && !_saving ? () => _save(rules) : null,
-                      child: Text(_editing ? 'Save changes' : 'Save ${_income ? 'income' : 'expense'}'),
+                child: Center(
+                  heightFactor: 1,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: _maxBarWidth),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (!_textFocused) _Keypad(onKey: _key),
+                        if (missing != null && !_saving)
+                          Padding(
+                            padding: const EdgeInsets.only(top: Space.sm),
+                            child: Text(missing, style: context.text.bodySmall, textAlign: TextAlign.center),
+                          ),
+                        const SizedBox(height: Space.sm),
+                        FilledButton(
+                          onPressed: _cents > 0 && _category != null && !_saving ? () => _save(rules) : null,
+                          child: Text(_editing ? 'Save changes' : 'Save ${_income ? 'income' : 'expense'}'),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -502,6 +538,9 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   }
 }
 
+/// Keypad + Save stay phone-sized on tablets and unfolded foldables.
+const _maxBarWidth = 480.0;
+
 class _Keypad extends StatelessWidget {
   final ValueChanged<String> onKey;
   const _Keypad({required this.onKey});
@@ -509,32 +548,37 @@ class _Keypad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '⌫'];
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 2.2, // keys >= 48 dp tall even on a 320 px phone (M8 a11y)
-      children: [
-        for (final k in keys)
-          InkWell(
-            borderRadius: BorderRadius.circular(Radii.input),
-            onTap: () {
-              onKey(k == '00' ? '0' : k);
-              if (k == '00') onKey('0');
-            },
-            child: Center(
-              child: k == '⌫'
-                  ? Icon(Icons.backspace_outlined, semanticLabel: 'Delete digit', color: context.ll.muted)
-                  : Text(
-                      k,
-                      style: context.text.headlineSmall?.copyWith(
-                        fontFamily: Fonts.ui,
-                        fontWeight: FontWeight.w600,
-                        fontFeatures: tabular,
-                      ),
+    // Key height follows the screen HEIGHT, never the width: width-based keys filled a foldable's wide inner
+    // screen and pushed the category chips out of view (tester report, U13). 48 dp minimum for touch (M8 a11y).
+    final keyHeight = (MediaQuery.sizeOf(context).height * 0.07).clamp(48.0, 64.0);
+    Widget key(String k) => Expanded(
+      child: SizedBox(
+        height: keyHeight,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Radii.input),
+          onTap: () {
+            onKey(k == '00' ? '0' : k);
+            if (k == '00') onKey('0');
+          },
+          child: Center(
+            child: k == '⌫'
+                ? Icon(Icons.backspace_outlined, semanticLabel: 'Delete digit', color: context.ll.muted)
+                : Text(
+                    k,
+                    style: context.text.headlineSmall?.copyWith(
+                      fontFamily: Fonts.ui,
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: tabular,
                     ),
-            ),
+                  ),
           ),
+        ),
+      ),
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var r = 0; r < 4; r++) Row(children: [for (var c = 0; c < 3; c++) key(keys[r * 3 + c])]),
       ],
     );
   }

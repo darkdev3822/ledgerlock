@@ -192,8 +192,9 @@ void main() {
     List<LedgerEntry> entries = const [],
     List<Override> extra = const [],
     DateTime? today,
+    double height = 844,
   }) async {
-    t.view.physicalSize = Size(width, 844);
+    t.view.physicalSize = Size(width, height);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     final controller = AppController(dataDir: dir, biometrics: FakeBiometrics(), year: 2026)
@@ -277,7 +278,17 @@ void main() {
     'payment_log': (const PaymentLogScreen(2026), const []),
     'home_office': (const HomeOfficeScreen(2026), const []),
   };
-  const configs = [(390.0, 1.0), (390.0, 1.3), (320.0, 1.0), (320.0, 1.3), (390.0, 2.0), (320.0, 2.0)];
+  // (width, text scale, height). The last two: a foldable's inner screen unfolded, upright and sideways (tester).
+  const configs = [
+    (390.0, 1.0, 844.0),
+    (390.0, 1.3, 844.0),
+    (320.0, 1.0, 844.0),
+    (320.0, 1.3, 844.0),
+    (390.0, 2.0, 844.0),
+    (320.0, 2.0, 844.0),
+    (880.0, 1.0, 950.0),
+    (980.0, 1.0, 680.0),
+  ];
 
   // Known failures found by this suite. AppShell uses an IndexedStack, so every tab test lays out all four tabs.
   String? layoutFinding(String name, double w, double s) {
@@ -294,11 +305,11 @@ void main() {
 
   for (final MapEntry(key: name, value: (widget, over)) in screens.entries) {
     for (final b in Brightness.values) {
-      for (final (w, s) in configs) {
+      for (final (w, s, h) in configs) {
         for (final data in [true, false]) {
           final finding = layoutFinding(name, w, s);
           final id =
-              'layout $name ${b.name} w${w.round()} x$s ${data ? 'hostile' : 'empty'}${finding == null ? '' : ' $finding'}';
+              'layout $name ${b.name} w${w.round()}${h == 844 ? '' : 'h${h.round()}'} x$s ${data ? 'hostile' : 'empty'}${finding == null ? '' : ' $finding'}';
           testWidgets(id, skip: finding != null && !_confirm, (t) async {
             final err = await stress(
               t,
@@ -306,6 +317,7 @@ void main() {
               b: b,
               width: w,
               scale: s,
+              height: h,
               entries: data ? hostileEntries() : const [],
               extra: [...over, if (data) ...hostileTools()],
             );
@@ -352,6 +364,103 @@ void main() {
       ),
     ),
   );
+
+  // Tester report 2026-11-06: "keypad wasn't working", "couldn't put in records".
+  testWidgets('U10 keypad comes back after typing in a text field', (t) async {
+    final db = memDb();
+    await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    await t.enterText(find.widgetWithText(TextField, 'Paid to'), 'Staples');
+    await t.pumpAndSettle();
+    // Back closes the soft keyboard; the user then taps the amount or empty space.
+    FocusManager.instance.primaryFocus?.unfocus();
+    await t.pumpAndSettle();
+    expect(find.text('5'), findsOneWidget, reason: 'keypad must be visible once no text field has focus');
+    await t.tap(find.text('5'));
+    await t.pump();
+    expect(find.text(r'$0.05'), findsOneWidget);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('U10b Android Back closing the soft keyboard brings the keypad back', (t) async {
+    final db = memDb();
+    await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(TextField, 'Paid to'));
+    t.view.viewInsets = const FakeViewPadding(bottom: 900); // keyboard up
+    await t.pumpAndSettle();
+    expect(find.text('5'), findsNothing, reason: 'keypad hides while the soft keyboard is up');
+    t.view.viewInsets = FakeViewPadding.zero; // Back: keyboard down, field still focused
+    await t.pumpAndSettle();
+    addTearDown(t.view.resetViewInsets);
+    expect(find.text('5'), findsOneWidget);
+    await t.runAsync(db.close);
+  });
+
+  // Tester's phone is a foldable: the keypad grew with the screen WIDTH (aspect-ratio keys), so on the wide inner
+  // screen it filled the page and the category chips were squeezed out -> Save never enabled.
+  for (final (name, w, h) in [
+    ('fold inner portrait', 880.0, 950.0),
+    ('fold inner landscape', 980.0, 680.0),
+    ('fold cover', 360.0, 800.0),
+    ('tablet landscape', 1280.0, 760.0),
+  ]) {
+    testWidgets('U13 entry screen usable on $name (${w.toInt()}x${h.toInt()} dp)', (t) async {
+      final db = memDb();
+      await pumpWithDb(t, opener(() => const EntryScreen()), db);
+      t.view.physicalSize = Size(w, h);
+      await t.tap(find.text('open'));
+      await t.pumpAndSettle();
+      final screen = Offset.zero & Size(w, h);
+      final keypadTop = t.getTopLeft(find.text('1')).dy;
+      expect(keypadTop, greaterThan(h * 0.4), reason: 'keypad must not take over the screen');
+      for (final f in [find.text('5'), find.text('Save expense'), find.byType(ChoiceChip).first]) {
+        expect(screen.contains(t.getCenter(f)), isTrue, reason: '$f must be on screen');
+      }
+      await t.tap(find.text('5'));
+      await t.tap(find.byType(ChoiceChip).first);
+      await t.pump();
+      await t.tap(find.text('Save expense'));
+      await settle(t);
+      final rows = await t.runAsync(() => db.watchYear(2026).first);
+      expect(rows!.length, 1);
+      await t.runAsync(db.close);
+    });
+  }
+
+  testWidgets('U11 keypad stays after tapping chips, segments, slider and switch', (t) async {
+    final db = memDb();
+    await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    await t.tap(find.byType(ChoiceChip).first);
+    await t.pumpAndSettle();
+    await t.tap(find.byType(Slider));
+    await t.pumpAndSettle();
+    expect(find.text('5'), findsOneWidget, reason: 'non-text controls must not hide the keypad');
+    await t.tap(find.text('Income'));
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.byType(SwitchListTile), 200, scrollable: find.byType(Scrollable).first);
+    await t.tap(find.byType(SwitchListTile));
+    await t.pumpAndSettle();
+    expect(find.text('5'), findsOneWidget, reason: 'non-text controls must not hide the keypad');
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('U12 a disabled Save says what is missing', (t) async {
+    final db = memDb();
+    await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Type an amount'), findsOneWidget);
+    await t.tap(find.text('5'));
+    await t.pump();
+    final picked = find.byWidgetPredicate((w) => w is ChoiceChip && w.selected);
+    if (picked.evaluate().isEmpty) expect(find.textContaining('Pick a category'), findsOneWidget);
+    await t.runAsync(db.close);
+  });
 
   testWidgets('FINDING U1: entry Save tapped twice (slow write) creates two records and pops twice', (t) async {
     final db = SlowDb();

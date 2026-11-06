@@ -221,36 +221,40 @@ class _TypeCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(Radii.card),
             border: Border.all(color: selected ? ll.accent : ll.border, width: selected ? 1.6 : 1),
           ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(Radii.card),
-            onTap: () {
-              tick();
-              onTap();
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(Space.lg),
-              child: Row(
-                children: [
-                  Icon(icon, color: selected ? ll.accent : ll.muted),
-                  const SizedBox(width: Space.lg),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(label, style: context.text.titleSmall),
-                        Text(hint, style: context.text.bodySmall),
-                      ],
+          // Transparent Material above the decoration, or the ripple is drawn underneath it and never seen.
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(Radii.card),
+              onTap: () {
+                tick();
+                onTap();
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(Space.lg),
+                child: Row(
+                  children: [
+                    Icon(icon, color: selected ? ll.accent : ll.muted),
+                    const SizedBox(width: Space.lg),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(label, style: context.text.titleSmall),
+                          Text(hint, style: context.text.bodySmall),
+                        ],
+                      ),
                     ),
-                  ),
-                  AnimatedSwitcher(
-                    duration: Motion.fast,
-                    child: Icon(
-                      selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-                      key: ValueKey(selected),
-                      color: selected ? ll.accent : ll.border,
+                    AnimatedSwitcher(
+                      duration: Motion.fast,
+                      child: Icon(
+                        selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                        key: ValueKey(selected),
+                        color: selected ? ll.accent : ll.border,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
