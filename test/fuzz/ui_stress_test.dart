@@ -121,7 +121,7 @@ LedgerEntry _e(
   paid: paid,
   platform: platform,
   notes: notes,
-  createdAt: DateTime(2026),
+  tags: '', createdAt: DateTime(2026),
 );
 
 List<LedgerEntry> hostileEntries() => [

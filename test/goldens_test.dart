@@ -118,7 +118,7 @@ List<LedgerEntry> fixtureEntries() {
         paid: true,
         platform: r['platform'] as String? ?? '',
         notes: '',
-        createdAt: DateTime(2026),
+        tags: '', createdAt: DateTime(2026),
       ),
   ]..sort((a, b) => b.date.compareTo(a.date));
 }

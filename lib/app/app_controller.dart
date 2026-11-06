@@ -45,6 +45,9 @@ class AppController extends ChangeNotifier {
   /// Chosen business types (lib/data/business_types.dart): only reorders categories.
   Set<String> businessTypes = {};
 
+  /// Tax years the user marked as filed (SPEC §2.1 "2025 · Filed"). Read-mostly: edits warn, never block.
+  Set<int> filedYears = {};
+
   /// What the user picked on "You're all set" ('scan' | 'add'); AppShell takes it once.
   String? firstAction;
   String? pendingCode;
@@ -191,6 +194,7 @@ class AppController extends ChangeNotifier {
     if (allowScreenshots) setSecureWindow(false);
     checkInFrequency = await db.getSetting('checkInFrequency') ?? 'off';
     onboarded = await db.getSetting('onboarded') == 'true';
+    filedYears = (await db.getSetting('filedYears') ?? '').split(',').map(int.tryParse).whereType<int>().toSet();
     businessTypes = (await db.getSetting('businessTypes') ?? '').split(',').where((t) => t.isNotEmpty).toSet();
     lastCheckIn = DateTime.tryParse(await db.getSetting('lastCheckIn') ?? '');
     dismissedCheckIns = (await db.getSetting('dismissedCheckIns') ?? '').split('\n').where((k) => k.isNotEmpty).toSet();
@@ -233,6 +237,7 @@ class AppController extends ChangeNotifier {
     w2WagesCents = {}; // sensitive answers: reload from the encrypted DB on unlock
     homeOfficeSqft = {};
     businessTypes = {};
+    filedYears = {};
     if (allowScreenshots) setSecureWindow(true); // locked: always secure
     allowScreenshots = false;
     stage = Stage.locked;
@@ -358,6 +363,13 @@ class AppController extends ChangeNotifier {
     allowScreenshots = v;
     await db?.setSetting('allowScreenshots', '$v');
     await setSecureWindow(!v);
+    notifyListeners();
+  }
+
+  Future<void> setFiled(int year, bool filed) async {
+    filedYears = {...filedYears}..remove(year);
+    if (filed) filedYears.add(year);
+    await db?.setSetting('filedYears', (filedYears.toList()..sort()).join(','));
     notifyListeners();
   }
 

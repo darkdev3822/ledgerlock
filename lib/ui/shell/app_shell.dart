@@ -87,7 +87,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               ),
               const SizedBox(width: Space.sm),
             ],
-            YearSwitcher(year: app.selectedYear, onChanged: app.setYear),
+            YearSwitcher(year: app.selectedYear, onChanged: app.setYear, filed: app.filedYears),
             if (_tab == 0) const Spacer(),
           ],
         ),
@@ -128,14 +128,15 @@ class _AppShellState extends ConsumerState<AppShell> {
 class YearSwitcher extends StatelessWidget {
   final int year;
   final ValueChanged<int> onChanged;
-  const YearSwitcher({super.key, required this.year, required this.onChanged});
+  final Set<int> filed;
+  const YearSwitcher({super.key, required this.year, required this.onChanged, this.filed = const {}});
 
   @override
   Widget build(BuildContext context) {
     final ll = context.ll;
     return Semantics(
       button: true,
-      label: 'Tax year $year. Change year',
+      label: 'Tax year $year${filed.contains(year) ? ', filed' : ''}. Change year',
       child: Material(
         color: ll.surfaceAlt,
         borderRadius: BorderRadius.circular(Radii.pill),
@@ -154,7 +155,10 @@ class YearSwitcher extends StatelessWidget {
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: Space.xl),
                         title: Text('$y', style: ctx.text.titleMedium),
-                        subtitle: Text(y == DateTime.now().year ? 'Current year' : 'Previous year'),
+                        subtitle: Text(
+                          '${y == DateTime.now().year ? 'Current year' : 'Previous year'}'
+                          '${filed.contains(y) ? ' · Filed' : ''}',
+                        ),
                         trailing: y == year ? Icon(Icons.check_circle, color: ctx.ll.accent) : null,
                         onTap: () => Navigator.pop(ctx, y),
                       ),
@@ -174,6 +178,12 @@ class YearSwitcher extends StatelessWidget {
                   '$year',
                   style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700, fontFeatures: tabular),
                 ),
+                if (filed.contains(year)) ...[
+                  const SizedBox(width: 6),
+                  Icon(Icons.task_alt_rounded, size: 16, color: ll.accent),
+                  const SizedBox(width: 2),
+                  Text('Filed', style: context.text.labelMedium?.copyWith(color: ll.accent)),
+                ],
                 const SizedBox(width: 2),
                 Icon(Icons.expand_more, size: 18, color: ll.muted),
               ],

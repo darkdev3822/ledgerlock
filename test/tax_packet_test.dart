@@ -30,7 +30,7 @@ LedgerEntry _e(int id, bool income, int cents, String cat, {int pct = 100, bool 
       platform: platform,
       notes: '',
       paid: paid,
-      createdAt: DateTime(2026),
+      tags: '', createdAt: DateTime(2026),
     );
 
 final _entries = [

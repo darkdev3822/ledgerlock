@@ -78,7 +78,7 @@ void main() {
       platform: '',
       notes: '',
       paid: true,
-      createdAt: DateTime(2026),
+      tags: '', createdAt: DateTime(2026),
     );
     final r = buildImport(
       [

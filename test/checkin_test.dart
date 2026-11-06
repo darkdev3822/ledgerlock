@@ -23,7 +23,7 @@ LedgerEntry _e(
   platform: platform,
   notes: '',
   paid: paid,
-  createdAt: DateTime(2026),
+  tags: '', createdAt: DateTime(2026),
 );
 
 final _rules = TaxRules(

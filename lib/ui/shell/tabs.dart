@@ -530,6 +530,7 @@ class EntryTile extends StatelessWidget {
     final extra = [
       if (!entry.isIncome && entry.businessPct < 100) '${entry.businessPct}% business',
       if (entry.isIncome && entry.feeCents > 0) 'fee ${formatCents(entry.feeCents)}',
+      for (final t in tagList(entry.tags)) '#$t',
     ];
     return ListTile(
       onTap: () => openEntry(context, existing: entry),
@@ -1017,6 +1018,24 @@ class TaxesTab extends ConsumerWidget {
               ],
             ),
           ),
+          // Filing happens after the year ends, so only past years can be marked filed.
+          if (year < today.year) ...[
+            const SizedBox(height: Space.md),
+            LLGroup(
+              children: [
+                SwitchListTile(
+                  secondary: Icon(Icons.task_alt_rounded, color: app.filedYears.contains(year) ? ll.accent : ll.muted),
+                  title: Text("I've filed my $year return"),
+                  subtitle: const Text(
+                    'Shows "Filed" on the year. You can still change records; '
+                    "you'll get a reminder that the filed return won't change with them.",
+                  ),
+                  value: app.filedYears.contains(year),
+                  onChanged: (v) => app.setFiled(year, v),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     ];

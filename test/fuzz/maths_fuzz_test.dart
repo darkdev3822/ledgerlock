@@ -162,7 +162,7 @@ void main() {
     platform: ['Etsy', 'PayPal', '', 'Stripe'][r.nextInt(4)],
     notes: '',
     paid: r.nextBool(),
-    createdAt: DateTime(2026),
+    tags: '', createdAt: DateTime(2026),
   );
 
   final edgeDays = [

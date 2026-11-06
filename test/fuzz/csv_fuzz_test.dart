@@ -190,14 +190,14 @@ void main() {
           platform: fuzzString(r, maxPieces: 2),
           notes: fuzzString(r),
           paid: r.nextBool(),
-          createdAt: DateTime(2026),
+          tags: '', createdAt: DateTime(2026),
         ),
     ];
     final csv = timed(() => entriesCsv(entries, rules), limitMs: 500);
     final rows = parseCsv(csvBytes(csv));
     expect(rows.length, entries.length + 1);
     for (final row in rows) {
-      expect(row.length, 11);
+      expect(row.length, 12);
       for (final c in row) {
         expect(dangerous(c), isFalse, reason: c);
       }
@@ -231,7 +231,7 @@ void main() {
     platform: '',
     notes: '',
     paid: true,
-    createdAt: DateTime(2026),
+    tags: '', createdAt: DateTime(2026),
   );
 
   test('F3 re-importing LedgerLock\'s own CSV export turns every expense into income', () {

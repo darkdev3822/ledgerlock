@@ -31,6 +31,7 @@ String entriesCsv(Iterable<LedgerEntry> entries, TaxRules rules) => _csv([
     'Platform',
     'Received',
     'Notes',
+    'Tags',
   ],
   for (final e in entries)
     [
@@ -45,6 +46,7 @@ String entriesCsv(Iterable<LedgerEntry> entries, TaxRules rules) => _csv([
       e.platform,
       e.isIncome ? (e.paid ? 'Yes' : 'No (invoiced)') : '',
       e.notes,
+      tagList(e.tags).join(' '),
     ],
 ]);
 

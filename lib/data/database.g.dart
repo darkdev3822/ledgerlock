@@ -291,6 +291,16 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
@@ -315,6 +325,7 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     notes,
     paid,
     recurringId,
+    tags,
     createdAt,
   ];
   @override
@@ -370,6 +381,9 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     if (data.containsKey('recurring_id')) {
       context.handle(_recurringIdMeta, recurringId.isAcceptableOrUnknown(data['recurring_id']!, _recurringIdMeta));
     }
+    if (data.containsKey('tags')) {
+      context.handle(_tagsMeta, tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta, createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     }
@@ -394,6 +408,7 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
       notes: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
       paid: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}paid'])!,
       recurringId: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}recurring_id']),
+      tags: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}tags'])!,
       createdAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
     );
   }
@@ -422,6 +437,9 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
   /// Made by a repeating record (Recurrings.id); null for everything typed or imported. Not a foreign key: stopping
   /// a repeat keeps the records it already made and just clears this.
   final int? recurringId;
+
+  /// Tags as ' a b ' (normalizeTags): lower-case words, space-separated, padded so `LIKE '% a %'` matches exactly.
+  final String tags;
   final DateTime createdAt;
   const LedgerEntry({
     required this.id,
@@ -436,6 +454,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     required this.notes,
     required this.paid,
     this.recurringId,
+    required this.tags,
     required this.createdAt,
   });
   @override
@@ -455,6 +474,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     if (!nullToAbsent || recurringId != null) {
       map['recurring_id'] = Variable<int>(recurringId);
     }
+    map['tags'] = Variable<String>(tags);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -473,6 +493,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       notes: Value(notes),
       paid: Value(paid),
       recurringId: recurringId == null && nullToAbsent ? const Value.absent() : Value(recurringId),
+      tags: Value(tags),
       createdAt: Value(createdAt),
     );
   }
@@ -492,6 +513,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       notes: serializer.fromJson<String>(json['notes']),
       paid: serializer.fromJson<bool>(json['paid']),
       recurringId: serializer.fromJson<int?>(json['recurringId']),
+      tags: serializer.fromJson<String>(json['tags']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -511,6 +533,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       'notes': serializer.toJson<String>(notes),
       'paid': serializer.toJson<bool>(paid),
       'recurringId': serializer.toJson<int?>(recurringId),
+      'tags': serializer.toJson<String>(tags),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -528,6 +551,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     String? notes,
     bool? paid,
     Value<int?> recurringId = const Value.absent(),
+    String? tags,
     DateTime? createdAt,
   }) => LedgerEntry(
     id: id ?? this.id,
@@ -542,6 +566,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     notes: notes ?? this.notes,
     paid: paid ?? this.paid,
     recurringId: recurringId.present ? recurringId.value : this.recurringId,
+    tags: tags ?? this.tags,
     createdAt: createdAt ?? this.createdAt,
   );
   LedgerEntry copyWithCompanion(LedgerEntriesCompanion data) {
@@ -558,6 +583,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       notes: data.notes.present ? data.notes.value : this.notes,
       paid: data.paid.present ? data.paid.value : this.paid,
       recurringId: data.recurringId.present ? data.recurringId.value : this.recurringId,
+      tags: data.tags.present ? data.tags.value : this.tags,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -577,6 +603,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           ..write('notes: $notes, ')
           ..write('paid: $paid, ')
           ..write('recurringId: $recurringId, ')
+          ..write('tags: $tags, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -596,6 +623,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     notes,
     paid,
     recurringId,
+    tags,
     createdAt,
   );
   @override
@@ -614,6 +642,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           other.notes == this.notes &&
           other.paid == this.paid &&
           other.recurringId == this.recurringId &&
+          other.tags == this.tags &&
           other.createdAt == this.createdAt);
 }
 
@@ -630,6 +659,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
   final Value<String> notes;
   final Value<bool> paid;
   final Value<int?> recurringId;
+  final Value<String> tags;
   final Value<DateTime> createdAt;
   const LedgerEntriesCompanion({
     this.id = const Value.absent(),
@@ -644,6 +674,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     this.notes = const Value.absent(),
     this.paid = const Value.absent(),
     this.recurringId = const Value.absent(),
+    this.tags = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   LedgerEntriesCompanion.insert({
@@ -659,6 +690,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     this.notes = const Value.absent(),
     this.paid = const Value.absent(),
     this.recurringId = const Value.absent(),
+    this.tags = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : isIncome = Value(isIncome),
        date = Value(date),
@@ -677,6 +709,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     Expression<String>? notes,
     Expression<bool>? paid,
     Expression<int>? recurringId,
+    Expression<String>? tags,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -692,6 +725,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
       if (notes != null) 'notes': notes,
       if (paid != null) 'paid': paid,
       if (recurringId != null) 'recurring_id': recurringId,
+      if (tags != null) 'tags': tags,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -709,6 +743,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     Value<String>? notes,
     Value<bool>? paid,
     Value<int?>? recurringId,
+    Value<String>? tags,
     Value<DateTime>? createdAt,
   }) {
     return LedgerEntriesCompanion(
@@ -724,6 +759,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
       notes: notes ?? this.notes,
       paid: paid ?? this.paid,
       recurringId: recurringId ?? this.recurringId,
+      tags: tags ?? this.tags,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -767,6 +803,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     if (recurringId.present) {
       map['recurring_id'] = Variable<int>(recurringId.value);
     }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -788,6 +827,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
           ..write('notes: $notes, ')
           ..write('paid: $paid, ')
           ..write('recurringId: $recurringId, ')
+          ..write('tags: $tags, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -3379,6 +3419,7 @@ typedef $$LedgerEntriesTableCreateCompanionBuilder = LedgerEntriesCompanion Func
   Value<String> notes,
   Value<bool> paid,
   Value<int?> recurringId,
+  Value<String> tags,
   Value<DateTime> createdAt,
 });
 typedef $$LedgerEntriesTableUpdateCompanionBuilder = LedgerEntriesCompanion Function({
@@ -3394,6 +3435,7 @@ typedef $$LedgerEntriesTableUpdateCompanionBuilder = LedgerEntriesCompanion Func
   Value<String> notes,
   Value<bool> paid,
   Value<int?> recurringId,
+  Value<String> tags,
   Value<DateTime> createdAt,
 });
 
@@ -3454,6 +3496,8 @@ class $$LedgerEntriesTableFilterComposer extends Composer<_$AppDatabase, $Ledger
 
   ColumnFilters<int> get recurringId =>
       $composableBuilder(column: $table.recurringId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get tags => $composableBuilder(column: $table.tags, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -3520,6 +3564,9 @@ class $$LedgerEntriesTableOrderingComposer extends Composer<_$AppDatabase, $Ledg
   ColumnOrderings<int> get recurringId =>
       $composableBuilder(column: $table.recurringId, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 }
@@ -3555,6 +3602,8 @@ class $$LedgerEntriesTableAnnotationComposer extends Composer<_$AppDatabase, $Le
   GeneratedColumn<bool> get paid => $composableBuilder(column: $table.paid, builder: (column) => column);
 
   GeneratedColumn<int> get recurringId => $composableBuilder(column: $table.recurringId, builder: (column) => column);
+
+  GeneratedColumn<String> get tags => $composableBuilder(column: $table.tags, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt => $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -3614,6 +3663,7 @@ class $$LedgerEntriesTableTableManager
                 Value<String> notes = const Value.absent(),
                 Value<bool> paid = const Value.absent(),
                 Value<int?> recurringId = const Value.absent(),
+                Value<String> tags = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => LedgerEntriesCompanion(
                 id: id,
@@ -3628,6 +3678,7 @@ class $$LedgerEntriesTableTableManager
                 notes: notes,
                 paid: paid,
                 recurringId: recurringId,
+                tags: tags,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -3644,6 +3695,7 @@ class $$LedgerEntriesTableTableManager
                 Value<String> notes = const Value.absent(),
                 Value<bool> paid = const Value.absent(),
                 Value<int?> recurringId = const Value.absent(),
+                Value<String> tags = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => LedgerEntriesCompanion.insert(
                 id: id,
@@ -3658,6 +3710,7 @@ class $$LedgerEntriesTableTableManager
                 notes: notes,
                 paid: paid,
                 recurringId: recurringId,
+                tags: tags,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

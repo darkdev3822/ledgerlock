@@ -1,6 +1,6 @@
 // Natural-language search parser (SPEC §4): a small local parser, no AI service.
 // "fuel over 50 in 2026", "fiverr fees march", "no receipt > 75", "uncategorized last year".
-import '../data/database.dart' show safeTake;
+import '../data/database.dart' show normalizeTags, safeTake;
 
 class SearchQuery {
   final List<String> terms; // free-text words for FTS
@@ -17,6 +17,9 @@ class SearchQuery {
   /// Invoiced income not received yet.
   final bool unpaidOnly;
   final bool feesOnly;
+
+  /// '#tag' words, normalised like stored tags (all must match).
+  final List<String> tags;
 
   /// What the parser understood, one removable chip each, with the words it came from.
   final List<UnderstoodChip> chips;
@@ -48,6 +51,7 @@ class SearchQuery {
     this.hasReceipt,
     this.unpaidOnly = false,
     this.feesOnly = false,
+    this.tags = const [],
     this.chips = const [],
     this.words = const [],
   });
@@ -62,7 +66,8 @@ class SearchQuery {
       categories.isEmpty &&
       hasReceipt == null &&
       !unpaidOnly &&
-      !feesOnly;
+      !feesOnly &&
+      tags.isEmpty;
 
   /// Only text (and maybe a year): documents are worth searching too.
   bool get documentsApply =>
@@ -72,7 +77,8 @@ class SearchQuery {
       !feesOnly &&
       isIncome == null &&
       hasReceipt == null &&
-      !unpaidOnly;
+      !unpaidOnly &&
+      tags.isEmpty;
 
   /// FTS5 MATCH expression built only from letters/digits, each term quoted and prefix-matched,
   /// so user input can never inject FTS syntax (SECURITY.md T6). Null if there's nothing to match.
@@ -237,6 +243,7 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
   bool? income, receipt;
   var unpaid = false;
   var fees = false;
+  final tags = <String>[];
 
   int? money(String w) {
     final m = RegExp(r'^\$?(\d{1,9})(?:\.(\d{1,2}))?$').firstMatch(w);
@@ -365,6 +372,14 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
       understood(fmt(amt), i, 1);
       continue;
     }
+    if (w.startsWith('#')) {
+      final t = normalizeTags(w).trim();
+      if (t.isNotEmpty) {
+        if (!tags.contains(t)) tags.add(t);
+        understood('#$t', i, 1);
+      }
+      continue;
+    }
     if (_stop.contains(w)) continue;
     terms.add(w);
   }
@@ -380,6 +395,7 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
     hasReceipt: receipt,
     unpaidOnly: unpaid,
     feesOnly: fees,
+    tags: tags,
     chips: chips,
     words: words,
   );

@@ -33,12 +33,12 @@ void main() {
         platform: 'Etsy',
         notes: '',
         paid: false,
-        createdAt: DateTime(2026),
+        tags: ' client-a etsy ', createdAt: DateTime(2026),
       ),
     ], rules);
     final lines = csv.split('\r\n');
     expect(lines[0], startsWith('Date,Type,Amount'));
-    expect(lines[1], '2026-02-01,Income,123.45,1.00,,Services,1,"\'=cmd",Etsy,No (invoiced),');
+    expect(lines[1], '2026-02-01,Income,123.45,1.00,,Services,1,"\'=cmd",Etsy,No (invoiced),,client-a etsy');
     expect(csvBytes('a').take(3), [0xEF, 0xBB, 0xBF]);
   });
 }

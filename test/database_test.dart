@@ -4,8 +4,22 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerlock/data/database.dart';
 import 'package:ledgerlock/data/recurring.dart';
+import 'package:ledgerlock/search/query_parser.dart';
+import 'package:ledgerlock/search/search_service.dart';
 import 'package:ledgerlock/security/crypto.dart';
 import 'package:sqlite3/sqlite3.dart' as raw;
+
+/// Turns a current file back into v8's ledger shape: no tags column, index triggers without tags.
+const _toV8 = """
+DROP TRIGGER le_ai;
+DROP TRIGGER le_au;
+ALTER TABLE ledger_entries DROP COLUMN tags;
+CREATE TRIGGER le_ai AFTER INSERT ON ledger_entries BEGIN INSERT INTO search_fts(rowid, body) VALUES
+  (new.id, new.party || ' ' || new.platform || ' ' || new.notes || ' ' || replace(new.category, '_', ' ')); END;
+CREATE TRIGGER le_au AFTER UPDATE ON ledger_entries BEGIN DELETE FROM search_fts WHERE rowid = old.id;
+  INSERT INTO search_fts(rowid, body) VALUES
+  (new.id, new.party || ' ' || new.platform || ' ' || new.notes || ' ' || replace(new.category, '_', ' ')); END;
+""";
 
 void main() {
   late Directory dir;
@@ -54,6 +68,7 @@ void main() {
       ..execute('DROP TABLE category_rules')
       ..execute('DROP TABLE recurrings')
       ..execute('ALTER TABLE ledger_entries DROP COLUMN recurring_id')
+      ..execute(_toV8)
       ..execute('ALTER TABLE ledger_entries DROP COLUMN paid')
       ..execute('PRAGMA user_version = 5');
     old.close();
@@ -128,6 +143,7 @@ void main() {
         ..execute("PRAGMA key = \"x'$hex'\"")
         ..execute('DROP TABLE recurrings')
         ..execute('ALTER TABLE ledger_entries DROP COLUMN recurring_id')
+        ..execute(_toV8)
         ..execute('PRAGMA user_version = 7');
       old.close();
       db = AppDatabase.open(file, key);
@@ -145,6 +161,45 @@ void main() {
       expect(await db.runRecurring(d('2026-03-16')), 3);
       await db.close();
     });
+  });
+
+  test('tags: normalised, searchable by word and by #tag, and indexed after a v8 -> v9 upgrade', () async {
+    expect(normalizeTags('  #Client-A, etsy_shop;client-a  ÉTÉ !!'), ' client-a etsy_shop été ');
+    expect(normalizeTags(''), '');
+    expect(tagList(normalizeTags(List.generate(12, (i) => 't$i').join(' '))).length, 8);
+    expect(normalizeTags('x' * 40).trim().length, 24);
+
+    final file = File('${dir.path}/v8.db');
+    final key = LedgerCrypto.randomBytes(32);
+    final hex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    var db = AppDatabase.open(file, key);
+    await db.addEntry(e('2026-03-01', party: 'Staples'));
+    await db.close();
+    // Back to v8: no tags column, and the old index triggers (without tags).
+    final old = raw.sqlite3.open(file.path)
+      ..execute("PRAGMA key = \"x'$hex'\"")
+      ..execute(_toV8)
+      ..execute('PRAGMA user_version = 8');
+    old.close();
+    db = AppDatabase.open(file, key);
+    final row = (await db.watchYear(2026).first).single;
+    await db.saveEntry(row.copyWith(tags: normalizeTags('client-a')));
+    await db.addEntry(
+      LedgerEntriesCompanion.insert(
+        isIncome: false,
+        date: '2026-03-02',
+        amountCents: 5,
+        category: 'office',
+        tags: Value(normalizeTags('client-ab')),
+      ),
+    );
+    Future<List<String>> find(String q) async =>
+        (await runSearch(db, parseQuery(q, today: DateTime(2026, 11, 1)))).entries.map((x) => x.date).toList();
+    expect(await find('#client-a'), ['2026-03-01'], reason: 'exact tag, not a prefix of client-ab');
+    expect((await find('client')).length, 2, reason: 'tags are in the text index too');
+    expect(await find('staples'), ['2026-03-01'], reason: 'old rows re-indexed');
+    expect(await find('#nope'), isEmpty);
+    await db.close();
   });
 
   test('watchYear filters by year and orders newest first; restore undoes delete', () async {

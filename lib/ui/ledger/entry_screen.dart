@@ -54,6 +54,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     text: (widget.existing?.feeCents ?? 0) == 0 ? '' : (widget.existing!.feeCents / 100).toStringAsFixed(2),
   );
   late final _notes = TextEditingController(text: widget.existing?.notes ?? '');
+  late final _tags = TextEditingController(text: tagList(widget.existing?.tags ?? '').join(' '));
   final _focus = FocusScopeNode();
   bool _textFocused = false;
   bool _userPickedCategory = false;
@@ -200,7 +201,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
 
   @override
   void dispose() {
-    for (final c in [_party, _platform, _fee, _notes]) {
+    for (final c in [_party, _platform, _fee, _notes, _tags]) {
       c.dispose();
     }
     FocusManager.instance.removeListener(_onFocusChange);
@@ -270,6 +271,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           party: _party.text.trim(),
           platform: _platform.text.trim(),
           notes: _notes.text.trim(),
+          tags: normalizeTags(_tags.text),
           paid: !_income || _paid,
         ),
       );
@@ -304,6 +306,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           platform: Value(_platform.text.trim()),
           notes: Value(_notes.text.trim()),
           paid: Value(!_income || _paid),
+          tags: Value(normalizeTags(_tags.text)),
           recurringId: Value(ruleId),
         ),
       );
@@ -400,6 +403,23 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                       _maybeSuggest();
                     },
                   ),
+                  if (ref.watch(appControllerProvider.select((a) => a.filedYears)).contains(_date.year))
+                    Padding(
+                      padding: const EdgeInsets.only(top: Space.md),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded, size: 18, color: ll.warning),
+                          const SizedBox(width: Space.sm),
+                          Expanded(
+                            child: Text(
+                              'You marked ${_date.year} as filed. Changes here won\'t change the return you sent; '
+                              'if they matter, you may need to file an amended return.',
+                              style: context.text.bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: Space.xl),
                   GestureDetector(
                     onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
@@ -551,6 +571,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                           ),
                         ),
                       _Field(controller: _notes, icon: Icons.notes_rounded, label: 'Notes'),
+                      _Field(controller: _tags, icon: Icons.sell_outlined, label: 'Tags (e.g. client-a etsy-shop)'),
                       _ReceiptRow(
                         entryId: widget.existing?.id,
                         pending: _pendingReceipts,

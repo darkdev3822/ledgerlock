@@ -262,6 +262,12 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   lib/ui/shell/insights_card.dart). Current year compares Jan 1-today with the same window last year; shows income
   (>=10% and $100), categories (>=25% and $50, business share) and new categories (>=$100), max 4; with no last
   year it shows the top category. insights_test + insights golden.
+- DEPTH 3 DONE: tags + filed years. Schema v9 (ledger_entries.tags stored ' a b ', normalizeTags; FTS triggers
+  rebuilt to include tags, old rows re-indexed). Entry "Tags" field, '#tag' on record rows, '#tag' search chip
+  (exact, instr()), CSV "Tags" column (12 columns now). Taxes tab (past years only): "I've filed my <year> return"
+  -> year switcher "Filed" badge + entry-screen warning (amended return, no form number: rule 9). Emulator-verified.
+  Gotcha: tests that fake an old DB must use _toV8 (SQLite refuses DROP COLUMN tags while triggers use it).
+  Repeating-record copies don't carry tags yet.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

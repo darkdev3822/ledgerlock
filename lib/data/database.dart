@@ -38,6 +38,9 @@ class LedgerEntries extends Table {
   /// Made by a repeating record (Recurrings.id); null for everything typed or imported. Not a foreign key: stopping
   /// a repeat keeps the records it already made and just clears this.
   IntColumn get recurringId => integer().nullable()();
+
+  /// Tags as ' a b ' (normalizeTags): lower-case words, space-separated, padded so `LIKE '% a %'` matches exactly.
+  TextColumn get tags => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -151,6 +154,20 @@ String safeTake(String s, int n) {
 int daysBetween(DateTime a, DateTime b) =>
     DateTime.utc(b.year, b.month, b.day).difference(DateTime.utc(a.year, a.month, a.day)).inDays;
 
+/// Tags typed by the user -> stored form ' a b '. Words of letters, digits, '-' or '_' (a leading '#' is dropped),
+/// lower-case, at most 8 tags of 24 characters, duplicates removed. Empty input -> ''.
+String normalizeTags(String input) {
+  final out = <String>[];
+  for (final raw in input.toLowerCase().split(RegExp(r'[\s,;]+'))) {
+    final t = safeTake(raw.replaceAll(RegExp(r'[^\p{L}\p{N}_-]', unicode: true), ''), 24);
+    if (t.isNotEmpty && !out.contains(t)) out.add(t);
+    if (out.length == 8) break;
+  }
+  return out.isEmpty ? '' : ' ${out.join(' ')} ';
+}
+
+List<String> tagList(String stored) => stored.split(' ').where((t) => t.isNotEmpty).toList();
+
 String isoDay(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
@@ -185,7 +202,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -193,7 +210,7 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
       await customStatement('CREATE INDEX entries_date ON ledger_entries(date)');
       await customStatement('CREATE INDEX attachments_year ON attachments(year, folder)');
-      await _createSearchIndex();
+      await _createSearchIndex(withTags: true);
       await customStatement('CREATE INDEX attachments_entry ON attachments(entry_id)');
       await _v6Indexes();
     },
@@ -221,13 +238,39 @@ class AppDatabase extends _$AppDatabase {
         if (from >= 2) await m.addColumn(ledgerEntries, ledgerEntries.recurringId);
         await m.createTable(recurrings);
       }
+      if (from < 9) {
+        if (from >= 2) await m.addColumn(ledgerEntries, ledgerEntries.tags);
+        await _indexTags();
+      }
     },
   );
 
   /// FTS5 full-text index inside the encrypted DB (SPEC §4). rowid = entry id, or -attachment id.
   /// Kept in sync by triggers, so every write path is covered.
-  Future<void> _createSearchIndex() async {
-    const entryBody = "new.party || ' ' || new.platform || ' ' || new.notes || ' ' || replace(new.category, '_', ' ')";
+  /// Search text for an entry row ([p] = 'new.' in triggers, '' in a SELECT). Tags are searchable from v9.
+  static String _entryBody(String p, {bool withTags = true}) =>
+      "${p}party || ' ' || ${p}platform || ' ' || ${p}notes || ' ' || replace(${p}category, '_', ' ')"
+      "${withTags ? " || ' ' || ${p}tags" : ''}";
+
+  /// v9: entry triggers and index rows include tags.
+  Future<void> _indexTags() async {
+    final body = _entryBody('new.');
+    for (final sql in [
+      'DROP TRIGGER IF EXISTS le_ai',
+      'DROP TRIGGER IF EXISTS le_au',
+      'CREATE TRIGGER le_ai AFTER INSERT ON ledger_entries BEGIN '
+          'INSERT INTO search_fts(rowid, body) VALUES (new.id, $body); END',
+      'CREATE TRIGGER le_au AFTER UPDATE ON ledger_entries BEGIN DELETE FROM search_fts WHERE rowid = old.id; '
+          'INSERT INTO search_fts(rowid, body) VALUES (new.id, $body); END',
+      'DELETE FROM search_fts WHERE rowid > 0',
+      'INSERT INTO search_fts(rowid, body) SELECT id, ${_entryBody('')} FROM ledger_entries',
+    ]) {
+      await customStatement(sql);
+    }
+  }
+
+  Future<void> _createSearchIndex({bool withTags = false}) async {
+    final entryBody = _entryBody('new.', withTags: withTags);
     const attBody = "new.name || ' ' || replace(new.folder, '_', ' ')";
     for (final sql in [
       "CREATE VIRTUAL TABLE search_fts USING fts5(body, tokenize = 'unicode61 remove_diacritics 2')",
@@ -242,8 +285,7 @@ class AppDatabase extends _$AppDatabase {
       'CREATE TRIGGER at_au AFTER UPDATE ON attachments BEGIN DELETE FROM search_fts WHERE rowid = -old.id; '
           'INSERT INTO search_fts(rowid, body) VALUES (-new.id, $attBody); END',
       // Backfill rows that existed before the index.
-      "INSERT INTO search_fts(rowid, body) SELECT id, party || ' ' || platform || ' ' || notes || ' ' || "
-          "replace(category, '_', ' ') FROM ledger_entries",
+      'INSERT INTO search_fts(rowid, body) SELECT id, ${_entryBody('', withTags: withTags)} FROM ledger_entries',
       "INSERT INTO search_fts(rowid, body) SELECT -id, name || ' ' || replace(folder, '_', ' ') FROM attachments",
     ]) {
       await customStatement(sql);

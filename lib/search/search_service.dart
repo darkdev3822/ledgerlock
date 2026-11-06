@@ -55,6 +55,10 @@ Future<SearchResults> runSearch(AppDatabase db, SearchQuery q, {int limit = 200}
       args.add(Variable.withString(text));
     }
   }
+  for (final t in q.tags) {
+    where.add('instr(e.tags, ?) > 0'); // stored ' a b ': exact tag, no LIKE wildcards
+    args.add(Variable.withString(' $t '));
+  }
   if (q.unpaidOnly) where.add('(e.is_income = 1 AND e.paid = 0)');
   if (q.feesOnly) where.add("(e.fee_cents > 0 OR e.category = 'platform_fees')");
   if (q.hasReceipt != null) {
