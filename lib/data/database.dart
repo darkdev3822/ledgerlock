@@ -440,6 +440,17 @@ class AppDatabase extends _$AppDatabase {
     }
   });
 
+  /// Moves everything filed under category [from] to [to] (deleting a custom category).
+  Future<void> reassignCategory(String from, String to) => transaction(() async {
+    await (update(
+      ledgerEntries,
+    )..where((e) => e.category.equals(from))).write(LedgerEntriesCompanion(category: Value(to)));
+    await (update(recurrings)..where((e) => e.category.equals(from))).write(RecurringsCompanion(category: Value(to)));
+    await (update(
+      categoryRules,
+    )..where((e) => e.category.equals(from))).write(CategoryRulesCompanion(category: Value(to)));
+  });
+
   // ---------- recurring records ----------
   Stream<List<Recurring>> watchRecurring() =>
       (select(recurrings)..orderBy([(r) => OrderingTerm.asc(r.nextDate)])).watch();

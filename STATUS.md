@@ -283,11 +283,16 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   overscroll > 90 px in one drag). Tests D1, P1.
   Test gotcha: after a widget test with a real DB and an EntryScreen(existing:), unmount + settle before
   db.close(), or close() waits forever on a query parked in the fake clock (test-only; real app unaffected).
+- DEPTH 8 DONE: custom categories (CustomCategory in tax_rules.dart; TaxRules.withCustom merged in taxRulesProvider,
+  so every screen/maths sees them; Settings > Records > Your categories; each counts as a built-in category and takes
+  its line + deductible share; delete moves records/repeats/rules to the base). SECURITY T36. Not device-checked:
+  the emulator now has the signed beta (4001) installed again; the debug build can't install over it without wiping
+  it, so ask the owner first.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY
   T29 (none). 669 tests. Device check still owed.
-- M5 leftovers: chips for filters the parser can't express yet (date range, platform, tax line, business %), recent/saved searches (Pro, M7), device check of search on the emulator.
+- M5 leftovers: chips for filters the parser can't express yet (date range, platform, tax line, business %), device check of search on the emulator.
 - Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
   (only tested on synthetic + emulator scene); PDF preview (M6); iOS document picker channel (M10).
 - Still open: custom security questions, backup-age banner (M9), FLAG_SECURE toggle,

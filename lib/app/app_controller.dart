@@ -53,6 +53,9 @@ class AppController extends ChangeNotifier {
   Map<String, int> budgets = {};
   Map<int, int> incomeGoals = {};
 
+  /// The user's own categories (SPEC §3), merged into every year's rules by taxRulesProvider.
+  List<CustomCategory> customCategories = const [];
+
   /// What the user picked on "You're all set" ('scan' | 'add'); AppShell takes it once.
   String? firstAction;
   String? pendingCode;
@@ -202,6 +205,7 @@ class AppController extends ChangeNotifier {
     checkInFrequency = await db.getSetting('checkInFrequency') ?? 'off';
     onboarded = await db.getSetting('onboarded') == 'true';
     budgets = _decodeBudgets(await db.getSetting('budgets'));
+    customCategories = CustomCategory.decodeList(await db.getSetting('customCategories'));
     filedYears = (await db.getSetting('filedYears') ?? '').split(',').map(int.tryParse).whereType<int>().toSet();
     businessTypes = (await db.getSetting('businessTypes') ?? '').split(',').where((t) => t.isNotEmpty).toSet();
     lastCheckIn = DateTime.tryParse(await db.getSetting('lastCheckIn') ?? '');
@@ -248,6 +252,7 @@ class AppController extends ChangeNotifier {
     filedYears = {};
     budgets = {};
     incomeGoals = {};
+    customCategories = const [];
     if (allowScreenshots) setSecureWindow(true); // locked: always secure
     allowScreenshots = false;
     stage = Stage.locked;
@@ -400,6 +405,27 @@ class AppController extends ChangeNotifier {
     incomeGoals = {...incomeGoals}..remove(year);
     if (cents > 0) incomeGoals[year] = cents;
     await db?.setSetting('incomeGoal:$year', cents > 0 ? '$cents' : '');
+    notifyListeners();
+  }
+
+  /// Adds a category counted as [baseId]. Returns false for an empty or duplicate name.
+  Future<bool> addCustomCategory(String name, String baseId) async {
+    final n = safeTake(name.trim().replaceAll(RegExp(r'\s+'), ' '), 40);
+    if (n.isEmpty || customCategories.any((c) => c.name.toLowerCase() == n.toLowerCase())) return false;
+    final id = 'custom_${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}';
+    customCategories = [...customCategories, CustomCategory(id, n, baseId)];
+    await db?.setSetting('customCategories', CustomCategory.encodeList(customCategories));
+    notifyListeners();
+    return true;
+  }
+
+  /// Deletes a custom category. Its records, repeats and rules move to the built-in category it counted as, so
+  /// no record is left without a category; its budget is dropped.
+  Future<void> deleteCustomCategory(CustomCategory c) async {
+    await db?.reassignCategory(c.id, c.baseId);
+    customCategories = customCategories.where((x) => x.id != c.id).toList();
+    await db?.setSetting('customCategories', CustomCategory.encodeList(customCategories));
+    if (budgets.containsKey(c.id)) await setBudget(c.id, 0);
     notifyListeners();
   }
 
@@ -611,7 +637,10 @@ final todayProvider = Provider<DateTime>((ref) {
   return DateTime.now();
 });
 
-final taxRulesProvider = FutureProvider.family<TaxRules, int>((ref, year) => TaxRules.load(year));
+final taxRulesProvider = FutureProvider.family<TaxRules, int>((ref, year) async {
+  final custom = ref.watch(appControllerProvider.select((a) => a.customCategories));
+  return (await TaxRules.load(year)).withCustom(custom);
+});
 
 /// Live ledger entries for a tax year (empty while locked).
 final entriesProvider = StreamProvider.family<List<LedgerEntry>, int>((ref, year) {

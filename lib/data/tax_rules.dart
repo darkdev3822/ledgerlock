@@ -88,6 +88,31 @@ class KeyFigure {
   );
 }
 
+/// A user's own category (SPEC §3 custom categories). It always counts as a built-in [baseId] category, whose
+/// Schedule C line and deductible share it takes from the year's rules file: the user never types tax details.
+class CustomCategory {
+  final String id; // 'custom_...'
+  final String name;
+  final String baseId;
+  const CustomCategory(this.id, this.name, this.baseId);
+
+  Map<String, String> toJson() => {'id': id, 'name': name, 'base': baseId};
+
+  static List<CustomCategory> decodeList(String? json) {
+    try {
+      return [
+        for (final m in jsonDecode(json ?? '[]') as List)
+          if (m is Map && m['id'] is String && m['name'] is String && m['base'] is String)
+            CustomCategory(m['id'] as String, m['name'] as String, m['base'] as String),
+      ];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static String encodeList(List<CustomCategory> l) => jsonEncode([for (final c in l) c.toJson()]);
+}
+
 class TaxRules {
   final int year;
   final List<QuarterDue> quarterlyDue;
@@ -170,6 +195,40 @@ class TaxRules {
       if (k.id == 'ss_wage_base' && k.usable) return (k.value! * 100).round();
     }
     return null;
+  }
+
+  /// This year's rules plus the user's own categories, each copying its base category's line and share. A custom
+  /// category whose base this year doesn't have is left out (its records then show as uncategorised).
+  TaxRules withCustom(List<CustomCategory> custom) {
+    if (custom.isEmpty) return this;
+    Category? base(String id) => [...incomeCategories, ...expenseCategories].where((c) => c.id == id).firstOrNull;
+    List<Category> extra(bool income) => [
+      for (final c in custom)
+        if (base(c.baseId) case final b? when b.isIncome == income)
+          Category(
+            id: c.id,
+            name: c.name,
+            line: b.line,
+            hint: 'Your category, counted as ${b.name}',
+            isIncome: income,
+            deductibleShare: b.deductibleShare,
+          ),
+    ];
+    return TaxRules(
+      year: year,
+      quarterlyDue: quarterlyDue,
+      incomeCategories: [...incomeCategories, ...extra(true)],
+      expenseCategories: [...expenseCategories, ...extra(false)],
+      lineNames: lineNames,
+      seNetEarningsFactor: seNetEarningsFactor,
+      seRate: seRate,
+      seSocialSecurityRate: seSocialSecurityRate,
+      seMinimumNetEarningsCents: seMinimumNetEarningsCents,
+      defaultSetAsidePct: defaultSetAsidePct,
+      verified: verified,
+      keyFigures: keyFigures,
+      pending: pending,
+    );
   }
 
   List<Category> categories(bool income) => income ? incomeCategories : expenseCategories;

@@ -24,6 +24,7 @@ import 'package:ledgerlock/ui/ledger/import_screen.dart';
 import 'package:ledgerlock/ui/ledger/recurring_screen.dart';
 import 'package:ledgerlock/ui/search/search_screen.dart';
 import 'package:ledgerlock/ui/ledger/budgets_screen.dart';
+import 'package:ledgerlock/ui/ledger/categories_screen.dart';
 import 'package:ledgerlock/ui/onboarding_screens.dart';
 import 'package:ledgerlock/ui/recovery_screens.dart';
 import 'package:ledgerlock/ui/settings_screen.dart';
@@ -299,6 +300,7 @@ void main() {
     'rules': (const RulesScreen(), const []),
     'recurring': (const RecurringScreen(), const []),
     'budgets': (const BudgetsScreen(), const []),
+    'categories': (const CategoriesScreen(), const []),
     'import_map': (
       ImportScreen(
         initialRows: [
@@ -594,6 +596,30 @@ void main() {
     await t.fling(find.byType(ListView), const Offset(0, 400), 1000);
     await settle(t);
     expect(find.byType(SearchScreen), findsOneWidget);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('C1 adding your own category saves it and shows the line it counts on', (t) async {
+    final db = memDb();
+    final app = await pumpWithDb(t, opener(() => const CategoriesScreen()), db);
+    await t.tap(find.text('open'));
+    await settle(t);
+    await t.tap(find.text('Add category'));
+    await settle(t);
+    await t.enterText(find.byType(TextField), '  Client   lunches ');
+    await t.tap(find.text('Counts as'));
+    await settle(t);
+    await t.tap(find.text('Expense · Meals').last);
+    await settle(t);
+    await t.tap(find.text('Add'));
+    await settle(t);
+    expect(find.text('Client lunches'), findsOneWidget);
+    expect(find.textContaining('counts as Meals · line'), findsOneWidget);
+    expect(app.customCategories.single.baseId, 'meals');
+    final stored = await t.runAsync(() => db.getSetting('customCategories'));
+    expect(stored, contains('Client lunches'));
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
     await t.runAsync(db.close);
   });
 

@@ -12,6 +12,7 @@ import 'design/brand.dart';
 import 'design/components.dart';
 import 'design/theme.dart';
 import 'ledger/budgets_screen.dart';
+import 'ledger/categories_screen.dart';
 import 'ledger/import_screen.dart';
 import 'ledger/recurring_screen.dart';
 import 'onboarding_screens.dart';
@@ -196,6 +197,13 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: const Text('Pick categories automatically by payee'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RulesScreen())),
+              ),
+              ListTile(
+                leading: const Icon(Icons.label_outline_rounded),
+                title: const Text('Your categories'),
+                subtitle: const Text('Your own names, counted as a standard category'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CategoriesScreen())),
               ),
               ListTile(
                 leading: const Icon(Icons.flag_outlined),
