@@ -12,6 +12,7 @@ import 'design/brand.dart';
 import 'design/components.dart';
 import 'design/theme.dart';
 import 'ledger/import_screen.dart';
+import 'ledger/recurring_screen.dart';
 import 'onboarding_screens.dart';
 import 'lock_screens.dart';
 import 'recovery_screens.dart';
@@ -196,6 +197,13 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RulesScreen())),
               ),
               ListTile(
+                leading: const Icon(Icons.repeat_rounded),
+                title: const Text('Repeating records'),
+                subtitle: const Text('Subscriptions, rent share, regular clients'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecurringScreen())),
+              ),
+              ListTile(
                 leading: const Icon(Icons.upload_file_rounded),
                 title: const Text('Import from a CSV file'),
                 subtitle: const Text('Bank, PayPal, Etsy and other exports'),
@@ -327,7 +335,8 @@ class SettingsScreen extends ConsumerWidget {
                 leading: const Icon(Icons.description_outlined),
                 title: const Text('Open-source licences'),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => showLicensePage(context: context, applicationName: 'LedgerLock', applicationVersion: appVersion),
+                onTap: () =>
+                    showLicensePage(context: context, applicationName: 'LedgerLock', applicationVersion: appVersion),
               ),
             ],
           ),

@@ -282,6 +282,15 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("paid" IN (0, 1))'),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _recurringIdMeta = const VerificationMeta('recurringId');
+  @override
+  late final GeneratedColumn<int> recurringId = GeneratedColumn<int>(
+    'recurring_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta('createdAt');
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
@@ -305,6 +314,7 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     platform,
     notes,
     paid,
+    recurringId,
     createdAt,
   ];
   @override
@@ -357,6 +367,9 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     if (data.containsKey('paid')) {
       context.handle(_paidMeta, paid.isAcceptableOrUnknown(data['paid']!, _paidMeta));
     }
+    if (data.containsKey('recurring_id')) {
+      context.handle(_recurringIdMeta, recurringId.isAcceptableOrUnknown(data['recurring_id']!, _recurringIdMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta, createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     }
@@ -380,6 +393,7 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
       platform: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}platform'])!,
       notes: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
       paid: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}paid'])!,
+      recurringId: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}recurring_id']),
       createdAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
     );
   }
@@ -404,6 +418,10 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
 
   /// Income only: false = invoiced, not paid yet (excluded from totals: cash basis). SPEC §2.13.
   final bool paid;
+
+  /// Made by a repeating record (Recurrings.id); null for everything typed or imported. Not a foreign key: stopping
+  /// a repeat keeps the records it already made and just clears this.
+  final int? recurringId;
   final DateTime createdAt;
   const LedgerEntry({
     required this.id,
@@ -417,6 +435,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     required this.platform,
     required this.notes,
     required this.paid,
+    this.recurringId,
     required this.createdAt,
   });
   @override
@@ -433,6 +452,9 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     map['platform'] = Variable<String>(platform);
     map['notes'] = Variable<String>(notes);
     map['paid'] = Variable<bool>(paid);
+    if (!nullToAbsent || recurringId != null) {
+      map['recurring_id'] = Variable<int>(recurringId);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -450,6 +472,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       platform: Value(platform),
       notes: Value(notes),
       paid: Value(paid),
+      recurringId: recurringId == null && nullToAbsent ? const Value.absent() : Value(recurringId),
       createdAt: Value(createdAt),
     );
   }
@@ -468,6 +491,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       platform: serializer.fromJson<String>(json['platform']),
       notes: serializer.fromJson<String>(json['notes']),
       paid: serializer.fromJson<bool>(json['paid']),
+      recurringId: serializer.fromJson<int?>(json['recurringId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -486,6 +510,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       'platform': serializer.toJson<String>(platform),
       'notes': serializer.toJson<String>(notes),
       'paid': serializer.toJson<bool>(paid),
+      'recurringId': serializer.toJson<int?>(recurringId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -502,6 +527,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     String? platform,
     String? notes,
     bool? paid,
+    Value<int?> recurringId = const Value.absent(),
     DateTime? createdAt,
   }) => LedgerEntry(
     id: id ?? this.id,
@@ -515,6 +541,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     platform: platform ?? this.platform,
     notes: notes ?? this.notes,
     paid: paid ?? this.paid,
+    recurringId: recurringId.present ? recurringId.value : this.recurringId,
     createdAt: createdAt ?? this.createdAt,
   );
   LedgerEntry copyWithCompanion(LedgerEntriesCompanion data) {
@@ -530,6 +557,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       platform: data.platform.present ? data.platform.value : this.platform,
       notes: data.notes.present ? data.notes.value : this.notes,
       paid: data.paid.present ? data.paid.value : this.paid,
+      recurringId: data.recurringId.present ? data.recurringId.value : this.recurringId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -548,6 +576,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           ..write('platform: $platform, ')
           ..write('notes: $notes, ')
           ..write('paid: $paid, ')
+          ..write('recurringId: $recurringId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -566,6 +595,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     platform,
     notes,
     paid,
+    recurringId,
     createdAt,
   );
   @override
@@ -583,6 +613,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           other.platform == this.platform &&
           other.notes == this.notes &&
           other.paid == this.paid &&
+          other.recurringId == this.recurringId &&
           other.createdAt == this.createdAt);
 }
 
@@ -598,6 +629,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
   final Value<String> platform;
   final Value<String> notes;
   final Value<bool> paid;
+  final Value<int?> recurringId;
   final Value<DateTime> createdAt;
   const LedgerEntriesCompanion({
     this.id = const Value.absent(),
@@ -611,6 +643,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     this.platform = const Value.absent(),
     this.notes = const Value.absent(),
     this.paid = const Value.absent(),
+    this.recurringId = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   LedgerEntriesCompanion.insert({
@@ -625,6 +658,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     this.platform = const Value.absent(),
     this.notes = const Value.absent(),
     this.paid = const Value.absent(),
+    this.recurringId = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : isIncome = Value(isIncome),
        date = Value(date),
@@ -642,6 +676,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     Expression<String>? platform,
     Expression<String>? notes,
     Expression<bool>? paid,
+    Expression<int>? recurringId,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -656,6 +691,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
       if (platform != null) 'platform': platform,
       if (notes != null) 'notes': notes,
       if (paid != null) 'paid': paid,
+      if (recurringId != null) 'recurring_id': recurringId,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -672,6 +708,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     Value<String>? platform,
     Value<String>? notes,
     Value<bool>? paid,
+    Value<int?>? recurringId,
     Value<DateTime>? createdAt,
   }) {
     return LedgerEntriesCompanion(
@@ -686,6 +723,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
       platform: platform ?? this.platform,
       notes: notes ?? this.notes,
       paid: paid ?? this.paid,
+      recurringId: recurringId ?? this.recurringId,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -726,6 +764,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     if (paid.present) {
       map['paid'] = Variable<bool>(paid.value);
     }
+    if (recurringId.present) {
+      map['recurring_id'] = Variable<int>(recurringId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -746,6 +787,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
           ..write('platform: $platform, ')
           ..write('notes: $notes, ')
           ..write('paid: $paid, ')
+          ..write('recurringId: $recurringId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -2588,6 +2630,592 @@ class CategoryRulesCompanion extends UpdateCompanion<CategoryRule> {
   }
 }
 
+class $RecurringsTable extends Recurrings with TableInfo<$RecurringsTable, Recurring> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecurringsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _isIncomeMeta = const VerificationMeta('isIncome');
+  @override
+  late final GeneratedColumn<bool> isIncome = GeneratedColumn<bool>(
+    'is_income',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("is_income" IN (0, 1))'),
+  );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta('amountCents');
+  @override
+  late final GeneratedColumn<int> amountCents = GeneratedColumn<int>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _feeCentsMeta = const VerificationMeta('feeCents');
+  @override
+  late final GeneratedColumn<int> feeCents = GeneratedColumn<int>(
+    'fee_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _businessPctMeta = const VerificationMeta('businessPct');
+  @override
+  late final GeneratedColumn<int> businessPct = GeneratedColumn<int>(
+    'business_pct',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(100),
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta('category');
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _partyMeta = const VerificationMeta('party');
+  @override
+  late final GeneratedColumn<String> party = GeneratedColumn<String>(
+    'party',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta('platform');
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _everyMeta = const VerificationMeta('every');
+  @override
+  late final GeneratedColumn<String> every = GeneratedColumn<String>(
+    'every',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _anchorDayMeta = const VerificationMeta('anchorDay');
+  @override
+  late final GeneratedColumn<int> anchorDay = GeneratedColumn<int>(
+    'anchor_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nextDateMeta = const VerificationMeta('nextDate');
+  @override
+  late final GeneratedColumn<String> nextDate = GeneratedColumn<String>(
+    'next_date',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 10, maxTextLength: 10),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    isIncome,
+    amountCents,
+    feeCents,
+    businessPct,
+    category,
+    party,
+    platform,
+    notes,
+    every,
+    anchorDay,
+    nextDate,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recurrings';
+  @override
+  VerificationContext validateIntegrity(Insertable<Recurring> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('is_income')) {
+      context.handle(_isIncomeMeta, isIncome.isAcceptableOrUnknown(data['is_income']!, _isIncomeMeta));
+    } else if (isInserting) {
+      context.missing(_isIncomeMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(_amountCentsMeta, amountCents.isAcceptableOrUnknown(data['amount_cents']!, _amountCentsMeta));
+    } else if (isInserting) {
+      context.missing(_amountCentsMeta);
+    }
+    if (data.containsKey('fee_cents')) {
+      context.handle(_feeCentsMeta, feeCents.isAcceptableOrUnknown(data['fee_cents']!, _feeCentsMeta));
+    }
+    if (data.containsKey('business_pct')) {
+      context.handle(_businessPctMeta, businessPct.isAcceptableOrUnknown(data['business_pct']!, _businessPctMeta));
+    }
+    if (data.containsKey('category')) {
+      context.handle(_categoryMeta, category.isAcceptableOrUnknown(data['category']!, _categoryMeta));
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('party')) {
+      context.handle(_partyMeta, party.isAcceptableOrUnknown(data['party']!, _partyMeta));
+    }
+    if (data.containsKey('platform')) {
+      context.handle(_platformMeta, platform.isAcceptableOrUnknown(data['platform']!, _platformMeta));
+    }
+    if (data.containsKey('notes')) {
+      context.handle(_notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
+    }
+    if (data.containsKey('every')) {
+      context.handle(_everyMeta, every.isAcceptableOrUnknown(data['every']!, _everyMeta));
+    } else if (isInserting) {
+      context.missing(_everyMeta);
+    }
+    if (data.containsKey('anchor_day')) {
+      context.handle(_anchorDayMeta, anchorDay.isAcceptableOrUnknown(data['anchor_day']!, _anchorDayMeta));
+    } else if (isInserting) {
+      context.missing(_anchorDayMeta);
+    }
+    if (data.containsKey('next_date')) {
+      context.handle(_nextDateMeta, nextDate.isAcceptableOrUnknown(data['next_date']!, _nextDateMeta));
+    } else if (isInserting) {
+      context.missing(_nextDateMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Recurring map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Recurring(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      isIncome: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}is_income'])!,
+      amountCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}amount_cents'])!,
+      feeCents: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}fee_cents'])!,
+      businessPct: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}business_pct'])!,
+      category: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}category'])!,
+      party: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}party'])!,
+      platform: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}platform'])!,
+      notes: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}notes'])!,
+      every: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}every'])!,
+      anchorDay: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}anchor_day'])!,
+      nextDate: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}next_date'])!,
+    );
+  }
+
+  @override
+  $RecurringsTable createAlias(String alias) {
+    return $RecurringsTable(attachedDatabase, alias);
+  }
+}
+
+class Recurring extends DataClass implements Insertable<Recurring> {
+  final int id;
+  final bool isIncome;
+  final int amountCents;
+  final int feeCents;
+  final int businessPct;
+  final String category;
+  final String party;
+  final String platform;
+  final String notes;
+  final String every;
+  final int anchorDay;
+  final String nextDate;
+  const Recurring({
+    required this.id,
+    required this.isIncome,
+    required this.amountCents,
+    required this.feeCents,
+    required this.businessPct,
+    required this.category,
+    required this.party,
+    required this.platform,
+    required this.notes,
+    required this.every,
+    required this.anchorDay,
+    required this.nextDate,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['is_income'] = Variable<bool>(isIncome);
+    map['amount_cents'] = Variable<int>(amountCents);
+    map['fee_cents'] = Variable<int>(feeCents);
+    map['business_pct'] = Variable<int>(businessPct);
+    map['category'] = Variable<String>(category);
+    map['party'] = Variable<String>(party);
+    map['platform'] = Variable<String>(platform);
+    map['notes'] = Variable<String>(notes);
+    map['every'] = Variable<String>(every);
+    map['anchor_day'] = Variable<int>(anchorDay);
+    map['next_date'] = Variable<String>(nextDate);
+    return map;
+  }
+
+  RecurringsCompanion toCompanion(bool nullToAbsent) {
+    return RecurringsCompanion(
+      id: Value(id),
+      isIncome: Value(isIncome),
+      amountCents: Value(amountCents),
+      feeCents: Value(feeCents),
+      businessPct: Value(businessPct),
+      category: Value(category),
+      party: Value(party),
+      platform: Value(platform),
+      notes: Value(notes),
+      every: Value(every),
+      anchorDay: Value(anchorDay),
+      nextDate: Value(nextDate),
+    );
+  }
+
+  factory Recurring.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Recurring(
+      id: serializer.fromJson<int>(json['id']),
+      isIncome: serializer.fromJson<bool>(json['isIncome']),
+      amountCents: serializer.fromJson<int>(json['amountCents']),
+      feeCents: serializer.fromJson<int>(json['feeCents']),
+      businessPct: serializer.fromJson<int>(json['businessPct']),
+      category: serializer.fromJson<String>(json['category']),
+      party: serializer.fromJson<String>(json['party']),
+      platform: serializer.fromJson<String>(json['platform']),
+      notes: serializer.fromJson<String>(json['notes']),
+      every: serializer.fromJson<String>(json['every']),
+      anchorDay: serializer.fromJson<int>(json['anchorDay']),
+      nextDate: serializer.fromJson<String>(json['nextDate']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'isIncome': serializer.toJson<bool>(isIncome),
+      'amountCents': serializer.toJson<int>(amountCents),
+      'feeCents': serializer.toJson<int>(feeCents),
+      'businessPct': serializer.toJson<int>(businessPct),
+      'category': serializer.toJson<String>(category),
+      'party': serializer.toJson<String>(party),
+      'platform': serializer.toJson<String>(platform),
+      'notes': serializer.toJson<String>(notes),
+      'every': serializer.toJson<String>(every),
+      'anchorDay': serializer.toJson<int>(anchorDay),
+      'nextDate': serializer.toJson<String>(nextDate),
+    };
+  }
+
+  Recurring copyWith({
+    int? id,
+    bool? isIncome,
+    int? amountCents,
+    int? feeCents,
+    int? businessPct,
+    String? category,
+    String? party,
+    String? platform,
+    String? notes,
+    String? every,
+    int? anchorDay,
+    String? nextDate,
+  }) => Recurring(
+    id: id ?? this.id,
+    isIncome: isIncome ?? this.isIncome,
+    amountCents: amountCents ?? this.amountCents,
+    feeCents: feeCents ?? this.feeCents,
+    businessPct: businessPct ?? this.businessPct,
+    category: category ?? this.category,
+    party: party ?? this.party,
+    platform: platform ?? this.platform,
+    notes: notes ?? this.notes,
+    every: every ?? this.every,
+    anchorDay: anchorDay ?? this.anchorDay,
+    nextDate: nextDate ?? this.nextDate,
+  );
+  Recurring copyWithCompanion(RecurringsCompanion data) {
+    return Recurring(
+      id: data.id.present ? data.id.value : this.id,
+      isIncome: data.isIncome.present ? data.isIncome.value : this.isIncome,
+      amountCents: data.amountCents.present ? data.amountCents.value : this.amountCents,
+      feeCents: data.feeCents.present ? data.feeCents.value : this.feeCents,
+      businessPct: data.businessPct.present ? data.businessPct.value : this.businessPct,
+      category: data.category.present ? data.category.value : this.category,
+      party: data.party.present ? data.party.value : this.party,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      every: data.every.present ? data.every.value : this.every,
+      anchorDay: data.anchorDay.present ? data.anchorDay.value : this.anchorDay,
+      nextDate: data.nextDate.present ? data.nextDate.value : this.nextDate,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Recurring(')
+          ..write('id: $id, ')
+          ..write('isIncome: $isIncome, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('feeCents: $feeCents, ')
+          ..write('businessPct: $businessPct, ')
+          ..write('category: $category, ')
+          ..write('party: $party, ')
+          ..write('platform: $platform, ')
+          ..write('notes: $notes, ')
+          ..write('every: $every, ')
+          ..write('anchorDay: $anchorDay, ')
+          ..write('nextDate: $nextDate')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    isIncome,
+    amountCents,
+    feeCents,
+    businessPct,
+    category,
+    party,
+    platform,
+    notes,
+    every,
+    anchorDay,
+    nextDate,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Recurring &&
+          other.id == this.id &&
+          other.isIncome == this.isIncome &&
+          other.amountCents == this.amountCents &&
+          other.feeCents == this.feeCents &&
+          other.businessPct == this.businessPct &&
+          other.category == this.category &&
+          other.party == this.party &&
+          other.platform == this.platform &&
+          other.notes == this.notes &&
+          other.every == this.every &&
+          other.anchorDay == this.anchorDay &&
+          other.nextDate == this.nextDate);
+}
+
+class RecurringsCompanion extends UpdateCompanion<Recurring> {
+  final Value<int> id;
+  final Value<bool> isIncome;
+  final Value<int> amountCents;
+  final Value<int> feeCents;
+  final Value<int> businessPct;
+  final Value<String> category;
+  final Value<String> party;
+  final Value<String> platform;
+  final Value<String> notes;
+  final Value<String> every;
+  final Value<int> anchorDay;
+  final Value<String> nextDate;
+  const RecurringsCompanion({
+    this.id = const Value.absent(),
+    this.isIncome = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.feeCents = const Value.absent(),
+    this.businessPct = const Value.absent(),
+    this.category = const Value.absent(),
+    this.party = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.every = const Value.absent(),
+    this.anchorDay = const Value.absent(),
+    this.nextDate = const Value.absent(),
+  });
+  RecurringsCompanion.insert({
+    this.id = const Value.absent(),
+    required bool isIncome,
+    required int amountCents,
+    this.feeCents = const Value.absent(),
+    this.businessPct = const Value.absent(),
+    required String category,
+    this.party = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.notes = const Value.absent(),
+    required String every,
+    required int anchorDay,
+    required String nextDate,
+  }) : isIncome = Value(isIncome),
+       amountCents = Value(amountCents),
+       category = Value(category),
+       every = Value(every),
+       anchorDay = Value(anchorDay),
+       nextDate = Value(nextDate);
+  static Insertable<Recurring> custom({
+    Expression<int>? id,
+    Expression<bool>? isIncome,
+    Expression<int>? amountCents,
+    Expression<int>? feeCents,
+    Expression<int>? businessPct,
+    Expression<String>? category,
+    Expression<String>? party,
+    Expression<String>? platform,
+    Expression<String>? notes,
+    Expression<String>? every,
+    Expression<int>? anchorDay,
+    Expression<String>? nextDate,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (isIncome != null) 'is_income': isIncome,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (feeCents != null) 'fee_cents': feeCents,
+      if (businessPct != null) 'business_pct': businessPct,
+      if (category != null) 'category': category,
+      if (party != null) 'party': party,
+      if (platform != null) 'platform': platform,
+      if (notes != null) 'notes': notes,
+      if (every != null) 'every': every,
+      if (anchorDay != null) 'anchor_day': anchorDay,
+      if (nextDate != null) 'next_date': nextDate,
+    });
+  }
+
+  RecurringsCompanion copyWith({
+    Value<int>? id,
+    Value<bool>? isIncome,
+    Value<int>? amountCents,
+    Value<int>? feeCents,
+    Value<int>? businessPct,
+    Value<String>? category,
+    Value<String>? party,
+    Value<String>? platform,
+    Value<String>? notes,
+    Value<String>? every,
+    Value<int>? anchorDay,
+    Value<String>? nextDate,
+  }) {
+    return RecurringsCompanion(
+      id: id ?? this.id,
+      isIncome: isIncome ?? this.isIncome,
+      amountCents: amountCents ?? this.amountCents,
+      feeCents: feeCents ?? this.feeCents,
+      businessPct: businessPct ?? this.businessPct,
+      category: category ?? this.category,
+      party: party ?? this.party,
+      platform: platform ?? this.platform,
+      notes: notes ?? this.notes,
+      every: every ?? this.every,
+      anchorDay: anchorDay ?? this.anchorDay,
+      nextDate: nextDate ?? this.nextDate,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (isIncome.present) {
+      map['is_income'] = Variable<bool>(isIncome.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<int>(amountCents.value);
+    }
+    if (feeCents.present) {
+      map['fee_cents'] = Variable<int>(feeCents.value);
+    }
+    if (businessPct.present) {
+      map['business_pct'] = Variable<int>(businessPct.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (party.present) {
+      map['party'] = Variable<String>(party.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (every.present) {
+      map['every'] = Variable<String>(every.value);
+    }
+    if (anchorDay.present) {
+      map['anchor_day'] = Variable<int>(anchorDay.value);
+    }
+    if (nextDate.present) {
+      map['next_date'] = Variable<String>(nextDate.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringsCompanion(')
+          ..write('id: $id, ')
+          ..write('isIncome: $isIncome, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('feeCents: $feeCents, ')
+          ..write('businessPct: $businessPct, ')
+          ..write('category: $category, ')
+          ..write('party: $party, ')
+          ..write('platform: $platform, ')
+          ..write('notes: $notes, ')
+          ..write('every: $every, ')
+          ..write('anchorDay: $anchorDay, ')
+          ..write('nextDate: $nextDate')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2598,6 +3226,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TripsTable trips = $TripsTable(this);
   late final $Forms1099Table forms1099 = $Forms1099Table(this);
   late final $CategoryRulesTable categoryRules = $CategoryRulesTable(this);
+  late final $RecurringsTable recurrings = $RecurringsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
@@ -2609,6 +3238,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     trips,
     forms1099,
     categoryRules,
+    recurrings,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2748,6 +3378,7 @@ typedef $$LedgerEntriesTableCreateCompanionBuilder = LedgerEntriesCompanion Func
   Value<String> platform,
   Value<String> notes,
   Value<bool> paid,
+  Value<int?> recurringId,
   Value<DateTime> createdAt,
 });
 typedef $$LedgerEntriesTableUpdateCompanionBuilder = LedgerEntriesCompanion Function({
@@ -2762,6 +3393,7 @@ typedef $$LedgerEntriesTableUpdateCompanionBuilder = LedgerEntriesCompanion Func
   Value<String> platform,
   Value<String> notes,
   Value<bool> paid,
+  Value<int?> recurringId,
   Value<DateTime> createdAt,
 });
 
@@ -2819,6 +3451,9 @@ class $$LedgerEntriesTableFilterComposer extends Composer<_$AppDatabase, $Ledger
       $composableBuilder(column: $table.notes, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get paid => $composableBuilder(column: $table.paid, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get recurringId =>
+      $composableBuilder(column: $table.recurringId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -2882,6 +3517,9 @@ class $$LedgerEntriesTableOrderingComposer extends Composer<_$AppDatabase, $Ledg
   ColumnOrderings<bool> get paid =>
       $composableBuilder(column: $table.paid, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get recurringId =>
+      $composableBuilder(column: $table.recurringId, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 }
@@ -2915,6 +3553,8 @@ class $$LedgerEntriesTableAnnotationComposer extends Composer<_$AppDatabase, $Le
   GeneratedColumn<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => column);
 
   GeneratedColumn<bool> get paid => $composableBuilder(column: $table.paid, builder: (column) => column);
+
+  GeneratedColumn<int> get recurringId => $composableBuilder(column: $table.recurringId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt => $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -2973,6 +3613,7 @@ class $$LedgerEntriesTableTableManager
                 Value<String> platform = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 Value<bool> paid = const Value.absent(),
+                Value<int?> recurringId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => LedgerEntriesCompanion(
                 id: id,
@@ -2986,6 +3627,7 @@ class $$LedgerEntriesTableTableManager
                 platform: platform,
                 notes: notes,
                 paid: paid,
+                recurringId: recurringId,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -3001,6 +3643,7 @@ class $$LedgerEntriesTableTableManager
                 Value<String> platform = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 Value<bool> paid = const Value.absent(),
+                Value<int?> recurringId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => LedgerEntriesCompanion.insert(
                 id: id,
@@ -3014,6 +3657,7 @@ class $$LedgerEntriesTableTableManager
                 platform: platform,
                 notes: notes,
                 paid: paid,
+                recurringId: recurringId,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -4202,6 +4846,262 @@ typedef $$CategoryRulesTableProcessedTableManager =
       CategoryRule,
       PrefetchHooks Function()
     >;
+typedef $$RecurringsTableCreateCompanionBuilder = RecurringsCompanion Function({
+  Value<int> id,
+  required bool isIncome,
+  required int amountCents,
+  Value<int> feeCents,
+  Value<int> businessPct,
+  required String category,
+  Value<String> party,
+  Value<String> platform,
+  Value<String> notes,
+  required String every,
+  required int anchorDay,
+  required String nextDate,
+});
+typedef $$RecurringsTableUpdateCompanionBuilder = RecurringsCompanion Function({
+  Value<int> id,
+  Value<bool> isIncome,
+  Value<int> amountCents,
+  Value<int> feeCents,
+  Value<int> businessPct,
+  Value<String> category,
+  Value<String> party,
+  Value<String> platform,
+  Value<String> notes,
+  Value<String> every,
+  Value<int> anchorDay,
+  Value<String> nextDate,
+});
+
+class $$RecurringsTableFilterComposer extends Composer<_$AppDatabase, $RecurringsTable> {
+  $$RecurringsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isIncome =>
+      $composableBuilder(column: $table.isIncome, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get feeCents =>
+      $composableBuilder(column: $table.feeCents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get businessPct =>
+      $composableBuilder(column: $table.businessPct, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get party =>
+      $composableBuilder(column: $table.party, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get every =>
+      $composableBuilder(column: $table.every, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get anchorDay =>
+      $composableBuilder(column: $table.anchorDay, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get nextDate =>
+      $composableBuilder(column: $table.nextDate, builder: (column) => ColumnFilters(column));
+}
+
+class $$RecurringsTableOrderingComposer extends Composer<_$AppDatabase, $RecurringsTable> {
+  $$RecurringsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isIncome =>
+      $composableBuilder(column: $table.isIncome, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get amountCents =>
+      $composableBuilder(column: $table.amountCents, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get feeCents =>
+      $composableBuilder(column: $table.feeCents, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get businessPct =>
+      $composableBuilder(column: $table.businessPct, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get party =>
+      $composableBuilder(column: $table.party, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get every =>
+      $composableBuilder(column: $table.every, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get anchorDay =>
+      $composableBuilder(column: $table.anchorDay, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get nextDate =>
+      $composableBuilder(column: $table.nextDate, builder: (column) => ColumnOrderings(column));
+}
+
+class $$RecurringsTableAnnotationComposer extends Composer<_$AppDatabase, $RecurringsTable> {
+  $$RecurringsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<bool> get isIncome => $composableBuilder(column: $table.isIncome, builder: (column) => column);
+
+  GeneratedColumn<int> get amountCents => $composableBuilder(column: $table.amountCents, builder: (column) => column);
+
+  GeneratedColumn<int> get feeCents => $composableBuilder(column: $table.feeCents, builder: (column) => column);
+
+  GeneratedColumn<int> get businessPct => $composableBuilder(column: $table.businessPct, builder: (column) => column);
+
+  GeneratedColumn<String> get category => $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get party => $composableBuilder(column: $table.party, builder: (column) => column);
+
+  GeneratedColumn<String> get platform => $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get notes => $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get every => $composableBuilder(column: $table.every, builder: (column) => column);
+
+  GeneratedColumn<int> get anchorDay => $composableBuilder(column: $table.anchorDay, builder: (column) => column);
+
+  GeneratedColumn<String> get nextDate => $composableBuilder(column: $table.nextDate, builder: (column) => column);
+}
+
+class $$RecurringsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecurringsTable,
+          Recurring,
+          $$RecurringsTableFilterComposer,
+          $$RecurringsTableOrderingComposer,
+          $$RecurringsTableAnnotationComposer,
+          $$RecurringsTableCreateCompanionBuilder,
+          $$RecurringsTableUpdateCompanionBuilder,
+          (Recurring, BaseReferences<_$AppDatabase, $RecurringsTable, Recurring>),
+          Recurring,
+          PrefetchHooks Function()
+        > {
+  $$RecurringsTableTableManager(_$AppDatabase db, $RecurringsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$RecurringsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$RecurringsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$RecurringsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<bool> isIncome = const Value.absent(),
+                Value<int> amountCents = const Value.absent(),
+                Value<int> feeCents = const Value.absent(),
+                Value<int> businessPct = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String> party = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<String> every = const Value.absent(),
+                Value<int> anchorDay = const Value.absent(),
+                Value<String> nextDate = const Value.absent(),
+              }) => RecurringsCompanion(
+                id: id,
+                isIncome: isIncome,
+                amountCents: amountCents,
+                feeCents: feeCents,
+                businessPct: businessPct,
+                category: category,
+                party: party,
+                platform: platform,
+                notes: notes,
+                every: every,
+                anchorDay: anchorDay,
+                nextDate: nextDate,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required bool isIncome,
+                required int amountCents,
+                Value<int> feeCents = const Value.absent(),
+                Value<int> businessPct = const Value.absent(),
+                required String category,
+                Value<String> party = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                required String every,
+                required int anchorDay,
+                required String nextDate,
+              }) => RecurringsCompanion.insert(
+                id: id,
+                isIncome: isIncome,
+                amountCents: amountCents,
+                feeCents: feeCents,
+                businessPct: businessPct,
+                category: category,
+                party: party,
+                platform: platform,
+                notes: notes,
+                every: every,
+                anchorDay: anchorDay,
+                nextDate: nextDate,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RecurringsTable, Recurring>(table),
+                  BaseReferences<_$AppDatabase, $RecurringsTable, Recurring>(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RecurringsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecurringsTable,
+      Recurring,
+      $$RecurringsTableFilterComposer,
+      $$RecurringsTableOrderingComposer,
+      $$RecurringsTableAnnotationComposer,
+      $$RecurringsTableCreateCompanionBuilder,
+      $$RecurringsTableUpdateCompanionBuilder,
+      (Recurring, BaseReferences<_$AppDatabase, $RecurringsTable, Recurring>),
+      Recurring,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4213,4 +5113,5 @@ class $AppDatabaseManager {
   $$TripsTableTableManager get trips => $$TripsTableTableManager(_db, _db.trips);
   $$Forms1099TableTableManager get forms1099 => $$Forms1099TableTableManager(_db, _db.forms1099);
   $$CategoryRulesTableTableManager get categoryRules => $$CategoryRulesTableTableManager(_db, _db.categoryRules);
+  $$RecurringsTableTableManager get recurrings => $$RecurringsTableTableManager(_db, _db.recurrings);
 }

@@ -250,6 +250,14 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   + onboarding cards showed no ripple (ink under a coloured Container). Tests U10-U13 + stress layouts at 880x950 and
   980x680 for every screen. Emulator-verified at phone size and 2208x1768 (expense + income saved). 817+ tests.
   Testers only get this in a new build: owner decides on 1.0.0-beta.2 (bump appVersion + pubspec together).
+- DEPTH 1 DONE (2026-11-06, owner: "expanding and adding depth"): repeating records (SPEC §3). Schema v8
+  (recurrings table + ledger_entries.recurring_id). lib/data/recurring.dart (stepDate keeps the start day: Jan 31 ->
+  Feb 28 -> Mar 31; leap years; dueDates capped at 120). Entry screen "Repeats" row (never/week/month/year; backdated
+  ones fill passed dates at once); editing a copy shows the repeat + Stop. Settings > Records > Repeating records
+  (list + Stop; records already made stay). Due copies added on unlock (AppController) + "Added N repeating records."
+  toast. SECURITY T31. Emulator-verified: v7 vault upgraded, weekly rule, clock +15 d -> 2 copies, +7 d -> 1 + toast.
+  Gotcha: repeating INCOME copies are saved as received (paid). Next depth items (recommended order): year-over-year
+  insights, tags + "Filed" year badge, budgets/income goal.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

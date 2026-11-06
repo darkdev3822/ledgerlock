@@ -21,6 +21,7 @@ import 'package:ledgerlock/tax/checkin.dart';
 import 'package:ledgerlock/ui/design/theme.dart';
 import 'package:ledgerlock/ui/ledger/entry_screen.dart';
 import 'package:ledgerlock/ui/ledger/import_screen.dart';
+import 'package:ledgerlock/ui/ledger/recurring_screen.dart';
 import 'package:ledgerlock/ui/onboarding_screens.dart';
 import 'package:ledgerlock/ui/recovery_screens.dart';
 import 'package:ledgerlock/ui/settings_screen.dart';
@@ -153,6 +154,38 @@ List<Override> hostileTools() => [
       Form1099(id: 3, year: y, kind: '1099-MISC', payer: arabicName, amountCents: -1),
     ]),
   ),
+  recurringProvider.overrideWith(
+    (ref) => Stream.value([
+      Recurring(
+        id: 1,
+        isIncome: false,
+        amountCents: huge,
+        feeCents: 0,
+        businessPct: 100,
+        category: 'software',
+        party: emojiName,
+        platform: '',
+        notes: '',
+        every: 'month',
+        anchorDay: 31,
+        nextDate: '2026-11-30',
+      ),
+      Recurring(
+        id: 2,
+        isIncome: true,
+        amountCents: 1,
+        feeCents: 0,
+        businessPct: 100,
+        category: 'unknown_cat',
+        party: longName,
+        platform: '',
+        notes: '',
+        every: 'year',
+        anchorDay: 1,
+        nextDate: '2027-01-01',
+      ),
+    ]),
+  ),
   categoryRulesProvider.overrideWith(
     (ref) => Stream.value([
       CategoryRule(id: 1, isIncome: false, contains: longName.toLowerCase(), category: 'software', learned: false),
@@ -257,6 +290,7 @@ void main() {
     ),
     'settings': (const SettingsScreen(), const []),
     'rules': (const RulesScreen(), const []),
+    'recurring': (const RecurringScreen(), const []),
     'import_map': (
       ImportScreen(
         initialRows: [
@@ -429,6 +463,30 @@ void main() {
       await t.runAsync(db.close);
     });
   }
+
+  testWidgets('R1 a new record set to repeat monthly saves the record and its repeat', (t) async {
+    final db = memDb();
+    await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('1'));
+    await t.tap(find.text('5'));
+    await t.tap(find.byType(ChoiceChip).first);
+    await t.tap(find.text('Repeats'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Every month'));
+    await t.pumpAndSettle();
+    expect(find.text('Every month'), findsOneWidget);
+    await t.tap(find.text('Save expense'));
+    await settle(t);
+    final rows = await t.runAsync(() => db.watchYear(2026).first);
+    final rec = await t.runAsync(() => db.watchRecurring().first);
+    expect(rows!.single.recurringId, rec!.single.id);
+    expect(rec.single.every, 'month');
+    expect(rec.single.amountCents, 15);
+    expect(DateTime.parse(rec.single.nextDate).isAfter(DateTime.parse(rows.single.date)), isTrue);
+    await t.runAsync(db.close);
+  });
 
   testWidgets('U11 keypad stays after tapping chips, segments, slider and switch', (t) async {
     final db = memDb();

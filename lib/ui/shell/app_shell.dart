@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/app_controller.dart';
 import '../../data/tax_rules.dart';
+import '../design/components.dart';
 import '../design/theme.dart';
 import '../settings_screen.dart';
 import '../ledger/entry_screen.dart';
@@ -32,6 +33,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     // Onboarding's last step may ask for a first action.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final added = ref.read(appControllerProvider).takeRecurringAdded();
+      if (added > 0) {
+        showSuccess(
+          ScaffoldMessenger.maybeOf(context),
+          added == 1 ? 'Added 1 repeating record.' : 'Added $added repeating records.',
+        );
+      }
       switch (ref.read(appControllerProvider).takeFirstAction()) {
         case 'scan':
           _scan();

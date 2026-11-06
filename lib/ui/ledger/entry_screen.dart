@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../app/app_controller.dart';
 import '../../data/business_types.dart';
 import '../../data/database.dart';
+import '../../data/recurring.dart';
 import '../../media/receipt_parser.dart';
 import '../../platform/ocr.dart';
 import '../../data/tax_rules.dart';
@@ -57,6 +58,10 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   bool _textFocused = false;
   bool _userPickedCategory = false;
   bool _userSetPct = false;
+
+  /// New records: 'never' or a recurringEvery value. Existing records: the repeat that made them, if still on.
+  String _repeat = 'never';
+  Recurring? _rule;
   List<String> _recentParties = const [];
   List<String> _recentPlatforms = const [];
 
@@ -118,10 +123,58 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     FocusManager.instance.addListener(_onFocusChange);
     _party.addListener(_maybeSuggest);
     _loadSuggestions();
+    _loadRule();
     if (widget.receiptId != null) {
       _pendingReceipts.add(widget.receiptId!);
       WidgetsBinding.instance.addPostFrameCallback((_) => _readReceipt(widget.receiptId!));
     }
+  }
+
+  Future<void> _loadRule() async {
+    final id = widget.existing?.recurringId;
+    final db = ref.read(appControllerProvider).db;
+    if (id == null || db == null) return;
+    final r = await db.recurring(id);
+    if (mounted) setState(() => _rule = r);
+  }
+
+  Future<void> _pickRepeat() async {
+    final v = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final e in ['never', ...recurringEvery])
+              ListTile(
+                title: Text(everyLabel(e)),
+                trailing: e == _repeat ? Icon(Icons.check_rounded, color: c.ll.accent) : null,
+                onTap: () => Navigator.pop(c, e),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Space.lg, Space.sm, Space.lg, Space.lg),
+              child: Text(
+                'LedgerLock adds a copy on each date when you open the app, including dates you missed. '
+                'Stop it any time in Settings > Repeating records; copies already made stay.',
+                style: c.text.bodySmall,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (v != null && mounted) setState(() => _repeat = v);
+  }
+
+  Future<void> _stopRepeat() async {
+    final r = _rule;
+    final db = ref.read(appControllerProvider).db;
+    if (r == null || db == null) return;
+    await db.stopRecurring(r.id);
+    if (!mounted) return;
+    setState(() => _rule = null);
+    showSuccess(ScaffoldMessenger.maybeOf(context), 'Stopped. Records already made stay.');
   }
 
   Future<void> _loadSuggestions() async {
@@ -187,6 +240,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   int get _feeCents => ((double.tryParse(_fee.text.replaceAll(',', '')) ?? 0) * 100).round();
 
   bool _saving = false;
+  int _caughtUp = 0;
 
   Future<void> _save(TaxRules rules) async {
     // A double tap used to insert twice and pop twice, closing the main screen too (UI review U1).
@@ -220,6 +274,24 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
         ),
       );
     } else {
+      int? ruleId;
+      if (_repeat != 'never') {
+        ruleId = await db.addRecurring(
+          RecurringsCompanion.insert(
+            isIncome: _income,
+            amountCents: _cents,
+            feeCents: Value(fee),
+            businessPct: Value(pct),
+            category: category,
+            party: Value(_party.text.trim()),
+            platform: Value(_platform.text.trim()),
+            notes: Value(_notes.text.trim()),
+            every: _repeat,
+            anchorDay: _date.day,
+            nextDate: isoDay(stepDate(_date, _repeat, _date.day)),
+          ),
+        );
+      }
       final newId = await db.addEntry(
         LedgerEntriesCompanion.insert(
           isIncome: _income,
@@ -232,8 +304,11 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           platform: Value(_platform.text.trim()),
           notes: Value(_notes.text.trim()),
           paid: Value(!_income || _paid),
+          recurringId: Value(ruleId),
         ),
       );
+      // A backdated repeat ("Netflix since January") fills in the dates already passed.
+      if (ruleId != null) _caughtUp = await db.runRecurring(ref.read(todayProvider));
       for (final r in _pendingReceipts) {
         await db.linkAttachment(r, newId);
       }
@@ -246,6 +321,9 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       messenger,
       _editing
           ? 'Changes saved.'
+          : _repeat != 'never'
+          ? 'Saved. Repeats ${everyLabel(_repeat).toLowerCase()}'
+                '${_caughtUp > 0 ? '; added $_caughtUp more for dates already passed' : ''}.'
           : _income && !_paid
           ? 'Saved as unpaid. Mark it received when the money lands.'
           : _date.year == ref.read(appControllerProvider).selectedYear
@@ -399,6 +477,23 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                           if (d != null) setState(() => _date = d);
                         },
                       ),
+                      if (!_editing)
+                        ListTile(
+                          leading: const Icon(Icons.repeat_rounded),
+                          title: const Text('Repeats'),
+                          trailing: Text(everyLabel(_repeat), style: context.text.titleSmall),
+                          onTap: _pickRepeat,
+                        )
+                      else if (_rule != null)
+                        ListTile(
+                          leading: const Icon(Icons.repeat_rounded),
+                          title: Text(everyLabel(_rule!.every)),
+                          subtitle: Text(
+                            'Next ${DateFormat.yMMMd().format(DateTime.parse(_rule!.nextDate))}. '
+                            'Changes here affect this record only.',
+                          ),
+                          trailing: TextButton(onPressed: _stopRepeat, child: const Text('Stop')),
+                        ),
                       _AutoField(
                         controller: _party,
                         icon: Icons.person_outline_rounded,

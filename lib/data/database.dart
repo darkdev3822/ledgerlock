@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 
 import 'ledger.dart';
+import 'recurring.dart';
 
 part 'database.g.dart';
 
@@ -33,6 +34,10 @@ class LedgerEntries extends Table {
 
   /// Income only: false = invoiced, not paid yet (excluded from totals: cash basis). SPEC §2.13.
   BoolColumn get paid => boolean().withDefault(const Constant(true))();
+
+  /// Made by a repeating record (Recurrings.id); null for everything typed or imported. Not a foreign key: stopping
+  /// a repeat keeps the records it already made and just clears this.
+  IntColumn get recurringId => integer().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -67,6 +72,24 @@ class Forms1099 extends Table {
   TextColumn get payer => text()(); // matched against entry platform/party (case-insensitive)
   IntColumn get amountCents => integer()();
   IntColumn get attachmentId => integer().nullable().references(Attachments, #id, onDelete: KeyAction.setNull)();
+}
+
+/// Repeating records (SPEC §3: subscriptions, rent share). A template plus a schedule; copies are added on unlock
+/// for every due date up to today (lib/data/recurring.dart).
+@DataClassName('Recurring')
+class Recurrings extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  BoolColumn get isIncome => boolean()();
+  IntColumn get amountCents => integer()();
+  IntColumn get feeCents => integer().withDefault(const Constant(0))();
+  IntColumn get businessPct => integer().withDefault(const Constant(100))();
+  TextColumn get category => text()();
+  TextColumn get party => text().withDefault(const Constant(''))();
+  TextColumn get platform => text().withDefault(const Constant(''))();
+  TextColumn get notes => text().withDefault(const Constant(''))();
+  TextColumn get every => text()(); // 'week' | 'month' | 'year'
+  IntColumn get anchorDay => integer()(); // day of month it started on (1-31)
+  TextColumn get nextDate => text().withLength(min: 10, max: 10)();
 }
 
 /// Smart rules (SPEC §3): "payee contains X -> category Y". Manual ones from Settings, learned ones from the
@@ -136,7 +159,7 @@ class NotEncrypted implements Exception {
   String toString() => 'SQLCipher not available: refusing to open an unencrypted database';
 }
 
-@DriftDatabase(tables: [Settings, LedgerEntries, Attachments, TaxPayments, Trips, Forms1099, CategoryRules])
+@DriftDatabase(tables: [Settings, LedgerEntries, Attachments, TaxPayments, Trips, Forms1099, CategoryRules, Recurrings])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -162,7 +185,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -194,6 +217,10 @@ class AppDatabase extends _$AppDatabase {
         await _v6Indexes();
       }
       if (from < 7) await m.createTable(categoryRules);
+      if (from < 8) {
+        if (from >= 2) await m.addColumn(ledgerEntries, ledgerEntries.recurringId);
+        await m.createTable(recurrings);
+      }
     },
   );
 
@@ -360,6 +387,54 @@ class AppDatabase extends _$AppDatabase {
     for (final r in rows) {
       await into(ledgerEntries).insert(r);
     }
+  });
+
+  // ---------- recurring records ----------
+  Stream<List<Recurring>> watchRecurring() =>
+      (select(recurrings)..orderBy([(r) => OrderingTerm.asc(r.nextDate)])).watch();
+  Future<Recurring?> recurring(int id) => (select(recurrings)..where((r) => r.id.equals(id))).getSingleOrNull();
+  Future<int> addRecurring(RecurringsCompanion r) => into(recurrings).insert(r);
+
+  /// Stops a repeat. Records it already made stay (they are real spending); they just lose the link.
+  Future<void> stopRecurring(int id) => transaction(() async {
+    await (update(
+      ledgerEntries,
+    )..where((e) => e.recurringId.equals(id))).write(const LedgerEntriesCompanion(recurringId: Value(null)));
+    await (delete(recurrings)..where((r) => r.id.equals(id))).go();
+  });
+
+  /// Adds a record for every due date up to [today] and moves each rule's next date on. Returns how many were
+  /// added. One transaction, so a crash can't add copies without moving the date (no duplicates on retry).
+  Future<int> runRecurring(DateTime today) => transaction(() async {
+    var added = 0;
+    for (final r in await select(recurrings).get()) {
+      final next = DateTime.tryParse(r.nextDate);
+      if (next == null || !recurringEvery.contains(r.every)) continue;
+      final due = dueDates(next, r.every, r.anchorDay, today);
+      if (due.isEmpty) continue;
+      for (final d in due) {
+        await into(ledgerEntries).insert(
+          LedgerEntriesCompanion.insert(
+            isIncome: r.isIncome,
+            date: isoDay(d),
+            amountCents: r.amountCents,
+            feeCents: Value(r.feeCents),
+            businessPct: Value(r.businessPct),
+            category: r.category,
+            party: Value(r.party),
+            platform: Value(r.platform),
+            notes: Value(r.notes),
+            recurringId: Value(r.id),
+          ),
+        );
+      }
+      added += due.length;
+      final after = stepDate(due.last, r.every, r.anchorDay);
+      await (update(
+        recurrings,
+      )..where((x) => x.id.equals(r.id))).write(RecurringsCompanion(nextDate: Value(isoDay(after))));
+    }
+    return added;
   });
 
   // ---------- M7: smart rules ----------

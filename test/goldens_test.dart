@@ -28,6 +28,7 @@ import 'package:ledgerlock/ui/taxes/checkin_screen.dart';
 import 'package:ledgerlock/ui/taxes/guidance_section.dart';
 import 'package:ledgerlock/data/tax_packet.dart';
 import 'package:ledgerlock/ui/ledger/import_screen.dart';
+import 'package:ledgerlock/ui/ledger/recurring_screen.dart';
 import 'package:ledgerlock/ui/onboarding_screens.dart';
 import 'package:ledgerlock/ui/taxes/tools.dart';
 import 'package:ledgerlock/ui/shell/app_shell.dart';
@@ -362,6 +363,64 @@ void main() {
                 learned: false,
               ),
               CategoryRule(id: 3, isIncome: false, contains: 'staples', category: 'office', learned: true),
+            ]),
+          ),
+        ],
+      ),
+    );
+    testWidgets(
+      'recurring ${b.name}',
+      (t) => shoot(
+        t,
+        'recurring',
+        const RecurringScreen(),
+        b,
+        data: true,
+        extra: [
+          recurringProvider.overrideWith(
+            (ref) => Stream.value(const [
+              Recurring(
+                id: 1,
+                isIncome: false,
+                amountCents: 2000,
+                feeCents: 0,
+                businessPct: 100,
+                category: 'software',
+                party: 'Adobe',
+                platform: '',
+                notes: '',
+                every: 'month',
+                anchorDay: 14,
+                nextDate: '2026-11-14',
+              ),
+              Recurring(
+                id: 2,
+                isIncome: false,
+                amountCents: 8500,
+                feeCents: 0,
+                businessPct: 40,
+                category: 'utilities',
+                party: 'Verizon',
+                platform: '',
+                notes: '',
+                every: 'month',
+                anchorDay: 3,
+                nextDate: '2026-12-03',
+              ),
+              Recurring(
+                id: 3,
+                isIncome: true,
+                amountCents: 60000,
+                feeCents: 0,
+                businessPct: 100,
+                category: 'services',
+                party: 'Retainer client',
+                platform: '',
+                notes: '',
+                every: 'week',
+                anchorDay: 2,
+                nextDate: '2026-11-02',
+              ),
             ]),
           ),
         ],

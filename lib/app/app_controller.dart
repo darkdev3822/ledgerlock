@@ -195,6 +195,12 @@ class AppController extends ChangeNotifier {
     lastCheckIn = DateTime.tryParse(await db.getSetting('lastCheckIn') ?? '');
     dismissedCheckIns = (await db.getSetting('dismissedCheckIns') ?? '').split('\n').where((k) => k.isNotEmpty).toSet();
     slots = await vault.enabledSlots();
+    // Repeating records due since the last unlock (catch-up capped per rule). Never blocks unlocking.
+    try {
+      recurringAdded = await db.runRecurring(DateTime.now());
+    } catch (_) {
+      recurringAdded = 0;
+    }
     _session = s;
     rescheduleReminders();
     // Every vault must have a confirmed recovery key; resume setup if it was interrupted.
@@ -375,6 +381,14 @@ class AppController extends ChangeNotifier {
     await db?.setSetting('onboarded', 'true');
     stage = Stage.ready;
     notifyListeners();
+  }
+
+  /// Records added by repeating records at the last unlock; shown once by the shell.
+  int recurringAdded = 0;
+  int takeRecurringAdded() {
+    final n = recurringAdded;
+    recurringAdded = 0;
+    return n;
   }
 
   String? takeFirstAction() {
@@ -593,6 +607,11 @@ final paymentsProvider = StreamProvider.family<List<TaxPayment>, int>((ref, year
 final tripsProvider = StreamProvider.family<List<Trip>, int>((ref, year) {
   final db = ref.watch(appControllerProvider.select((a) => a.db));
   return db == null ? Stream.value(const []) : db.watchTrips(year);
+});
+
+final recurringProvider = StreamProvider<List<Recurring>>((ref) {
+  final db = ref.watch(appControllerProvider.select((a) => a.db));
+  return db == null ? Stream.value(const []) : db.watchRecurring();
 });
 
 final categoryRulesProvider = StreamProvider<List<CategoryRule>>((ref) {

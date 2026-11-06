@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerlock/data/database.dart';
+import 'package:ledgerlock/data/recurring.dart';
 import 'package:ledgerlock/security/crypto.dart';
 import 'package:sqlite3/sqlite3.dart' as raw;
 
@@ -51,6 +52,8 @@ void main() {
       ..execute('DROP TABLE trips')
       ..execute('DROP TABLE forms1099')
       ..execute('DROP TABLE category_rules')
+      ..execute('DROP TABLE recurrings')
+      ..execute('ALTER TABLE ledger_entries DROP COLUMN recurring_id')
       ..execute('ALTER TABLE ledger_entries DROP COLUMN paid')
       ..execute('PRAGMA user_version = 5');
     old.close();
@@ -65,6 +68,83 @@ void main() {
     expect((await db.watchTrips(2026).first).single.milesTenths, 125);
     expect((await db.watchForms1099(2026).first).single.payer, 'Etsy');
     await db.close();
+  });
+
+  group('recurring records', () {
+    DateTime d(String s) => DateTime.parse(s);
+    test('month steps keep the start day where the month allows (Jan 31 -> Feb 28 -> Mar 31)', () {
+      expect(dueDates(d('2026-01-31'), 'month', 31, d('2026-05-01')).map(isoDay), [
+        '2026-01-31',
+        '2026-02-28',
+        '2026-03-31',
+        '2026-04-30',
+      ]);
+      expect(isoDay(stepDate(d('2026-12-15'), 'month', 15)), '2027-01-15');
+      expect(isoDay(stepDate(d('2028-02-29'), 'year', 29)), '2029-02-28');
+      expect(isoDay(stepDate(d('2029-02-28'), 'year', 29)), '2030-02-28');
+      // Across the US DST change (Mar 8 2026): calendar days, not 168 hours.
+      expect(isoDay(stepDate(d('2026-03-05'), 'week', 5)), '2026-03-12');
+      expect(dueDates(d('2026-11-07'), 'month', 7, d('2026-11-06')), isEmpty, reason: 'nothing due before its date');
+      expect(dueDates(d('2000-01-01'), 'week', 1, d('2026-11-06')).length, maxCatchUp);
+    });
+
+    test('runRecurring adds every due copy once, moves the date on, and stopping keeps the records', () async {
+      final db = AppDatabase.open(File('${dir.path}/rec.db'), LedgerCrypto.randomBytes(32));
+      final id = await db.addRecurring(
+        RecurringsCompanion.insert(
+          isIncome: false,
+          amountCents: 1599,
+          category: 'software',
+          party: const Value('Adobe'),
+          businessPct: const Value(80),
+          every: 'month',
+          anchorDay: 31,
+          nextDate: '2026-08-31',
+        ),
+      );
+      expect(await db.runRecurring(d('2026-11-06')), 3); // Aug 31, Sep 30, Oct 31
+      expect(await db.runRecurring(d('2026-11-06')), 0, reason: 'running again (next unlock) adds nothing');
+      final rows = await db.watchYear(2026).first;
+      expect(rows.map((r) => r.date).toSet(), {'2026-08-31', '2026-09-30', '2026-10-31'});
+      expect(rows.every((r) => r.recurringId == id && r.businessPct == 80 && r.party == 'Adobe'), isTrue);
+      expect((await db.recurring(id))!.nextDate, '2026-11-30');
+      await db.stopRecurring(id);
+      expect(await db.recurring(id), isNull);
+      final kept = await db.watchYear(2026).first;
+      expect(kept.length, 3, reason: 'stopping never deletes spending already recorded');
+      expect(kept.every((r) => r.recurringId == null), isTrue);
+      expect(await db.runRecurring(d('2027-06-01')), 0);
+      await db.close();
+    });
+
+    test('v7 database migrates to v8: entries kept, repeating records usable', () async {
+      final file = File('${dir.path}/v7.db');
+      final key = LedgerCrypto.randomBytes(32);
+      final hex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      var db = AppDatabase.open(file, key);
+      await db.addEntry(e('2026-03-01'));
+      await db.close();
+      final old = raw.sqlite3.open(file.path)
+        ..execute("PRAGMA key = \"x'$hex'\"")
+        ..execute('DROP TABLE recurrings')
+        ..execute('ALTER TABLE ledger_entries DROP COLUMN recurring_id')
+        ..execute('PRAGMA user_version = 7');
+      old.close();
+      db = AppDatabase.open(file, key);
+      expect((await db.watchYear(2026).first).single.recurringId, isNull);
+      await db.addRecurring(
+        RecurringsCompanion.insert(
+          isIncome: true,
+          amountCents: 50000,
+          category: 'services',
+          every: 'week',
+          anchorDay: 2,
+          nextDate: '2026-03-02',
+        ),
+      );
+      expect(await db.runRecurring(d('2026-03-16')), 3);
+      await db.close();
+    });
   });
 
   test('watchYear filters by year and orders newest first; restore undoes delete', () async {
