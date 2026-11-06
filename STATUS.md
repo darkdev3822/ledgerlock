@@ -236,7 +236,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   the full review. Steps 2+3 DONE: old keystore's password unknown -> kept as ~/ledgerlock-release.jks.old-unknown-
   password; NEW key ~/ledgerlock-release.jks (PKCS12, RSA 4096, CN=Dark Dev only), cert SHA-256 115b9496...e410.
   Signed split APKs verified (apksigner: CN=Dark Dev; 1001/2001/4001; no INTERNET); emulator smoke: onboarding,
-  Taxes "Waiting on the IRS" card, Settings version line. NEXT step 4 owner
+  Taxes "Waiting on the IRS" card, Settings version line. Step 4 DONE (owner: "yes, publish"): README beta
+  line, tag v1.0.0-beta.1, GitHub PRE-RELEASE https://github.com/darkdev3822/ledgerlock/releases/tag/v1.0.0-beta.1
+  (3 APKs + SHA-256 + cert hash; download re-verified). Next release: bump appVersion + pubspec together
+  (build_info_test). 1.0.0 after the Dec-Jan review. Was step 4 owner
   approves: tag v1.0.0-beta.1, GitHub pre-release with APKs + SHA-256s + README beta line + "F-Droid later:
   backup -> reinstall -> restore" note.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
