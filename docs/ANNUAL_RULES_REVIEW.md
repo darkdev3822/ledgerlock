@@ -45,6 +45,7 @@ relief page, SCORE.
 | covers periods (2026) | 2026-11-01 | Pub 505 (2026) payment-period table matches. |
 | meals (2025) | 2026-11-01 | Pub 463 (2025 returns, Feb 27 2026): 50% limit. |
 | covers periods (2025) | 2026-11-01 | Pub 505 (2025) table matches. |
-| **STILL OPEN** | | **2026:** 92.35% (2026 Schedule SE) and meals 50% (2026 Pub 463), both due Jan/Feb 2027; Free File + VITA 2026 limits (Jan 2027). **2025:** 1099-K threshold (instructions Rev. 12-2026 name no year). Also **home office simplified rate + max sq ft** (both years; added 2026-11-01, calculator off until verified). Then set review.verified in both year files and run the release gate. |
+| home office (2025, 2026) | 2026-11-06 | Owner confirmed on the IRS simplified-option page (updated 2026-03-02): $5/sq ft, max 300 sq ft; 2025 also matches Pub 587 (2025). Not indexed (Rev. Proc. 2013-13). 2026: re-check vs Pub 587 (2026) in early 2027. Calculator now on. |
+| **STILL OPEN** | | **2026:** 92.35% (2026 Schedule SE) and meals 50% (2026 Pub 463), both due Jan/Feb 2027; Free File + VITA 2026 limits (Jan 2027). **2025:** 1099-K threshold (instructions Rev. 12-2026 name no year). Then set review.verified in both year files and run the release gate. |
 | **Accuracy gaps found** | 2026-11-01 | SE maths ignores the wage base and the 0.9% Additional Medicare Tax ($200k single / $250k MFJ / $125k MFS). Both need the user's W-2 wages, which the app doesn't ask for. Fix in M6. |
 | (old row) | | Data drafted 2026-11-01 in M6 part 1: resources.json (10 candidates, all unverified, limits null); mileage_rate + form_1099k_threshold placeholders (null) in 2025/2026.json. First review = next session. |

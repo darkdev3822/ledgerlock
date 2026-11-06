@@ -212,6 +212,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   Tax-rules review window opens 2026-12-01: do the open items FIRST then.
   -> quarterly reminders + check-ins (§2.13), emulator check of all M6 screens (FAB black outline seen in goldens:
   likely test focus highlight, confirm on device). Review adds: home_office_rate + home_office_max_sqft (both years).
+- 2026-11-06: home-office figures verified with the owner (both years; calculator on). todayProvider now
+  recomputes on lock/unlock (was frozen per run: stale "today" past midnight); entry screen uses it (goldens were
+  drifting with the real date). Release signing reads gitignored android/key.properties (keystore outside repo);
+  owner still has to type the passwords, until then release = debug key. 667 tests.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers: tappable/removable filter chips (date range, platform, tag, tax line, business %), pull-down-
   to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.

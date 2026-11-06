@@ -319,17 +319,19 @@
       "id": "home_office_rate",
       "name": "Home office simplified method rate",
       "unit": "dollars_per_sqft",
-      "value": null,
-      "source": "",
-      "verified": null
+      "value": 5,
+      "source": "https://www.irs.gov/businesses/small-businesses-self-employed/simplified-option-for-home-office-deduction (\"$5 per square foot\"); Rev. Proc. 2013-13 (not indexed)",
+      "verified": "2026-11-06",
+      "reviewNote": "Re-check against Publication 587 (2026) when published (early 2027)."
     },
     {
       "id": "home_office_max_sqft",
       "name": "Home office simplified method maximum area",
       "unit": "sqft",
-      "value": null,
-      "source": "",
-      "verified": null
+      "value": 300,
+      "source": "https://www.irs.gov/businesses/small-businesses-self-employed/simplified-option-for-home-office-deduction (\"maximum 300 square feet\"); Rev. Proc. 2013-13",
+      "verified": "2026-11-06",
+      "reviewNote": "Re-check against Publication 587 (2026) when published (early 2027)."
     }
   ],
   "quarterlyDueReview": {

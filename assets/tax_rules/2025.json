@@ -312,17 +312,17 @@
       "id": "home_office_rate",
       "name": "Home office simplified method rate",
       "unit": "dollars_per_sqft",
-      "value": null,
-      "source": "",
-      "verified": null
+      "value": 5,
+      "source": "https://www.irs.gov/publications/p587 (Publication 587 (2025), Using the Simplified Method: \"$5, the prescribed rate\")",
+      "verified": "2026-11-06"
     },
     {
       "id": "home_office_max_sqft",
       "name": "Home office simplified method maximum area",
       "unit": "sqft",
-      "value": null,
-      "source": "",
-      "verified": null
+      "value": 300,
+      "source": "https://www.irs.gov/publications/p587 (Publication 587 (2025): \"limited to 300 square feet\")",
+      "verified": "2026-11-06"
     }
   ],
   "quarterlyDueReview": {

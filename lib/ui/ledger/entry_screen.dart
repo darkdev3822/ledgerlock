@@ -79,7 +79,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       if (a != null && a.mime.startsWith('image/')) text = await recognizeText(await docs.read(a));
     } catch (_) {}
     if (!mounted) return;
-    final g = text == null ? null : parseReceipt(text, today: DateTime.now());
+    final g = text == null ? null : parseReceipt(text, today: ref.read(todayProvider));
     final filled = <String>[];
     setState(() {
       _reading = false;
@@ -106,7 +106,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   bool get _editing => widget.existing != null;
 
   DateTime _defaultDate() {
-    final now = DateTime.now();
+    final now = ref.read(todayProvider);
     final year = ref.read(appControllerProvider).selectedYear;
     return now.year == year ? now : DateTime(year, 12, 31);
   }

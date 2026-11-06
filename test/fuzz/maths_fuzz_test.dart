@@ -126,7 +126,22 @@ void main() {
       final h = homeOfficeCents(sq, hr)!;
       expect(h, inInclusiveRange(0, 250 * 3 * 100));
     }
-    expect(homeOfficeCents(100, rules), isNull, reason: 'unverified figures are never used');
+    final unverified = withFigures(rules);
+    final stripped = TaxRules(
+      year: unverified.year,
+      quarterlyDue: unverified.quarterlyDue,
+      incomeCategories: unverified.incomeCategories,
+      expenseCategories: unverified.expenseCategories,
+      seNetEarningsFactor: unverified.seNetEarningsFactor,
+      seRate: unverified.seRate,
+      seSocialSecurityRate: unverified.seSocialSecurityRate,
+      seMinimumNetEarningsCents: unverified.seMinimumNetEarningsCents,
+      keyFigures: [
+        for (final k in unverified.keyFigures)
+          k.id.startsWith('home_office') ? KeyFigure(id: k.id, name: k.name, unit: k.unit, value: k.value) : k,
+      ],
+    );
+    expect(homeOfficeCents(100, stripped), isNull, reason: 'unverified figures are never used');
   });
 
   test('F6 negative trip miles produce a negative mileage deduction', () {

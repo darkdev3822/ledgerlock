@@ -541,8 +541,12 @@ class AppController extends ChangeNotifier {
 /// Overridden in main() and in tests.
 final appControllerProvider = ChangeNotifierProvider<AppController>((ref) => throw UnimplementedError());
 
-/// "Today", overridable so goldens are stable.
-final todayProvider = Provider<DateTime>((ref) => DateTime.now());
+/// "Today", overridable so goldens are stable. Recomputed on every unlock/lock (db changes), so an app left
+/// open overnight does not keep yesterday's date.
+final todayProvider = Provider<DateTime>((ref) {
+  ref.watch(appControllerProvider.select((a) => a.db));
+  return DateTime.now();
+});
 
 final taxRulesProvider = FutureProvider.family<TaxRules, int>((ref, year) => TaxRules.load(year));
 
