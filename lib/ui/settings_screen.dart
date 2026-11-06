@@ -11,6 +11,7 @@ import 'backup_screens.dart';
 import 'design/brand.dart';
 import 'design/components.dart';
 import 'design/theme.dart';
+import 'ledger/budgets_screen.dart';
 import 'ledger/import_screen.dart';
 import 'ledger/recurring_screen.dart';
 import 'onboarding_screens.dart';
@@ -195,6 +196,13 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: const Text('Pick categories automatically by payee'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RulesScreen())),
+              ),
+              ListTile(
+                leading: const Icon(Icons.flag_outlined),
+                title: const Text('Budgets & goal'),
+                subtitle: const Text('Monthly limits per category, a yearly income goal'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BudgetsScreen())),
               ),
               ListTile(
                 leading: const Icon(Icons.repeat_rounded),

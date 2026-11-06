@@ -462,3 +462,54 @@ class TileGrid extends StatelessWidget {
     ],
   );
 }
+
+/// Asks for a whole-dollar amount; pops with cents (0 = Remove), or null on Cancel. Owns its controller, so it is
+/// disposed only after the dialog has left the tree. Disposing it from the caller while the route animated out
+/// crashed on a device ("_dependents.isEmpty", budgets) - same class as UI review U2.
+class AmountDialog extends StatefulWidget {
+  final String title, helper;
+  final int currentCents;
+  final bool allowRemove;
+  final int maxDigits;
+  const AmountDialog({
+    super.key,
+    required this.title,
+    required this.helper,
+    this.currentCents = 0,
+    this.allowRemove = false,
+    this.maxDigits = 8,
+  });
+  @override
+  State<AmountDialog> createState() => _AmountDialogState();
+}
+
+class _AmountDialogState extends State<AmountDialog> {
+  late final _c = TextEditingController(text: widget.currentCents > 0 ? '${widget.currentCents ~/ 100}' : '');
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.title),
+    content: TextField(
+      controller: _c,
+      autofocus: true,
+      enableIMEPersonalizedLearning: false,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(widget.maxDigits)],
+      decoration: InputDecoration(prefixText: r'$ ', helperText: widget.helper, helperMaxLines: 2),
+    ),
+    actions: [
+      if (widget.allowRemove) TextButton(onPressed: () => Navigator.pop(context, 0), child: const Text('Remove')),
+      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, (int.tryParse(_c.text) ?? 0) * 100),
+        child: const Text('Save'),
+      ),
+    ],
+  );
+}

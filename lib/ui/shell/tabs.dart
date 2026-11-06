@@ -14,6 +14,7 @@ import '../backup_screens.dart';
 import '../design/components.dart';
 import '../design/theme.dart';
 import '../ledger/category_icons.dart';
+import '../ledger/budgets_screen.dart';
 import '../ledger/entry_screen.dart';
 import '../search/search_screen.dart';
 import '../taxes/checkin_screen.dart';
@@ -79,6 +80,7 @@ class HomeTab extends ConsumerWidget {
             ),
           ],
         ),
+      BudgetsCard(year: year),
       if (entries.isNotEmpty) InsightsCard(year: year),
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -110,7 +112,7 @@ class HomeTab extends ConsumerWidget {
       children: [
         for (final (i, w) in sections.indexed)
           // Cards that hide themselves (check-in, backup nudge) carry their own spacing, so no empty gaps.
-          i == 0 || w is CheckInCard || w is BackupNudge
+          i == 0 || w is CheckInCard || w is BackupNudge || w is BudgetsCard
               ? Reveal(index: i, child: w)
               : Padding(
                   padding: EdgeInsets.only(bottom: i == sections.length - 1 ? 0 : Space.md),
@@ -1283,31 +1285,14 @@ class HighlightText extends StatelessWidget {
 }
 
 Future<void> _editW2(BuildContext context, AppController app, int year) async {
-  final c = TextEditingController(
-    text: app.w2WagesCents[year] == null ? '' : (app.w2WagesCents[year]! / 100).toStringAsFixed(0),
-  );
   final v = await showDialog<int>(
     context: context,
-    builder: (d) => AlertDialog(
-      title: Text('W-2 wages for $year'),
-      content: TextField(
-        controller: c,
-        autofocus: true,
-        enableIMEPersonalizedLearning: false,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(9)],
-        decoration: const InputDecoration(
-          prefixText: '\$',
-          helperText: 'Social Security wages (W-2 box 3), all jobs. Stays on this phone.',
-          helperMaxLines: 2,
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(d), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(d, (int.tryParse(c.text) ?? 0) * 100), child: const Text('Save')),
-      ],
+    builder: (_) => AmountDialog(
+      title: 'W-2 wages for $year',
+      helper: 'Social Security wages (W-2 box 3), all jobs. Stays on this phone.',
+      currentCents: app.w2WagesCents[year] ?? 0,
+      maxDigits: 9,
     ),
   );
-  c.dispose();
   if (v != null) await app.setW2Wages(year, v);
 }

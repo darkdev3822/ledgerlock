@@ -268,6 +268,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   -> year switcher "Filed" badge + entry-screen warning (amended return, no form number: rule 9). Emulator-verified.
   Gotcha: tests that fake an old DB must use _toV8 (SQLite refuses DROP COLUMN tags while triggers use it).
   Repeating-record copies don't carry tags yet.
+- DEPTH 4 DONE: budgets + income goal (lib/data/budgets.dart; lib/ui/ledger/budgets_screen.dart: Home "Budgets &
+  goal" card, hidden until set; Settings > Records > Budgets & goal). Monthly cap per expense category (full amount,
+  this month incl. future-dated entries), "ahead of the month" amber; yearly income goal with pace projection from
+  day 14. Settings 'budgets' (JSON) + 'incomeGoal:<year>'. Fixed a device crash: dialog controllers disposed during
+  the exit animation (shared AmountDialog, also W-2). SECURITY T34. Emulator-verified.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

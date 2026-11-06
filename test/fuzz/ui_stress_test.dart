@@ -22,6 +22,7 @@ import 'package:ledgerlock/ui/design/theme.dart';
 import 'package:ledgerlock/ui/ledger/entry_screen.dart';
 import 'package:ledgerlock/ui/ledger/import_screen.dart';
 import 'package:ledgerlock/ui/ledger/recurring_screen.dart';
+import 'package:ledgerlock/ui/ledger/budgets_screen.dart';
 import 'package:ledgerlock/ui/onboarding_screens.dart';
 import 'package:ledgerlock/ui/recovery_screens.dart';
 import 'package:ledgerlock/ui/settings_screen.dart';
@@ -121,7 +122,8 @@ LedgerEntry _e(
   paid: paid,
   platform: platform,
   notes: notes,
-  tags: '', createdAt: DateTime(2026),
+  tags: '',
+  createdAt: DateTime(2026),
 );
 
 List<LedgerEntry> hostileEntries() => [
@@ -291,6 +293,7 @@ void main() {
     'settings': (const SettingsScreen(), const []),
     'rules': (const RulesScreen(), const []),
     'recurring': (const RecurringScreen(), const []),
+    'budgets': (const BudgetsScreen(), const []),
     'import_map': (
       ImportScreen(
         initialRows: [
@@ -485,6 +488,22 @@ void main() {
     expect(rec.single.every, 'month');
     expect(rec.single.amountCents, 15);
     expect(DateTime.parse(rec.single.nextDate).isAfter(DateTime.parse(rows.single.date)), isTrue);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('B1 setting a budget from the dialog saves it without errors', (t) async {
+    final db = memDb();
+    final app = await pumpWithDb(t, opener(() => const BudgetsScreen()), db);
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Contract labor'));
+    await t.pumpAndSettle();
+    await t.enterText(find.byType(TextField), '100');
+    await t.tap(find.text('Save'));
+    await settle(t);
+    expect(t.takeException(), isNull);
+    expect(find.text(r'$100 / mo'), findsOneWidget);
+    expect(app.budgets['contract_labor'], 10000);
     await t.runAsync(db.close);
   });
 

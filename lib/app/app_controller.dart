@@ -1,5 +1,6 @@
 // App-wide state: lock/unlock, onboarding stage, recovery methods and preferences.
 // UI listens to this; platform specifics stay behind Vault / BiometricSecretStore.
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -47,6 +48,10 @@ class AppController extends ChangeNotifier {
 
   /// Tax years the user marked as filed (SPEC §2.1 "2025 · Filed"). Read-mostly: edits warn, never block.
   Set<int> filedYears = {};
+
+  /// Monthly budget per expense category (cents) and a yearly income goal (cents). SPEC §3. Encrypted DB only.
+  Map<String, int> budgets = {};
+  Map<int, int> incomeGoals = {};
 
   /// What the user picked on "You're all set" ('scan' | 'add'); AppShell takes it once.
   String? firstAction;
@@ -187,6 +192,8 @@ class AppController extends ChangeNotifier {
       if (v != null) w2WagesCents[y] = v;
       final h = int.tryParse(await db.getSetting('homeOfficeSqft:$y') ?? '');
       if (h != null) homeOfficeSqft[y] = h;
+      final g = int.tryParse(await db.getSetting('incomeGoal:$y') ?? '');
+      if (g != null && g > 0) incomeGoals[y] = g;
     }
     quarterlyReminders = await db.getSetting('quarterlyReminders') == 'true';
     allowScreenshots = await db.getSetting('allowScreenshots') == 'true';
@@ -194,6 +201,7 @@ class AppController extends ChangeNotifier {
     if (allowScreenshots) setSecureWindow(false);
     checkInFrequency = await db.getSetting('checkInFrequency') ?? 'off';
     onboarded = await db.getSetting('onboarded') == 'true';
+    budgets = _decodeBudgets(await db.getSetting('budgets'));
     filedYears = (await db.getSetting('filedYears') ?? '').split(',').map(int.tryParse).whereType<int>().toSet();
     businessTypes = (await db.getSetting('businessTypes') ?? '').split(',').where((t) => t.isNotEmpty).toSet();
     lastCheckIn = DateTime.tryParse(await db.getSetting('lastCheckIn') ?? '');
@@ -238,6 +246,8 @@ class AppController extends ChangeNotifier {
     homeOfficeSqft = {};
     businessTypes = {};
     filedYears = {};
+    budgets = {};
+    incomeGoals = {};
     if (allowScreenshots) setSecureWindow(true); // locked: always secure
     allowScreenshots = false;
     stage = Stage.locked;
@@ -363,6 +373,33 @@ class AppController extends ChangeNotifier {
     allowScreenshots = v;
     await db?.setSetting('allowScreenshots', '$v');
     await setSecureWindow(!v);
+    notifyListeners();
+  }
+
+  static Map<String, int> _decodeBudgets(String? json) {
+    try {
+      final m = jsonDecode(json ?? '{}') as Map<String, dynamic>;
+      return {
+        for (final e in m.entries)
+          if (e.value is int && (e.value as int) > 0) e.key: e.value as int,
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// [cents] <= 0 removes the budget.
+  Future<void> setBudget(String category, int cents) async {
+    budgets = {...budgets}..remove(category);
+    if (cents > 0) budgets[category] = cents;
+    await db?.setSetting('budgets', jsonEncode(budgets));
+    notifyListeners();
+  }
+
+  Future<void> setIncomeGoal(int year, int cents) async {
+    incomeGoals = {...incomeGoals}..remove(year);
+    if (cents > 0) incomeGoals[year] = cents;
+    await db?.setSetting('incomeGoal:$year', cents > 0 ? '$cents' : '');
     notifyListeners();
   }
 

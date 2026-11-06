@@ -29,6 +29,7 @@ import 'package:ledgerlock/ui/taxes/guidance_section.dart';
 import 'package:ledgerlock/data/tax_packet.dart';
 import 'package:ledgerlock/ui/ledger/import_screen.dart';
 import 'package:ledgerlock/ui/ledger/recurring_screen.dart';
+import 'package:ledgerlock/ui/ledger/budgets_screen.dart';
 import 'package:ledgerlock/ui/shell/insights_card.dart';
 import 'package:ledgerlock/data/insights.dart';
 import 'package:ledgerlock/ui/onboarding_screens.dart';
@@ -118,7 +119,8 @@ List<LedgerEntry> fixtureEntries() {
         paid: true,
         platform: r['platform'] as String? ?? '',
         notes: '',
-        tags: '', createdAt: DateTime(2026),
+        tags: '',
+        createdAt: DateTime(2026),
       ),
   ]..sort((a, b) => b.date.compareTo(a.date));
 }
@@ -369,6 +371,28 @@ void main() {
           ),
         ],
       ),
+    );
+    AppController budgetApp() => AppController(dataDir: dir, biometrics: FakeBiometrics(), year: 2026)
+      ..biometricsAvailable = true
+      ..debugShowReady(slots: {Slot.password, Slot.recovery, Slot.biometric})
+      ..budgets = {'meals': 2000, 'software': 5000, 'office': 30000}
+      ..incomeGoals = {2026: 2000000};
+    testWidgets(
+      'budgets_card ${b.name}',
+      (t) => shoot(
+        t,
+        'budgets_card',
+        const Scaffold(
+          body: Padding(padding: EdgeInsets.all(16), child: BudgetsCard(year: 2026)),
+        ),
+        b,
+        data: true,
+        app: budgetApp(),
+      ),
+    );
+    testWidgets(
+      'budgets_screen ${b.name}',
+      (t) => shoot(t, 'budgets_screen', const BudgetsScreen(), b, data: true, app: budgetApp()),
     );
     testWidgets(
       'insights ${b.name}',
