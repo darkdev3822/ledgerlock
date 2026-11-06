@@ -20,6 +20,41 @@ import '../vault/vault_screens.dart';
 Future<void> openSearch(BuildContext context) =>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
 
+/// Pull down past the top of a list to open search (SPEC §4: "pull down on any list"). Counts overscroll during
+/// one drag; opens once per drag when it passes [threshold]. Works with Android's clamping scroll.
+class PullToSearch extends StatefulWidget {
+  final Widget child;
+  final double threshold;
+  const PullToSearch({super.key, required this.child, this.threshold = 90});
+  @override
+  State<PullToSearch> createState() => _PullToSearchState();
+}
+
+class _PullToSearchState extends State<PullToSearch> {
+  double _pulled = 0;
+  bool _fired = false;
+
+  bool _onScroll(ScrollNotification n) {
+    if (n.depth != 0) return false;
+    if (n is ScrollStartNotification) {
+      _pulled = 0;
+      _fired = false;
+    } else if (n is OverscrollNotification && n.overscroll < 0 && n.dragDetails != null) {
+      _pulled -= n.overscroll;
+      if (!_fired && _pulled > widget.threshold) {
+        _fired = true;
+        HapticFeedback.lightImpact();
+        openSearch(context);
+      }
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      NotificationListener<ScrollNotification>(onNotification: _onScroll, child: widget.child);
+}
+
 class SearchScreen extends ConsumerStatefulWidget {
   /// Pre-filled query (tests, deep links).
   final String initialText;

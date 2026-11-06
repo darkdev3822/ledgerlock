@@ -34,31 +34,36 @@ class EntryScreen extends ConsumerStatefulWidget {
 
   /// A just-scanned receipt: attached on save, and read on the device (OCR) to pre-fill the form.
   final int? receiptId;
-  const EntryScreen({super.key, this.existing, this.startIncome = false, this.receiptId});
+
+  /// "Duplicate": a new record pre-filled from this one (dated today, no receipts, no repeat).
+  final LedgerEntry? template;
+  const EntryScreen({super.key, this.existing, this.startIncome = false, this.receiptId, this.template});
   @override
   ConsumerState<EntryScreen> createState() => _EntryScreenState();
 }
 
 class _EntryScreenState extends ConsumerState<EntryScreen> {
-  late bool _income = widget.existing?.isIncome ?? widget.startIncome;
+  /// Where the form's starting values come from: the record being edited, or the one being duplicated.
+  late final LedgerEntry? _src = widget.existing ?? widget.template;
+  late bool _income = _src?.isIncome ?? widget.startIncome;
 
   /// Income only: false = invoiced, not received yet (not counted until paid).
-  late bool _paid = widget.existing?.paid ?? true;
-  late int _cents = widget.existing?.amountCents ?? 0;
-  late String? _category = widget.existing?.category;
+  late bool _paid = _src?.paid ?? true;
+  late int _cents = _src?.amountCents ?? 0;
+  late String? _category = _src?.category;
   late DateTime _date = widget.existing?.day ?? _defaultDate();
-  late double _businessPct = (widget.existing?.businessPct ?? 100).toDouble();
-  late final _party = TextEditingController(text: widget.existing?.party ?? '');
-  late final _platform = TextEditingController(text: widget.existing?.platform ?? '');
+  late double _businessPct = (_src?.businessPct ?? 100).toDouble();
+  late final _party = TextEditingController(text: _src?.party ?? '');
+  late final _platform = TextEditingController(text: _src?.platform ?? '');
   late final _fee = TextEditingController(
-    text: (widget.existing?.feeCents ?? 0) == 0 ? '' : (widget.existing!.feeCents / 100).toStringAsFixed(2),
+    text: (_src?.feeCents ?? 0) == 0 ? '' : (_src!.feeCents / 100).toStringAsFixed(2),
   );
-  late final _notes = TextEditingController(text: widget.existing?.notes ?? '');
-  late final _tags = TextEditingController(text: tagList(widget.existing?.tags ?? '').join(' '));
+  late final _notes = TextEditingController(text: _src?.notes ?? '');
+  late final _tags = TextEditingController(text: tagList(_src?.tags ?? '').join(' '));
   final _focus = FocusScopeNode();
   bool _textFocused = false;
   bool _userPickedCategory = false;
-  bool _userSetPct = false;
+  late bool _userSetPct = widget.template != null;
 
   /// New records: 'never' or a recurringEvery value. Existing records: the repeat that made them, if still on.
   String _repeat = 'never';
@@ -120,7 +125,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   @override
   void initState() {
     super.initState();
-    _userPickedCategory = _editing;
+    _userPickedCategory = _src != null;
     FocusManager.instance.addListener(_onFocusChange);
     _party.addListener(_maybeSuggest);
     _loadSuggestions();
@@ -376,8 +381,16 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
         ),
         title: Text(_editing ? 'Edit record' : (_income ? 'New income' : 'New expense')),
         actions: [
-          if (_editing)
+          if (_editing) ...[
+            IconButton(
+              tooltip: 'Duplicate',
+              icon: const Icon(Icons.copy_all_rounded),
+              onPressed: () => Navigator.of(context).pushReplacement(
+                MaterialPageRoute(fullscreenDialog: true, builder: (_) => EntryScreen(template: widget.existing)),
+              ),
+            ),
             IconButton(tooltip: 'Delete', icon: const Icon(Icons.delete_outline_rounded), onPressed: _delete),
+          ],
           const SizedBox(width: Space.sm),
         ],
       ),

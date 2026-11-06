@@ -278,12 +278,16 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - DEPTH 6 DONE: schema v10 (recurrings.tags + recurrings.paid): repeat copies keep the first record's tags, and
   repeating income made while "Received" is off creates unpaid invoices (expenses always paid). Repeating list
   says "invoiced, unpaid". database_test v9->v10.
+- DEPTH 7 DONE: "Duplicate" on the edit screen (EntryScreen.template: same details, dated today, no receipts or
+  repeat; replaces the edit screen) and pull-down-to-search on Home + Records (PullToSearch in search_screen.dart,
+  overscroll > 90 px in one drag). Tests D1, P1.
+  Test gotcha: after a widget test with a real DB and an EntryScreen(existing:), unmount + settle before
+  db.close(), or close() waits forever on a query parked in the fake clock (test-only; real app unaffected).
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY
   T29 (none). 669 tests. Device check still owed.
-- M5 leftovers: chips for filters the parser can't express yet (date range, platform, tag, tax line, business %),
-  pull-down-to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.
+- M5 leftovers: chips for filters the parser can't express yet (date range, platform, tax line, business %), recent/saved searches (Pro, M7), device check of search on the emulator.
 - Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
   (only tested on synthetic + emulator scene); PDF preview (M6); iOS document picker channel (M10).
 - Still open: custom security questions, backup-age banner (M9), FLAG_SECURE toggle,

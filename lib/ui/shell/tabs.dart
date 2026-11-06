@@ -107,18 +107,20 @@ class HomeTab extends ConsumerWidget {
         ],
       ),
     ];
-    return ListView(
-      padding: _pad,
-      children: [
-        for (final (i, w) in sections.indexed)
-          // Cards that hide themselves (check-in, backup nudge) carry their own spacing, so no empty gaps.
-          i == 0 || w is CheckInCard || w is BackupNudge || w is BudgetsCard
-              ? Reveal(index: i, child: w)
-              : Padding(
-                  padding: EdgeInsets.only(bottom: i == sections.length - 1 ? 0 : Space.md),
-                  child: Reveal(index: i, child: w),
-                ),
-      ],
+    return PullToSearch(
+      child: ListView(
+        padding: _pad,
+        children: [
+          for (final (i, w) in sections.indexed)
+            // Cards that hide themselves (check-in, backup nudge) carry their own spacing, so no empty gaps.
+            i == 0 || w is CheckInCard || w is BackupNudge || w is BudgetsCard
+                ? Reveal(index: i, child: w)
+                : Padding(
+                    padding: EdgeInsets.only(bottom: i == sections.length - 1 ? 0 : Space.md),
+                    child: Reveal(index: i, child: w),
+                  ),
+        ],
+      ),
     );
   }
 }
@@ -614,105 +616,107 @@ class _RecordsTabState extends ConsumerState<RecordsTab> {
     }
     int sum(Iterable<LedgerEntry> l, bool income) =>
         l.where((e) => e.isIncome == income && (!income || e.paid)).fold(0, (a, e) => a + e.amountCents);
-    return ListView(
-      padding: _pad,
-      children: [
-        TextField(
-          readOnly: true,
-          onTap: () => openSearch(context),
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search_rounded),
-            hintText: 'Search everything: "meals over 50", "no receipt"…',
-          ),
-        ),
-        const SizedBox(height: Space.md),
-        LLSegmented<_Filter>(
-          options: const [(_Filter.all, 'All'), (_Filter.income, 'Income'), (_Filter.expenses, 'Expenses')],
-          value: _filter,
-          onChanged: (f) => setState(() => _filter = f),
-        ),
-        if (all.isNotEmpty) ...[
-          const SizedBox(height: Space.lg),
-          _InOutStrip(
-            inCents: _filter == _Filter.expenses ? null : sum(all, true),
-            outCents: _filter == _Filter.income ? null : sum(all, false),
-            count: shown.length,
-          ),
-        ],
-        if (all.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: Space.lg),
-            child: EmptyState(
-              art: Art.ledger,
-              icon: Icons.receipt_long_rounded,
-              title: 'No records for $year yet',
-              body: 'Everything you add lands here, grouped by month and searchable in an instant.',
-              actionLabel: 'Add a record',
-              onAction: () => openEntry(context),
+    return PullToSearch(
+      child: ListView(
+        padding: _pad,
+        children: [
+          TextField(
+            readOnly: true,
+            onTap: () => openSearch(context),
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search_rounded),
+              hintText: 'Search everything: "meals over 50", "no receipt"…',
             ),
-          )
-        else if (shown.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(Space.xxl),
-            child: Text(
-              'Nothing here yet for this filter.',
-              textAlign: TextAlign.center,
-              style: context.text.bodySmall,
+          ),
+          const SizedBox(height: Space.md),
+          LLSegmented<_Filter>(
+            options: const [(_Filter.all, 'All'), (_Filter.income, 'Income'), (_Filter.expenses, 'Expenses')],
+            value: _filter,
+            onChanged: (f) => setState(() => _filter = f),
+          ),
+          if (all.isNotEmpty) ...[
+            const SizedBox(height: Space.lg),
+            _InOutStrip(
+              inCents: _filter == _Filter.expenses ? null : sum(all, true),
+              outCents: _filter == _Filter.income ? null : sum(all, false),
+              count: shown.length,
             ),
-          )
-        else
-          AnimatedSwitcher(
-            duration: Motion.reduced(context) ? Duration.zero : Motion.medium,
-            switchInCurve: Motion.enter,
-            child: Column(
-              key: ValueKey(_filter),
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final (i, m) in byMonth.entries.indexed)
-                  Reveal(
-                    index: i,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _MonthHeader(
-                          month: DateTime(year, m.key),
-                          count: m.value.length,
-                          netCents: sum(m.value, true) - sum(m.value, false),
-                        ),
-                        LLGroup(
-                          children: [
-                            for (final e in m.value)
-                              Dismissible(
-                                key: ValueKey(e.id),
-                                direction: DismissDirection.endToStart,
-                                background: Container(
-                                  alignment: Alignment.centerRight,
-                                  padding: const EdgeInsets.only(right: Space.xl),
-                                  color: ll.expense,
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        'Delete',
-                                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                                      ),
-                                      SizedBox(width: Space.sm),
-                                      Icon(Icons.delete_outline_rounded, color: Colors.white),
-                                    ],
+          ],
+          if (all.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: Space.lg),
+              child: EmptyState(
+                art: Art.ledger,
+                icon: Icons.receipt_long_rounded,
+                title: 'No records for $year yet',
+                body: 'Everything you add lands here, grouped by month and searchable in an instant.',
+                actionLabel: 'Add a record',
+                onAction: () => openEntry(context),
+              ),
+            )
+          else if (shown.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(Space.xxl),
+              child: Text(
+                'Nothing here yet for this filter.',
+                textAlign: TextAlign.center,
+                style: context.text.bodySmall,
+              ),
+            )
+          else
+            AnimatedSwitcher(
+              duration: Motion.reduced(context) ? Duration.zero : Motion.medium,
+              switchInCurve: Motion.enter,
+              child: Column(
+                key: ValueKey(_filter),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (i, m) in byMonth.entries.indexed)
+                    Reveal(
+                      index: i,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _MonthHeader(
+                            month: DateTime(year, m.key),
+                            count: m.value.length,
+                            netCents: sum(m.value, true) - sum(m.value, false),
+                          ),
+                          LLGroup(
+                            children: [
+                              for (final e in m.value)
+                                Dismissible(
+                                  key: ValueKey(e.id),
+                                  direction: DismissDirection.endToStart,
+                                  background: Container(
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.only(right: Space.xl),
+                                    color: ll.expense,
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          'Delete',
+                                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                        ),
+                                        SizedBox(width: Space.sm),
+                                        Icon(Icons.delete_outline_rounded, color: Colors.white),
+                                      ],
+                                    ),
                                   ),
+                                  onDismissed: (_) => _delete(e),
+                                  child: EntryTile(entry: e, rules: rules!),
                                 ),
-                                onDismissed: (_) => _delete(e),
-                                child: EntryTile(entry: e, rules: rules!),
-                              ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

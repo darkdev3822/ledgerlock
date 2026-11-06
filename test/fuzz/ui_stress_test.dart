@@ -549,6 +549,54 @@ void main() {
     await t.runAsync(db.close);
   });
 
+  testWidgets('D1 Duplicate makes a new record dated today with the same details', (t) async {
+    final db = memDb();
+    final id = await t.runAsync(
+      () => db.addEntry(
+        LedgerEntriesCompanion.insert(
+          isIncome: false,
+          date: '2026-02-03',
+          amountCents: 1234,
+          category: 'office',
+          party: const Value('Staples'),
+          businessPct: const Value(60),
+          tags: Value(normalizeTags('client-a')),
+        ),
+      ),
+    );
+    final row = (await t.runAsync(() => db.select(db.ledgerEntries).getSingle()))!;
+    expect(row.id, id);
+    await pumpWithDb(t, opener(() => EntryScreen(existing: row)), db, today: DateTime(2026, 11, 6));
+    await t.tap(find.text('open'));
+    await settle(t);
+    await t.tap(find.byTooltip('Duplicate'));
+    await settle(t);
+    expect(find.text('New expense'), findsOneWidget);
+    await t.tap(find.text('Save expense'));
+    await settle(t);
+    final rows = (await t.runAsync(() => db.select(db.ledgerEntries).get()))!;
+    expect(rows.length, 2);
+    final copy = rows.firstWhere((r) => r.id != id);
+    expect(
+      (copy.date, copy.amountCents, copy.party, copy.businessPct, copy.category, copy.tags),
+      ('2026-11-06', 1234, 'Staples', 60, 'office', ' client-a '),
+    );
+    expect(find.text('open'), findsOneWidget, reason: 'duplicate replaced the edit screen; save pops back');
+    // Unmount and let pending queries finish inside the fake clock, or close() waits forever (test-only).
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('P1 pulling down at the top of a list opens search', (t) async {
+    final db = memDb();
+    await pumpWithDb(t, const Scaffold(body: PullToSearch(child: _LongList())), db);
+    await t.fling(find.byType(ListView), const Offset(0, 400), 1000);
+    await settle(t);
+    expect(find.byType(SearchScreen), findsOneWidget);
+    await t.runAsync(db.close);
+  });
+
   testWidgets('U11 keypad stays after tapping chips, segments, slider and switch', (t) async {
     final db = memDb();
     await pumpWithDb(t, opener(() => const EntryScreen()), db);
@@ -765,4 +813,13 @@ void main() {
     final lone = RegExp(r'[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]');
     expect(lone.hasMatch(payee), isFalse, reason: 'payee.substring(0, 80) splits a surrogate pair');
   });
+}
+
+class _LongList extends StatelessWidget {
+  const _LongList();
+  @override
+  Widget build(BuildContext context) => ListView(
+    physics: const ClampingScrollPhysics(),
+    children: [for (var i = 0; i < 40; i++) ListTile(title: Text('row $i'))],
+  );
 }
