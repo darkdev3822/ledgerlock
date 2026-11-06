@@ -220,7 +220,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   SQLCipher 4.19.0, sha256-pinned, = what package:sqlite3 3.8.0 CI builds) + use_source_sqlcipher.sh (rewrites
   pubspec hook to `source: source`; NEVER commit that pubspec, `git checkout pubspec.yaml` after). Device-verified:
   vault + record made with the prebuilt engine unlock fine on the from-source APK. SECURITY T27.
-  NEXT F-Droid: Tesseract4Android from source (replace JitPack AAR), drop foojay JDK download, then fdroiddata
+  F-Droid step 2 DONE: Tesseract4Android from source (tool/fdroid/fetch_tesseract.sh, then build with
+  ORG_GRADLE_PROJECT_ledgerlockTesseractSrc=<dir>; ~5 min). Device-verified OCR same result as the AAR. SECURITY T28.
+  NEXT F-Droid: foojay JDK download (recipe: sed the foojay plugin out of settings.gradle.kts, use the server's
+  JDK 17), then fdroiddata
   metadata (one build per ABI: prebuild runs build_sqlcipher.sh), listing text + screenshots. Owner later: GitLab
   account (Dark Dev name) + submit the merge request.
 - After the review: device-check a link opening in the browser (none visible until items are verified).

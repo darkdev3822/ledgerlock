@@ -26,3 +26,11 @@ plugins {
 }
 
 include(":app")
+
+// F-Droid / from-source builds: compile the OCR engine from a Tesseract4Android checkout instead of downloading the
+// JitPack AAR. Set with -PledgerlockTesseractSrc=<dir> or ORG_GRADLE_PROJECT_ledgerlockTesseractSrc (see
+// tool/fdroid/fetch_tesseract.sh).
+providers.gradleProperty("ledgerlockTesseractSrc").orNull?.let { src ->
+    include(":tesseract4android")
+    project(":tesseract4android").projectDir = file(src).resolve("tesseract4android")
+}

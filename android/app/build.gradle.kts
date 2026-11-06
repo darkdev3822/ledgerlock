@@ -31,6 +31,8 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
+        // Tesseract4Android from source has standard/openmp flavours; the JitPack AAR is "standard".
+        missingDimensionStrategy("parallelization", "standard")
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
         // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
@@ -70,5 +72,10 @@ flutter {
 
 dependencies {
     // Tesseract 5 + Leptonica, Apache-2.0, no networking (checked: no curl/socket symbols in the .so files).
-    implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
+    // F-Droid builds it from source (tool/fdroid/fetch_tesseract.sh); otherwise the same tag's JitPack AAR.
+    if (rootProject.findProject(":tesseract4android") != null) {
+        implementation(project(":tesseract4android"))
+    } else {
+        implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
+    }
 }
