@@ -2,6 +2,9 @@
 
 **Private bookkeeping and tax prep for side hustles. Free, open source, and it never leaves your phone.**
 
+> **Beta:** [1.0.0-beta.1](https://github.com/darkdev3822/ledgerlock/releases) is a pre-release. A few 2026 tax
+> figures are still waiting on the IRS and are listed in the app's Taxes tab ("Waiting on the IRS").
+
 LedgerLock tracks your side-hustle income, expenses, receipts and mileage, maps them to IRS Schedule C, and shows
 what to set aside for quarterly estimated taxes. There is no account, no cloud, no ads and no analytics. The app
 does not even have the Android INTERNET permission, so it *can't* send your data anywhere. Check the manifest.
