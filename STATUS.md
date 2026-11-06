@@ -273,6 +273,9 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   this month incl. future-dated entries), "ahead of the month" amber; yearly income goal with pace projection from
   day 14. Settings 'budgets' (JSON) + 'incomeGoal:<year>'. Fixed a device crash: dialog controllers disposed during
   the exit animation (shared AmountDialog, also W-2). SECURITY T34. Emulator-verified.
+- DEPTH 5 DONE: recent + saved searches (lib/search/search_history.dart; SearchScreen: star in the field saves,
+  a query is remembered after 2 s on screen with results; Saved / Recent chips + Clear on the empty screen;
+  encrypted DB settings only). SECURITY T35.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

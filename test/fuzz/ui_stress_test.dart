@@ -22,6 +22,7 @@ import 'package:ledgerlock/ui/design/theme.dart';
 import 'package:ledgerlock/ui/ledger/entry_screen.dart';
 import 'package:ledgerlock/ui/ledger/import_screen.dart';
 import 'package:ledgerlock/ui/ledger/recurring_screen.dart';
+import 'package:ledgerlock/ui/search/search_screen.dart';
 import 'package:ledgerlock/ui/ledger/budgets_screen.dart';
 import 'package:ledgerlock/ui/onboarding_screens.dart';
 import 'package:ledgerlock/ui/recovery_screens.dart';
@@ -504,6 +505,43 @@ void main() {
     expect(t.takeException(), isNull);
     expect(find.text(r'$100 / mo'), findsOneWidget);
     expect(app.budgets['contract_labor'], 10000);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('S1 search remembers a query after 2 s with results, and saves one with the star', (t) async {
+    final db = memDb();
+    await t.runAsync(
+      () => db.addEntry(
+        LedgerEntriesCompanion.insert(
+          isIncome: false,
+          date: '2026-03-01',
+          amountCents: 500,
+          category: 'office',
+          party: const Value('Fuel stop'),
+        ),
+      ),
+    );
+    await pumpWithDb(t, opener(() => const SearchScreen()), db);
+    await t.tap(find.text('open'));
+    await settle(t);
+    await t.enterText(find.byType(TextField), 'fuel');
+    await settle(t);
+    await t.pump(const Duration(seconds: 3));
+    await settle(t);
+    await t.tap(find.byTooltip('Save this search'));
+    await settle(t);
+    await t.tap(find.byTooltip('Clear'));
+    await settle(t);
+    expect(find.text('Saved'), findsOneWidget);
+    expect(find.text('Recent'), findsOneWidget);
+    expect(find.widgetWithText(ActionChip, 'fuel'), findsNWidgets(2));
+    final stored = await t.runAsync(
+      () async => (await db.getSetting('recentSearches'), await db.getSetting('savedSearches')),
+    );
+    expect(stored, ('["fuel"]', '["fuel"]'));
+    await t.tap(find.text('Clear'));
+    await settle(t);
+    expect(find.text('Recent'), findsNothing);
     await t.runAsync(db.close);
   });
 
