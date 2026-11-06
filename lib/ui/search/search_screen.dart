@@ -132,7 +132,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               Wrap(
                 spacing: Space.sm,
                 runSpacing: Space.sm,
-                children: [for (final u in _q.understood) Pill(u, icon: Icons.filter_alt_outlined)],
+                children: [
+                  for (var i = 0; i < _q.chips.length; i++)
+                    InputChip(
+                      avatar: const Icon(Icons.filter_alt_outlined, size: 16),
+                      label: Text(_q.chips[i].label),
+                      deleteButtonTooltipMessage: 'Remove filter',
+                      onDeleted: () => _fill(_q.without(i)),
+                      onPressed: () => _fill(_q.without(i)),
+                    ),
+                ],
               ),
             SectionHeader(
               'Records',

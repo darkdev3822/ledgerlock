@@ -18,8 +18,23 @@ class SearchQuery {
   final bool unpaidOnly;
   final bool feesOnly;
 
+  /// What the parser understood, one removable chip each, with the words it came from.
+  final List<UnderstoodChip> chips;
+
+  /// The normalised words the query was parsed from (lower case, punctuation split off).
+  final List<String> words;
+
   /// Human-readable chips: what the parser understood.
-  final List<String> understood;
+  List<String> get understood => [for (final c in chips) c.label];
+
+  /// The query text with chip [i]'s words taken out, for removing a filter by tapping its chip.
+  String without(int i) {
+    final drop = chips[i].words.toSet();
+    return [
+      for (var k = 0; k < words.length; k++)
+        if (!drop.contains(k)) words[k],
+    ].join(' ');
+  }
 
   const SearchQuery({
     this.terms = const [],
@@ -33,7 +48,8 @@ class SearchQuery {
     this.hasReceipt,
     this.unpaidOnly = false,
     this.feesOnly = false,
-    this.understood = const [],
+    this.chips = const [],
+    this.words = const [],
   });
 
   bool get isEmpty =>
@@ -74,6 +90,13 @@ class SearchQuery {
   }
 
   static final _notWord = RegExp(r'[^\p{L}\p{N}]', unicode: true);
+}
+
+/// One filter the parser read, and the indexes (into [SearchQuery.words]) of the words behind it.
+class UnderstoodChip {
+  final String label;
+  final List<int> words;
+  const UnderstoodChip(this.label, this.words);
 }
 
 const _months = {
@@ -205,7 +228,9 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
       .take(maxQueryWords)
       .toList();
   final terms = <String>[];
-  final understood = <String>[];
+  final chips = <UnderstoodChip>[];
+  void understood(String label, int from, int count) =>
+      chips.add(UnderstoodChip(label, [for (var k = from; k < from + count; k++) k]));
   final cats = <String>{};
   final catWords = <String>[];
   int? minC, maxC, year, month;
@@ -231,7 +256,7 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
       final v = next(skip) == null ? null : money(next(skip)!);
       if (v != null) {
         minC = v;
-        understood.add('Over ${fmt(v)}');
+        understood('Over ${fmt(v)}', i, skip + 1);
         i += skip;
         continue;
       }
@@ -241,7 +266,7 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
       final v = next(skip) == null ? null : money(next(skip)!);
       if (v != null) {
         maxC = v;
-        understood.add('Under ${fmt(v)}');
+        understood('Under ${fmt(v)}', i, skip + 1);
         i += skip;
         continue;
       }
@@ -251,26 +276,26 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
       if (a != null && b != null) {
         minC = a < b ? a : b;
         maxC = a < b ? b : a;
-        understood.add('${fmt(minC)} to ${fmt(maxC)}');
+        understood('${fmt(minC)} to ${fmt(maxC)}', i, 4);
         i += 3;
         continue;
       }
     }
     if ({'unpaid', 'invoiced', 'outstanding'}.contains(w)) {
       unpaid = true;
-      understood.add('Invoiced, unpaid');
+      understood('Invoiced, unpaid', i, 1);
       continue;
     }
     // Receipts.
     if ({'no', 'without', 'missing'}.contains(w) && (next() == 'receipt' || next() == 'receipts')) {
       receipt = false;
-      understood.add('No receipt');
+      understood('No receipt', i, 2);
       i++;
       continue;
     }
     if ({'with', 'has', 'have'}.contains(w) && (next() == 'receipt' || next() == 'receipts')) {
       receipt = true;
-      understood.add('Has receipt');
+      understood('Has receipt', i, 2);
       i++;
       continue;
     }
@@ -278,12 +303,12 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
     if ((w == 'this' || w == 'last') && (next() == 'year' || next() == 'month')) {
       if (next() == 'year') {
         year = today.year - (w == 'last' ? 1 : 0);
-        understood.add('$year');
+        understood('$year', i, 2);
       } else {
         final d = w == 'last' ? DateTime(today.year, today.month - 1) : today;
         year = d.year;
         month = d.month;
-        understood.add('${_monthNames[d.month]} ${d.year}');
+        understood('${_monthNames[d.month]} ${d.year}', i, 2);
       }
       i++;
       continue;
@@ -291,38 +316,45 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
     final yr = RegExp(r'^(19|20)\d\d$').hasMatch(w) ? int.parse(w) : null;
     if (yr != null && !w.startsWith(r'$')) {
       year = yr;
-      understood.add('$yr');
+      understood('$yr', i, 1);
       continue;
     }
     if (_months.containsKey(w) && !(w == 'may' && month != null)) {
       month = _months[w];
-      understood.add(_monthNames[month!]);
+      understood(_monthNames[month!], i, 1);
       continue;
     }
     // Type, fees, categories.
     if ({'income', 'earned', 'sales', 'revenue', 'earnings'}.contains(w)) {
       income = true;
-      understood.add('Income');
+      understood('Income', i, 1);
       continue;
     }
     if ({'expense', 'expenses', 'spent', 'spending', 'bought', 'purchases', 'costs'}.contains(w)) {
       income = false;
-      understood.add('Expenses');
+      understood('Expenses', i, 1);
       continue;
     }
     if (w == 'fee' || w == 'fees') {
       fees = true;
-      understood.add('Fees');
+      understood('Fees', i, 1);
       continue;
     }
     if ({'uncategorized', 'uncategorised', 'uncategorized?', 'misc', 'miscellaneous'}.contains(w)) {
       cats.addAll(const {'other_expense', 'other_income'});
-      understood.add('Uncategorized');
+      understood('Uncategorized', i, 1);
       continue;
     }
     final syn = _synonyms[w];
     if (syn != null) {
-      if (cats.add(syn)) understood.add(syn.replaceAll('_', ' '));
+      if (cats.add(syn)) {
+        understood(syn.replaceAll('_', ' '), i, 1);
+      } else {
+        // Same category twice: removing its chip takes out both words.
+        for (final c in chips) {
+          if (c.label == syn.replaceAll('_', ' ')) c.words.add(i);
+        }
+      }
       catWords.add(w);
       continue;
     }
@@ -330,7 +362,7 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
     if (amt != null) {
       minC = amt;
       maxC = amt;
-      understood.add(fmt(amt));
+      understood(fmt(amt), i, 1);
       continue;
     }
     if (_stop.contains(w)) continue;
@@ -348,6 +380,7 @@ SearchQuery parseQuery(String input, {required DateTime today}) {
     hasReceipt: receipt,
     unpaidOnly: unpaid,
     feesOnly: fees,
-    understood: understood,
+    chips: chips,
+    words: words,
   );
 }

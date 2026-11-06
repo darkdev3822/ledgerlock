@@ -243,8 +243,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   approves: tag v1.0.0-beta.1, GitHub pre-release with APKs + SHA-256s + README beta line + "F-Droid later:
   backup -> reinstall -> restore" note.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
-- M5 leftovers: tappable/removable filter chips (date range, platform, tag, tax line, business %), pull-down-
-  to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.
+- M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
+  (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY
+  T29 (none). 669 tests. Device check still owed.
+- M5 leftovers: chips for filters the parser can't express yet (date range, platform, tag, tax line, business %),
+  pull-down-to-search on lists, recent/saved searches (Pro, M7), device check of search on the emulator.
 - Polish backlog: PDF tiles should show the file name; camera preview aspect; corner detection on real receipts
   (only tested on synthetic + emulator scene); PDF preview (M6); iOS document picker channel (M10).
 - Still open: custom security questions, backup-age banner (M9), FLAG_SECURE toggle,

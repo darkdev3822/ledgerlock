@@ -13,6 +13,24 @@ SearchQuery p(String s) => parseQuery(s, today: today);
 
 void main() {
   group('parser (SPEC §4 examples)', () {
+    test('removing a chip takes out exactly its words (M5 removable chips)', () {
+      final q = p('Fuel more than \$50 no receipt last month');
+      expect(q.understood, ['Over \$50', 'No receipt', 'Oct 2026']);
+      expect(q.without(0), 'fuel no receipt last month');
+      expect(q.without(1), 'fuel more than \$50 last month');
+      final r = p(q.without(2));
+      expect(r.understood, ['Over \$50', 'No receipt']);
+      expect(r.terms, ['fuel']);
+      // Same category twice: one chip, and removing it removes both words.
+      final m = p('meals lunch 2026');
+      expect(m.chips.where((c) => c.label == 'meals').single.words.length, 2);
+      expect(p(m.without(0)).understood, ['2026']);
+      // Every chip of a messy query can be removed without the parser failing or keeping it.
+      final x = p('between 10 and 20 unpaid income jan 2025 fees misc 12.50 software');
+      for (var i = 0; i < x.chips.length; i++) {
+        expect(p(x.without(i)).chips.length, x.chips.length - 1, reason: x.chips[i].label);
+      }
+    });
     test('fuel over 50 in 2026', () {
       final q = p('fuel over 50 in 2026');
       expect(q.terms, ['fuel']);
