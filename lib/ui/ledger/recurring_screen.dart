@@ -66,6 +66,7 @@ class RecurringScreen extends ConsumerWidget {
                         title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
                         subtitle: Text(
                           '${formatCents(r.amountCents)} ${r.isIncome ? 'in' : 'out'} · '
+                          '${r.isIncome && !r.paid ? 'invoiced, unpaid · ' : ''}'
                           '${everyLabel(r.every).toLowerCase()} · next '
                           '${DateFormat.yMMMd().format(DateTime.parse(r.nextDate))}',
                         ),

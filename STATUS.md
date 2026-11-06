@@ -256,7 +256,7 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   ones fill passed dates at once); editing a copy shows the repeat + Stop. Settings > Records > Repeating records
   (list + Stop; records already made stay). Due copies added on unlock (AppController) + "Added N repeating records."
   toast. SECURITY T31. Emulator-verified: v7 vault upgraded, weekly rule, clock +15 d -> 2 copies, +7 d -> 1 + toast.
-  Gotcha: repeating INCOME copies are saved as received (paid). Next depth items (recommended order): year-over-year
+  Next depth items (recommended order): year-over-year
   insights, tags + "Filed" year badge, budgets/income goal.
 - DEPTH 2 DONE: year-over-year insights (lib/data/insights.dart; Home "Compared with <last year>" card,
   lib/ui/shell/insights_card.dart). Current year compares Jan 1-today with the same window last year; shows income
@@ -267,7 +267,6 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   (exact, instr()), CSV "Tags" column (12 columns now). Taxes tab (past years only): "I've filed my <year> return"
   -> year switcher "Filed" badge + entry-screen warning (amended return, no form number: rule 9). Emulator-verified.
   Gotcha: tests that fake an old DB must use _toV8 (SQLite refuses DROP COLUMN tags while triggers use it).
-  Repeating-record copies don't carry tags yet.
 - DEPTH 4 DONE: budgets + income goal (lib/data/budgets.dart; lib/ui/ledger/budgets_screen.dart: Home "Budgets &
   goal" card, hidden until set; Settings > Records > Budgets & goal). Monthly cap per expense category (full amount,
   this month incl. future-dated entries), "ahead of the month" amber; yearly income goal with pace projection from
@@ -276,6 +275,9 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - DEPTH 5 DONE: recent + saved searches (lib/search/search_history.dart; SearchScreen: star in the field saves,
   a query is remembered after 2 s on screen with results; Saved / Recent chips + Clear on the empty screen;
   encrypted DB settings only). SECURITY T35.
+- DEPTH 6 DONE: schema v10 (recurrings.tags + recurrings.paid): repeat copies keep the first record's tags, and
+  repeating income made while "Received" is off creates unpaid invoices (expenses always paid). Repeating list
+  says "invoiced, unpaid". database_test v9->v10.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

@@ -93,6 +93,10 @@ class Recurrings extends Table {
   TextColumn get every => text()(); // 'week' | 'month' | 'year'
   IntColumn get anchorDay => integer()(); // day of month it started on (1-31)
   TextColumn get nextDate => text().withLength(min: 10, max: 10)();
+
+  /// v10: copies keep the first record's tags, and repeating income can make unpaid invoices (paid = false).
+  TextColumn get tags => text().withDefault(const Constant(''))();
+  BoolColumn get paid => boolean().withDefault(const Constant(true))();
 }
 
 /// Smart rules (SPEC §3): "payee contains X -> category Y". Manual ones from Settings, learned ones from the
@@ -202,7 +206,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -241,6 +245,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 9) {
         if (from >= 2) await m.addColumn(ledgerEntries, ledgerEntries.tags);
         await _indexTags();
+      }
+      if (from < 10 && from >= 8) {
+        // Tables created above (from < 8) already have the columns.
+        await m.addColumn(recurrings, recurrings.tags);
+        await m.addColumn(recurrings, recurrings.paid);
       }
     },
   );
@@ -466,6 +475,8 @@ class AppDatabase extends _$AppDatabase {
             party: Value(r.party),
             platform: Value(r.platform),
             notes: Value(r.notes),
+            tags: Value(r.tags),
+            paid: Value(!r.isIncome || r.paid),
             recurringId: Value(r.id),
           ),
         );

@@ -160,6 +160,8 @@ List<Override> hostileTools() => [
   recurringProvider.overrideWith(
     (ref) => Stream.value([
       Recurring(
+        tags: '',
+        paid: true,
         id: 1,
         isIncome: false,
         amountCents: huge,
@@ -174,6 +176,8 @@ List<Override> hostileTools() => [
         nextDate: '2026-11-30',
       ),
       Recurring(
+        tags: '',
+        paid: true,
         id: 2,
         isIncome: true,
         amountCents: 1,

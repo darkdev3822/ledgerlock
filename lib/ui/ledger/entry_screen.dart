@@ -289,6 +289,8 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
             platform: Value(_platform.text.trim()),
             notes: Value(_notes.text.trim()),
             every: _repeat,
+            tags: Value(normalizeTags(_tags.text)),
+            paid: Value(!_income || _paid),
             anchorDay: _date.day,
             nextDate: isoDay(stepDate(_date, _repeat, _date.day)),
           ),

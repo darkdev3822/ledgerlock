@@ -428,6 +428,8 @@ void main() {
           recurringProvider.overrideWith(
             (ref) => Stream.value(const [
               Recurring(
+                tags: '',
+                paid: true,
                 id: 1,
                 isIncome: false,
                 amountCents: 2000,
@@ -442,6 +444,8 @@ void main() {
                 nextDate: '2026-11-14',
               ),
               Recurring(
+                tags: '',
+                paid: true,
                 id: 2,
                 isIncome: false,
                 amountCents: 8500,
@@ -456,6 +460,8 @@ void main() {
                 nextDate: '2026-12-03',
               ),
               Recurring(
+                tags: '',
+                paid: true,
                 id: 3,
                 isIncome: true,
                 amountCents: 60000,

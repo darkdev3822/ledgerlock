@@ -132,6 +132,52 @@ void main() {
       await db.close();
     });
 
+    test('copies keep tags; repeating income can make unpaid invoices; v9 -> v10 upgrade', () async {
+      final file = File('${dir.path}/v9.db');
+      final key = LedgerCrypto.randomBytes(32);
+      final hex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      var db = AppDatabase.open(file, key);
+      await db.getSetting('x'); // drift creates the schema on first use
+      await db.close();
+      final old = raw.sqlite3.open(file.path)
+        ..execute("PRAGMA key = \"x'$hex'\"")
+        ..execute('ALTER TABLE recurrings DROP COLUMN tags')
+        ..execute('ALTER TABLE recurrings DROP COLUMN paid')
+        ..execute('PRAGMA user_version = 9');
+      old.close();
+      db = AppDatabase.open(file, key);
+      await db.addRecurring(
+        RecurringsCompanion.insert(
+          isIncome: true,
+          amountCents: 90000,
+          category: 'services',
+          every: 'month',
+          anchorDay: 1,
+          nextDate: '2026-09-01',
+          tags: Value(normalizeTags('client-a')),
+          paid: const Value(false),
+        ),
+      );
+      await db.addRecurring(
+        RecurringsCompanion.insert(
+          isIncome: false,
+          amountCents: 100,
+          category: 'software',
+          every: 'year',
+          anchorDay: 1,
+          nextDate: '2026-01-01',
+          paid: const Value(false), // ignored for expenses
+        ),
+      );
+      expect(await db.runRecurring(DateTime(2026, 10, 15)), 3);
+      final rows = await db.watchYear(2026).first;
+      final inc = rows.where((r) => r.isIncome).toList();
+      expect(inc.length, 2);
+      expect(inc.every((r) => !r.paid && r.tags == ' client-a '), isTrue);
+      expect(rows.singleWhere((r) => !r.isIncome).paid, isTrue);
+      await db.close();
+    });
+
     test('v7 database migrates to v8: entries kept, repeating records usable', () async {
       final file = File('${dir.path}/v7.db');
       final key = LedgerCrypto.randomBytes(32);
@@ -179,6 +225,8 @@ void main() {
     final old = raw.sqlite3.open(file.path)
       ..execute("PRAGMA key = \"x'$hex'\"")
       ..execute(_toV8)
+      ..execute('ALTER TABLE recurrings DROP COLUMN tags')
+      ..execute('ALTER TABLE recurrings DROP COLUMN paid')
       ..execute('PRAGMA user_version = 8');
     old.close();
     db = AppDatabase.open(file, key);
