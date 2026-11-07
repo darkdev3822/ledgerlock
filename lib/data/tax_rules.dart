@@ -113,6 +113,8 @@ class CustomCategory {
   static String encodeList(List<CustomCategory> l) => jsonEncode([for (final c in l) c.toJson()]);
 }
 
+final _byId = Expando<Map<String, Category>>('categoriesById');
+
 class TaxRules {
   final int year;
   final List<QuarterDue> quarterlyDue;
@@ -233,12 +235,10 @@ class TaxRules {
 
   List<Category> categories(bool income) => income ? incomeCategories : expenseCategories;
 
-  Category? category(String id) {
-    for (final c in [...incomeCategories, ...expenseCategories]) {
-      if (c.id == id) return c;
-    }
-    return null;
-  }
+  /// By id. Called for every record on every summary, so it's a map lookup (scale test: 10,000 records), built
+  /// once per rules object (the class is const, so the map lives in an Expando).
+  Category? category(String id) =>
+      (_byId[this] ??= {for (final c in expenseCategories) c.id: c, for (final c in incomeCategories) c.id: c})[id];
 
   /// The first quarter due on or after [today], or null if the year is done.
   QuarterDue? nextDue(DateTime today) {

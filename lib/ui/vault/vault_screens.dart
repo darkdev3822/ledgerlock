@@ -331,24 +331,26 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       builder: (ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(Space.xl, 0, Space.xl, Space.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Delete this file?', style: ctx.text.titleMedium),
-              const SizedBox(height: Space.sm),
-              Text(
-                'It\'s removed from this phone for good. Records stay; they just lose the attachment.',
-                style: ctx.text.bodySmall,
-              ),
-              const SizedBox(height: Space.lg),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: ctx.ll.expense),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Delete'),
-              ),
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Delete this file?', style: ctx.text.titleMedium),
+                const SizedBox(height: Space.sm),
+                Text(
+                  'It\'s removed from this phone for good. Records stay; they just lose the attachment.',
+                  style: ctx.text.bodySmall,
+                ),
+                const SizedBox(height: Space.lg),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: ctx.ll.expense),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Delete'),
+                ),
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
+              ],
+            ),
           ),
         ),
       ),

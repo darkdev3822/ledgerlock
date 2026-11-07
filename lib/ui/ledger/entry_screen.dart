@@ -156,24 +156,26 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       context: context,
       showDragHandle: true,
       builder: (c) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final e in ['never', ...recurringEvery])
-              ListTile(
-                title: Text(everyLabel(e)),
-                trailing: e == _repeat ? Icon(Icons.check_rounded, color: c.ll.accent) : null,
-                onTap: () => Navigator.pop(c, e),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final e in ['never', ...recurringEvery])
+                ListTile(
+                  title: Text(everyLabel(e)),
+                  trailing: e == _repeat ? Icon(Icons.check_rounded, color: c.ll.accent) : null,
+                  onTap: () => Navigator.pop(c, e),
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Space.lg, Space.sm, Space.lg, Space.lg),
+                child: Text(
+                  'LedgerLock adds a copy on each date when you open the app, including dates you missed. '
+                  'Stop it any time in Settings > Repeating records; copies already made stay.',
+                  style: c.text.bodySmall,
+                ),
               ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Space.lg, Space.sm, Space.lg, Space.lg),
-              child: Text(
-                'LedgerLock adds a copy on each date when you open the app, including dates you missed. '
-                'Stop it any time in Settings > Repeating records; copies already made stay.',
-                style: c.text.bodySmall,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -186,16 +188,18 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       context: context,
       showDragHandle: true,
       builder: (c) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final b in app.businesses)
-              ListTile(
-                title: Text(b.name),
-                trailing: b.id == _business ? Icon(Icons.check_rounded, color: c.ll.accent) : null,
-                onTap: () => Navigator.pop(c, b.id),
-              ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final b in app.businesses)
+                ListTile(
+                  title: Text(b.name),
+                  trailing: b.id == _business ? Icon(Icons.check_rounded, color: c.ll.accent) : null,
+                  onTap: () => Navigator.pop(c, b.id),
+                ),
+            ],
+          ),
         ),
       ),
     );

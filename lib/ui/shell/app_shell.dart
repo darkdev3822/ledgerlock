@@ -208,24 +208,26 @@ class YearSwitcher extends StatelessWidget {
             final y = await showModalBottomSheet<int>(
               context: context,
               builder: (ctx) => SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Tax year', style: ctx.text.titleMedium),
-                    const SizedBox(height: Space.sm),
-                    for (final y in TaxRules.supportedYears)
-                      ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: Space.xl),
-                        title: Text('$y', style: ctx.text.titleMedium),
-                        subtitle: Text(
-                          '${y == DateTime.now().year ? 'Current year' : 'Previous year'}'
-                          '${filed.contains(y) ? ' · Filed' : ''}',
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Tax year', style: ctx.text.titleMedium),
+                      const SizedBox(height: Space.sm),
+                      for (final y in TaxRules.supportedYears)
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: Space.xl),
+                          title: Text('$y', style: ctx.text.titleMedium),
+                          subtitle: Text(
+                            '${y == DateTime.now().year ? 'Current year' : 'Previous year'}'
+                            '${filed.contains(y) ? ' · Filed' : ''}',
+                          ),
+                          trailing: y == year ? Icon(Icons.check_circle, color: ctx.ll.accent) : null,
+                          onTap: () => Navigator.pop(ctx, y),
                         ),
-                        trailing: y == year ? Icon(Icons.check_circle, color: ctx.ll.accent) : null,
-                        onTap: () => Navigator.pop(ctx, y),
-                      ),
-                    const SizedBox(height: Space.lg),
-                  ],
+                      const SizedBox(height: Space.lg),
+                    ],
+                  ),
                 ),
               ),
             );

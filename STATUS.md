@@ -413,4 +413,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   Ideas not built yet (from the same list): running-quarter line on the entry screen, quarter-end amount
   notification, year-end checklist, Material You colors (vet package), quiet milestones, split receipts;
   safe-harbor payment target waits for the Dec 1 rules review (IRS figures, never from memory).
+- BUG HUNT (2026-11-07, owner: "glitch/debugging/hacking phase"): new fuzzers test/fuzz/monkey_test.dart (random
+  taps/typing/Back/scroll on the real shell + real DB; LL_MONKEY_SEEDS/STEPS/SEED/TODAY/LOG/RAW), settings_junk_test,
+  scale_test (10k records). Fixed (T46): junk settings crash, NaN set-aside crash, future dates, stale business view,
+  8 overflowing bottom sheets, PDF font (Manrope embedded), summary/insights speed (13x/40x). Android monkey on a lab
+  emulator: 18,000 events clean. Known: one Flutter-internal debug assertion (EditableText caret during page slide;
+  release unaffected) is ignored by the monkey. search_test's 50 ms budget fails only when the machine is loaded.
 

@@ -149,8 +149,20 @@ class Attachments extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+final _days = Expando<DateTime>('entryDay');
+
+DateTime _parseDay(String d) {
+  if (d.length == 10 && d.codeUnitAt(4) == 0x2D && d.codeUnitAt(7) == 0x2D) {
+    final y = int.tryParse(d.substring(0, 4)), m = int.tryParse(d.substring(5, 7)), dd = int.tryParse(d.substring(8));
+    if (y != null && m != null && dd != null) return DateTime(y, m, dd);
+  }
+  return DateTime.parse(d);
+}
+
 extension LedgerEntryMaths on LedgerEntry {
-  DateTime get day => DateTime.parse(date);
+  /// Stored as 'YYYY-MM-DD'. Building a local DateTime is slow (time zone lookup) and this runs for every record on
+  /// every summary, so each row object parses once (scale test: 10,000 records).
+  DateTime get day => _days[this] ??= _parseDay(date);
   EntryData get data => EntryData(
     isIncome: isIncome,
     date: day,

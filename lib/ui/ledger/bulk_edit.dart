@@ -26,46 +26,48 @@ Future<({DateTime? date})?> askReceivedDate(
     context: context,
     showDragHandle: true,
     builder: (c) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Space.lg),
-            child: Text('When did the money arrive?', style: c.text.titleMedium),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Space.lg, Space.xs, Space.lg, Space.sm),
-            child: Text(
-              'Income counts on the day you receive it, which can be in a later tax year than the invoice.',
-              style: c.text.bodySmall,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Space.lg),
+              child: Text('When did the money arrive?', style: c.text.titleMedium),
             ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.today_rounded),
-            title: Text('Today, ${d.format(day)}'),
-            onTap: () => Navigator.pop(c, (date: day)),
-          ),
-          ListTile(
-            leading: const Icon(Icons.event_outlined),
-            title: const Text('Pick the date'),
-            onTap: () async {
-              final p = await showDatePicker(
-                context: c,
-                initialDate: day,
-                firstDate: invoiced.isAfter(day) ? day : invoiced,
-                lastDate: day,
-              );
-              if (p != null && c.mounted) Navigator.pop(c, (date: p));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.history_rounded),
-            title: Text(count == 1 ? 'On the invoice date, ${d.format(invoiced)}' : 'On each invoice date'),
-            onTap: () => Navigator.pop(c, (date: null)),
-          ),
-          const SizedBox(height: Space.sm),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Space.lg, Space.xs, Space.lg, Space.sm),
+              child: Text(
+                'Income counts on the day you receive it, which can be in a later tax year than the invoice.',
+                style: c.text.bodySmall,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.today_rounded),
+              title: Text('Today, ${d.format(day)}'),
+              onTap: () => Navigator.pop(c, (date: day)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: const Text('Pick the date'),
+              onTap: () async {
+                final p = await showDatePicker(
+                  context: c,
+                  initialDate: day,
+                  firstDate: invoiced.isAfter(day) ? day : invoiced,
+                  lastDate: day,
+                );
+                if (p != null && c.mounted) Navigator.pop(c, (date: p));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history_rounded),
+              title: Text(count == 1 ? 'On the invoice date, ${d.format(invoiced)}' : 'On each invoice date'),
+              onTap: () => Navigator.pop(c, (date: null)),
+            ),
+            const SizedBox(height: Space.sm),
+          ],
+        ),
       ),
     ),
   );
@@ -151,18 +153,20 @@ class SelectionBar extends ConsumerWidget {
       context: context,
       showDragHandle: true,
       builder: (c) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Move ${_records(selected.length)} to', style: c.text.titleMedium),
-            const SizedBox(height: Space.sm),
-            for (final b in app.businesses)
-              ListTile(
-                leading: const Icon(Icons.storefront_outlined),
-                title: Text(b.name),
-                onTap: () => Navigator.pop(c, b.id),
-              ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Move ${_records(selected.length)} to', style: c.text.titleMedium),
+              const SizedBox(height: Space.sm),
+              for (final b in app.businesses)
+                ListTile(
+                  leading: const Icon(Icons.storefront_outlined),
+                  title: Text(b.name),
+                  onTap: () => Navigator.pop(c, b.id),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -66,31 +66,33 @@ Future<bool> _sheet(BuildContext context, String title, List<Widget> fields, Fut
     builder: (c) => Padding(
       padding: EdgeInsets.fromLTRB(Space.gutter, 0, Space.gutter, MediaQuery.of(c).viewInsets.bottom + Space.lg),
       child: StatefulBuilder(
-        builder: (c, set) => Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(title, style: c.text.titleMedium),
-            const SizedBox(height: Space.sm),
-            ...fields,
-            const SizedBox(height: Space.lg),
-            FilledButton(
-              // One save at a time: a double tap used to log the same payment twice (UI review U2b).
-              onPressed: saving
-                  ? null
-                  : () async {
-                      set(() => saving = true);
-                      final ok = await save();
-                      if (!c.mounted) return;
-                      if (ok) {
-                        Navigator.pop(c, true);
-                      } else {
-                        set(() => saving = false);
-                      }
-                    },
-              child: const Text('Save'),
-            ),
-          ],
+        builder: (c, set) => SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(title, style: c.text.titleMedium),
+              const SizedBox(height: Space.sm),
+              ...fields,
+              const SizedBox(height: Space.lg),
+              FilledButton(
+                // One save at a time: a double tap used to log the same payment twice (UI review U2b).
+                onPressed: saving
+                    ? null
+                    : () async {
+                        set(() => saving = true);
+                        final ok = await save();
+                        if (!c.mounted) return;
+                        if (ok) {
+                          Navigator.pop(c, true);
+                        } else {
+                          set(() => saving = false);
+                        }
+                      },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -738,73 +740,75 @@ Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) asyn
     context: context,
     showDragHandle: true,
     builder: (c) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Space.gutter),
-            child: Text(
-              'Exported files are NOT encrypted. Anyone with the file can read it. Save it somewhere you trust '
-              'and delete it when you’re done.',
-              style: c.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(height: Space.sm),
-          ListTile(
-            leading: const Icon(Icons.picture_as_pdf_outlined),
-            title: Text('Tax packet for a preparer ($year)'),
-            subtitle: const Text('PDF summary: Schedule C lines, categories, 1099s, payments, mileage'),
-            trailing: const Icon(Icons.download_rounded),
-            onTap: () {
-              Navigator.pop(c);
-              packet(withReceipts: false);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.receipt_long_outlined),
-            title: Text('Tax packet with receipts ($year)'),
-            subtitle: const Text('The same PDF plus a page for each receipt photo. A bigger file.'),
-            trailing: const Icon(Icons.download_rounded),
-            onTap: () {
-              Navigator.pop(c);
-              packet(withReceipts: true);
-            },
-          ),
-          for (final (icon, label, name, build) in <(IconData, String, String, Future<String> Function())>[
-            (
-              Icons.list_alt_rounded,
-              'Records',
-              'ledgerlock-$year$suffix-records.csv',
-              () async => entriesCsv(
-                await entriesNow(),
-                rules,
-                businesses: view == 0 && app0.multiBusiness ? {for (final b in app0.businesses) b.id: b.name} : null,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Space.gutter),
+              child: Text(
+                'Exported files are NOT encrypted. Anyone with the file can read it. Save it somewhere you trust '
+                'and delete it when you’re done.',
+                style: c.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            (
-              Icons.directions_car_outlined,
-              'Mileage log',
-              'ledgerlock-$year$suffix-mileage.csv',
-              () async => tripsCsv(await tripsNow()),
-            ),
-            (
-              Icons.payments_outlined,
-              'Tax payments',
-              'ledgerlock-$year-payments.csv',
-              () async => paymentsCsv(await db.watchPayments(year).first),
-            ),
-          ])
+            const SizedBox(height: Space.sm),
             ListTile(
-              leading: Icon(icon),
-              title: Text('$label ($year)'),
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: Text('Tax packet for a preparer ($year)'),
+              subtitle: const Text('PDF summary: Schedule C lines, categories, 1099s, payments, mileage'),
               trailing: const Icon(Icons.download_rounded),
               onTap: () {
                 Navigator.pop(c);
-                export(name, build);
+                packet(withReceipts: false);
               },
             ),
-        ],
+            ListTile(
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: Text('Tax packet with receipts ($year)'),
+              subtitle: const Text('The same PDF plus a page for each receipt photo. A bigger file.'),
+              trailing: const Icon(Icons.download_rounded),
+              onTap: () {
+                Navigator.pop(c);
+                packet(withReceipts: true);
+              },
+            ),
+            for (final (icon, label, name, build) in <(IconData, String, String, Future<String> Function())>[
+              (
+                Icons.list_alt_rounded,
+                'Records',
+                'ledgerlock-$year$suffix-records.csv',
+                () async => entriesCsv(
+                  await entriesNow(),
+                  rules,
+                  businesses: view == 0 && app0.multiBusiness ? {for (final b in app0.businesses) b.id: b.name} : null,
+                ),
+              ),
+              (
+                Icons.directions_car_outlined,
+                'Mileage log',
+                'ledgerlock-$year$suffix-mileage.csv',
+                () async => tripsCsv(await tripsNow()),
+              ),
+              (
+                Icons.payments_outlined,
+                'Tax payments',
+                'ledgerlock-$year-payments.csv',
+                () async => paymentsCsv(await db.watchPayments(year).first),
+              ),
+            ])
+              ListTile(
+                leading: Icon(icon),
+                title: Text('$label ($year)'),
+                trailing: const Icon(Icons.download_rounded),
+                onTap: () {
+                  Navigator.pop(c);
+                  export(name, build);
+                },
+              ),
+          ],
+        ),
       ),
     ),
   );

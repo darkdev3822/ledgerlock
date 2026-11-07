@@ -1138,6 +1138,41 @@ void main() {
     await t.runAsync(db.close);
   });
 
+  testWidgets('K1 bottom sheets scroll instead of overflowing on a small phone with big text (monkey find)', (t) async {
+    final db = memDb();
+    await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    t.view.physicalSize = const Size(320, 560);
+    await t.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appControllerProvider.overrideWith((ref) => DbController(dataDir: dir, testDb: db)..debugShowReady()),
+          todayProvider.overrideWithValue(DateTime(2026, 11, 1, 9)),
+          taxRulesProvider.overrideWith((ref, year) async => rules[2026]!),
+        ],
+        child: MaterialApp(
+          theme: buildTheme(Brightness.light),
+          builder: (c, child) => MediaQuery(
+            data: MediaQuery.of(c).copyWith(textScaler: const TextScaler.linear(1.6)),
+            child: child!,
+          ),
+          home: opener(() => const EntryScreen()),
+        ),
+      ),
+    );
+    await t.tap(find.text('open'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Repeats'), 200, scrollable: find.byType(Scrollable).first);
+    await Scrollable.ensureVisible(t.element(find.text('Repeats')), alignment: 0.05);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Repeats'));
+    await settle(t);
+    expect(t.takeException(), isNull);
+    expect(find.text('Every month'), findsOneWidget);
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
   testWidgets('M3 one business: no business row or chip bar anywhere', (t) async {
     final db = memDb();
     final app = await pumpWithDb(t, opener(() => const EntryScreen()), db);

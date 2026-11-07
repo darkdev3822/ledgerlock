@@ -47,6 +47,7 @@ final _entries = [
 ];
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized(); // rootBundle: the packet embeds the app font
   test('category breakdown: paid income only, business % and meals share applied', () {
     final p = PacketInput(
       year: 2026,
@@ -96,6 +97,26 @@ void main() {
     for (final bad in ['we file', 'guaranteed', 'max refund', 'free filing', 'ready to file', 'file this']) {
       expect(src.contains(bad), isFalse, reason: bad);
     }
+  });
+
+  test('payees beyond basic Latin are drawn with the embedded app font, not blank Helvetica (monkey find)', () async {
+    final entries = [for (final e in _entries) e.copyWith(party: 'Łódź Café · Москва · Ελλάδα')];
+    final bytes = await buildTaxPacket(
+      PacketInput(
+        year: 2026,
+        rules: _rules,
+        summary: summarize(entries.map((e) => e.data), _rules),
+        entries: entries,
+        forms: const [],
+        trips: const [],
+        payments: const [],
+        generated: DateTime(2026, 11, 1),
+      ),
+      compress: false,
+    );
+    final raw = latin1.decode(bytes);
+    expect(raw.contains('Manrope'), isTrue, reason: 'font embedded');
+    expect(raw.contains('/BaseFont /Helvetica'), isFalse, reason: 'no fallback to built-in Helvetica');
   });
 
   test('receipts appendix: a page per image with its caption; PDFs, junk and overflow are listed', () async {

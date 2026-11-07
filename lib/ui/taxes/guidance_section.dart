@@ -132,25 +132,27 @@ Future<void> _confirmOpen(BuildContext context, Resource r) async {
     builder: (c) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(Space.gutter, 0, Space.gutter, Space.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Open $host?', style: c.text.titleMedium),
-            const SizedBox(height: Space.sm),
-            Text(
-              'This opens ${r.name} in your browser. LedgerLock stays offline and sends nothing; '
-              'the link carries no information about you.',
-              style: c.text.bodyMedium,
-            ),
-            if (r.siteNote.isNotEmpty) ...[
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Open $host?', style: c.text.titleMedium),
               const SizedBox(height: Space.sm),
-              Text(r.siteNote, style: c.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+              Text(
+                'This opens ${r.name} in your browser. LedgerLock stays offline and sends nothing; '
+                'the link carries no information about you.',
+                style: c.text.bodyMedium,
+              ),
+              if (r.siteNote.isNotEmpty) ...[
+                const SizedBox(height: Space.sm),
+                Text(r.siteNote, style: c.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+              ],
+              const SizedBox(height: Space.lg),
+              FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Open in browser')),
+              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
             ],
-            const SizedBox(height: Space.lg),
-            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Open in browser')),
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-          ],
+          ),
         ),
       ),
     ),

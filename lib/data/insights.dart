@@ -29,9 +29,10 @@ List<Insight> yearInsights(
 }) {
   final ytd = today.year == year;
   // Same calendar day last year (Feb 29 -> Feb 28).
+  final cutoff = <int, DateTime>{}; // per year, built once (not per record: local DateTimes are slow)
   bool inWindow(DateTime d, int y) {
     if (!ytd) return true;
-    final day = DateTime(y, today.month, today.day.clamp(1, DateTime(y, today.month + 1, 0).day));
+    final day = cutoff[y] ??= DateTime(y, today.month, today.day.clamp(1, DateTime(y, today.month + 1, 0).day));
     return !d.isAfter(day);
   }
 
@@ -48,6 +49,8 @@ List<Insight> yearInsights(
       .where((e) => e.isIncome && e.paid && e.date.year == y && inWindow(e.date, y))
       .fold(0, (a, e) => a + e.amountCents);
 
+  thisYear = thisYear.toList(growable: false); // iterated several times; don't rebuild each record's data
+  lastYear = lastYear.toList(growable: false);
   final now = spendByCat(thisYear, year), before = spendByCat(lastYear, year - 1);
   final incNow = income(thisYear, year), incBefore = income(lastYear, year - 1);
   final out = <Insight>[];

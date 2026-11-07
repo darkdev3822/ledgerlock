@@ -2,6 +2,7 @@
 // return and never says so (the draft return is a separate, owner-gated feature). Pure Dart via `pdf`.
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -85,12 +86,25 @@ Map<String, (int, int, int)> categoryBreakdown(PacketInput p) {
   return out;
 }
 
+/// The app's own font, embedded: the PDF built-in Helvetica only covers basic Latin, so payees like "Łódź",
+/// "Ελλάδα" or "Москва" came out blank (monkey find). Null outside Flutter (pure-Dart tests): built-in fonts then.
+Future<pw.ThemeData?> _packetTheme() async {
+  try {
+    final base = pw.Font.ttf(await rootBundle.load('assets/fonts/Manrope-400.ttf'));
+    final bold = pw.Font.ttf(await rootBundle.load('assets/fonts/Manrope-700.ttf'));
+    return pw.ThemeData.withFont(base: base, bold: bold);
+  } catch (_) {
+    return null;
+  }
+}
+
 Future<Uint8List> buildTaxPacket(PacketInput p, {bool compress = true}) async {
   final doc = pw.Document(
     compress: compress,
     title: 'LedgerLock tax packet ${p.year}',
     creator: 'LedgerLock',
     producer: 'LedgerLock',
+    theme: await _packetTheme(),
   );
   final s = p.summary;
   final h1 = pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold);

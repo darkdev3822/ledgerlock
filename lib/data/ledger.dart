@@ -129,7 +129,7 @@ LedgerSummary summarize(
   if (officeC > 0) rl['30'] = officeC;
   final netC = tentativeC - officeC;
   final seTax = seTaxFor(netC.toDouble(), rules, w2WagesCents: w2WagesCents);
-  final pct = setAsidePct ?? rules.defaultSetAsidePct;
+  final pct = setAsidePct != null && setAsidePct.isFinite ? setAsidePct : rules.defaultSetAsidePct;
   return LedgerSummary(
     lines: rl,
     grossCents: grossC,

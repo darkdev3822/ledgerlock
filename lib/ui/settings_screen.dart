@@ -159,7 +159,7 @@ class SettingsScreen extends ConsumerWidget {
                   underline: const SizedBox.shrink(),
                   borderRadius: BorderRadius.circular(Radii.input),
                   items: [
-                    for (final m in const [1, 5, 15, 30]) DropdownMenuItem(value: m, child: Text('$m min')),
+                    for (final m in AppController.autoLockChoices) DropdownMenuItem(value: m, child: Text('$m min')),
                   ],
                   onChanged: (m) => app.setAutoLockMinutes(m!),
                 ),

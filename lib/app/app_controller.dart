@@ -229,6 +229,14 @@ class AppController extends ChangeNotifier {
     _recoveringKey = null;
   }
 
+  /// A stored timestamp, unless it's unreadable or in the future (that would silence the backup reminder for good).
+  static DateTime? _pastDate(String? v) {
+    final d = DateTime.tryParse(v ?? '');
+    return d == null || d.isAfter(DateTime.now().add(const Duration(days: 1))) ? null : d;
+  }
+
+  static const autoLockChoices = [1, 5, 15, 30];
+
   Future<void> _afterUnlock(Session s) async {
     final db = s.db;
     try {
@@ -237,37 +245,43 @@ class AppController extends ChangeNotifier {
       await s.lock(); // e.g. DatabaseTooNew: close it and wipe the key instead of leaving a half-open session
       rethrow;
     }
-    autoLockMinutes = int.tryParse(await db.getSetting('autoLockMinutes') ?? '') ?? 1;
+    // Every stored value is checked against what the UI can show: junk (old formats, a half-written value, a restored
+    // backup) falls back to the default instead of breaking a screen (settings_junk_test).
+    final lockMin = int.tryParse(await db.getSetting('autoLockMinutes') ?? '');
+    autoLockMinutes = autoLockChoices.contains(lockMin) ? lockMin! : 1;
     autoLock.timeout = Duration(minutes: autoLockMinutes);
     themeMode = ThemeMode.values.asNameMap()[await db.getSetting('themeMode')] ?? ThemeMode.system;
     final y = int.tryParse(await db.getSetting('selectedYear') ?? '');
     if (y != null && TaxRules.supportedYears.contains(y)) selectedYear = y;
-    setAsidePct = double.tryParse(await db.getSetting('setAsidePct') ?? '');
+    final pct = double.tryParse(await db.getSetting('setAsidePct') ?? '');
+    setAsidePct = pct != null && pct.isFinite && pct >= 0 && pct <= 100 ? pct : null;
     age60OptIn = await db.getSetting('age60OptIn') == 'true';
     irsProblemOptIn = await db.getSetting('irsProblemOptIn') == 'true';
     w2WagesCents = {};
     homeOfficeSqft = {};
     for (final y in TaxRules.supportedYears) {
       final v = int.tryParse(await db.getSetting('w2Wages:$y') ?? '');
-      if (v != null) w2WagesCents[y] = v;
+      if (v != null && v >= 0) w2WagesCents[y] = v;
       final h = int.tryParse(await db.getSetting('homeOfficeSqft:$y') ?? '');
-      if (h != null) homeOfficeSqft[y] = h;
+      if (h != null && h >= 0) homeOfficeSqft[y] = h;
       final g = int.tryParse(await db.getSetting('incomeGoal:$y') ?? '');
       if (g != null && g > 0) incomeGoals[y] = g;
     }
     quarterlyReminders = await db.getSetting('quarterlyReminders') == 'true';
     allowScreenshots = await db.getSetting('allowScreenshots') == 'true';
-    lastBackup = DateTime.tryParse(await db.getSetting('lastBackup') ?? '');
+    lastBackup = _pastDate(await db.getSetting('lastBackup'));
     if (allowScreenshots) setSecureWindow(false);
-    checkInFrequency = await db.getSetting('checkInFrequency') ?? 'off';
+    final freq = await db.getSetting('checkInFrequency');
+    checkInFrequency = checkInFrequencies.containsKey(freq) ? freq! : 'off';
     onboarded = await db.getSetting('onboarded') == 'true';
     budgets = _decodeBudgets(await db.getSetting('budgets'));
     customCategories = CustomCategory.decodeList(await db.getSetting('customCategories'));
     businesses = await db.allBusinesses();
-    viewBusiness = int.tryParse(await db.getSetting('viewBusiness') ?? '') ?? 0;
+    final view = int.tryParse(await db.getSetting('viewBusiness') ?? '') ?? 0;
+    viewBusiness = businesses.any((b) => b.id == view) ? view : 0; // a removed business: back to All
     filedYears = (await db.getSetting('filedYears') ?? '').split(',').map(int.tryParse).whereType<int>().toSet();
     businessTypes = (await db.getSetting('businessTypes') ?? '').split(',').where((t) => t.isNotEmpty).toSet();
-    lastCheckIn = DateTime.tryParse(await db.getSetting('lastCheckIn') ?? '');
+    lastCheckIn = _pastDate(await db.getSetting('lastCheckIn'));
     dismissedCheckIns = (await db.getSetting('dismissedCheckIns') ?? '').split('\n').where((k) => k.isNotEmpty).toSet();
     slots = await vault.enabledSlots();
     // Repeating records due since the last unlock (catch-up capped per rule). Never blocks unlocking.
