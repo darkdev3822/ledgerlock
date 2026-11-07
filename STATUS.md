@@ -322,6 +322,9 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   year (same payee/category/amount; repeat copies excluded; business on screen); one tap fills everything but date
   and notes. db.frequentEntries. SECURITY T40. OWNER RULE: never touch the owner's phone or any external device;
   adb only with ANDROID_SERIAL=emulator-5554.
+- DEPTH 14 DONE: select several records (Records: press and hold, tap more, "Select all N"; floating bar:
+  Category / Tag / Business (2+ businesses) / Delete; Undo for all; back button leaves selection).
+  lib/ui/ledger/bulk_edit.dart, db.editEntries/replaceEntries/deleteEntries/restoreEntries. SECURITY T41.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

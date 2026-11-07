@@ -425,6 +425,44 @@ class AppDatabase extends _$AppDatabase {
     }
   });
 
+  // ---------- bulk edits (Records selection) ----------
+  /// Deletes several records in one transaction. Returns what undo needs: each row and its linked receipts.
+  Future<List<(LedgerEntry, List<int>)>> deleteEntries(Iterable<int> ids) => transaction(() async {
+    final out = <(LedgerEntry, List<int>)>[];
+    for (final id in ids) {
+      final e = await (select(ledgerEntries)..where((x) => x.id.equals(id))).getSingleOrNull();
+      if (e == null) continue;
+      out.add((e, await deleteEntry(id)));
+    }
+    return out;
+  });
+
+  Future<void> restoreEntries(List<(LedgerEntry, List<int>)> rows) => transaction(() async {
+    for (final (e, a) in rows) {
+      await restoreEntry(e, attachmentIds: a);
+    }
+  });
+
+  /// Applies [change] to each record in one transaction. Returns the rows as they were, for undo
+  /// ([replaceEntries]). Rows that no longer exist are skipped.
+  Future<List<LedgerEntry>> editEntries(Iterable<int> ids, LedgerEntry Function(LedgerEntry) change) =>
+      transaction(() async {
+        final before = await (select(ledgerEntries)..where((x) => x.id.isIn(ids))).get();
+        for (final e in before) {
+          final n = change(e);
+          if (n.id != e.id) throw ArgumentError('edit changed the id');
+          await update(ledgerEntries).replace(n);
+        }
+        return before;
+      });
+
+  /// Puts rows back exactly as given (undo of [editEntries]).
+  Future<void> replaceEntries(List<LedgerEntry> rows) => transaction(() async {
+    for (final e in rows) {
+      await update(ledgerEntries).replace(e);
+    }
+  });
+
   /// Smart default (SPEC §5): the category last used for this payee, else for this kind.
   /// [anyPayee]: fall back to the last category used for this kind when the payee is new (manual entry). Imports
   /// pass false so unknown payees land in "Other" instead of a misleading guess.

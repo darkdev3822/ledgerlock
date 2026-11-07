@@ -30,6 +30,7 @@ import 'package:ledgerlock/ui/onboarding_screens.dart';
 import 'package:ledgerlock/ui/recovery_screens.dart';
 import 'package:ledgerlock/ui/settings_screen.dart';
 import 'package:ledgerlock/ui/shell/app_shell.dart';
+import 'package:ledgerlock/ui/shell/tabs.dart';
 import 'package:ledgerlock/ui/taxes/checkin_screen.dart';
 import 'package:ledgerlock/ui/taxes/tools.dart';
 
@@ -731,6 +732,101 @@ void main() {
     await settle(t);
     await t.runAsync(db.close);
   });
+
+  testWidgets('S2 select records: change category with undo, select all, delete with undo', (t) async {
+    final db = memDb();
+    for (final (d, p) in [('2026-10-01', 'Alpha'), ('2026-10-02', 'Beta'), ('2026-10-03', 'Gamma')]) {
+      await t.runAsync(
+        () => db.addEntry(
+          LedgerEntriesCompanion.insert(
+            isIncome: false,
+            date: d,
+            amountCents: 100,
+            category: 'supplies',
+            party: Value(p),
+          ),
+        ),
+      );
+    }
+    Future<List<String>> cats() async => [
+      for (final e in (await t.runAsync(() => db.watchYear(2026).first))!) '${e.party}:${e.category}',
+    ];
+    await pumpWithDb(t, const Scaffold(body: RecordsTab()), db);
+    await settle(t);
+    await t.longPress(find.text('Alpha'));
+    await settle(t);
+    await t.tap(find.text('Beta'));
+    await settle(t);
+    expect(find.text('2 selected'), findsOneWidget);
+    await t.tap(find.text('Category'));
+    await settle(t);
+    await t.tap(find.text('Advertising & marketing'));
+    await settle(t);
+    expect(find.text('2 selected'), findsNothing, reason: 'selection ends after an action');
+    expect((await cats())..sort(), ['Alpha:advertising', 'Beta:advertising', 'Gamma:supplies']);
+    await t.tap(find.text('Undo'));
+    await settle(t);
+    expect((await cats()).every((c) => c.endsWith(':supplies')), isTrue);
+
+    await t.longPress(find.text('Gamma'));
+    await settle(t);
+    await t.tap(find.text('Select all 3'));
+    await settle(t);
+    await t.tap(find.text('Delete'));
+    await settle(t);
+    await t.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await settle(t);
+    expect(await cats(), isEmpty);
+    await t.tap(find.text('Undo'));
+    await settle(t);
+    expect((await cats()).length, 3);
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  for (final (w, scale) in [(320.0, 2.0), (880.0, 1.3), (390.0, 1.0)]) {
+    testWidgets('S3 selection bar fits at w$w x$scale with several businesses', (t) async {
+      final db = memDb();
+      await t.runAsync(() => db.addBusiness('A very long business name that goes on'));
+      for (var i = 0; i < 12; i++) {
+        await t.runAsync(
+          () => db.addEntry(
+            LedgerEntriesCompanion.insert(
+              isIncome: i.isEven,
+              date: '2026-10-${(i + 1).toString().padLeft(2, '0')}',
+              amountCents: 100,
+              category: i.isEven ? 'services' : 'supplies',
+              party: Value('Payee $i'),
+            ),
+          ),
+        );
+      }
+      final app = await pumpWithDb(
+        t,
+        MediaQuery(
+          data: MediaQueryData(size: Size(w, 844), textScaler: TextScaler.linear(scale)),
+          child: const Scaffold(body: RecordsTab()),
+        ),
+        db,
+      );
+      t.view.physicalSize = Size(w, 844);
+      app.businesses = (await t.runAsync(db.allBusinesses))!;
+      await settle(t);
+      await t.longPress(find.text('Payee 11'));
+      await settle(t);
+      expect(find.text('Business'), findsOneWidget);
+      expect(t.takeException(), isNull);
+      await t.tap(find.text('Category'));
+      await settle(t);
+      expect(find.textContaining('Select only income or only expenses'), findsNothing);
+      await t.tapAt(const Offset(10, 10));
+      await settle(t);
+      await t.pumpWidget(const SizedBox());
+      await settle(t);
+      await t.runAsync(db.close);
+    });
+  }
 
   testWidgets('M3 one business: no business row or chip bar anywhere', (t) async {
     final db = memDb();

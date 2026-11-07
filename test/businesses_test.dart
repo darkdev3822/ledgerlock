@@ -172,4 +172,35 @@ void main() {
       expect(businessFileSlug(n), matches(RegExp(r'^[a-z0-9]+(-[a-z0-9]+)*$')), reason: n);
     }
   });
+
+  test('bulk edits: one transaction each, undo puts rows back exactly, receipts relink after delete undo', () async {
+    final db = _mem();
+    addTearDown(db.close);
+    final a = await db.addEntry(_e('2026-03-01', 100, income: false, party: 'A'));
+    final b = await db.addEntry(_e('2026-03-02', 200, income: false, party: 'B'));
+    final att = await db.addAttachment(
+      AttachmentsCompanion.insert(
+        folder: 'receipt',
+        year: 2026,
+        fileId: 'f',
+        mime: 'image/jpeg',
+        sizeBytes: 1,
+        entryId: Value(a),
+      ),
+    );
+    final before = await db.editEntries([a, b, 999], (e) => e.copyWith(category: 'meals', tags: normalizeTags('x')));
+    expect(before.map((e) => e.category), ['supplies', 'supplies']);
+    expect((await db.watchYear(2026).first).map((e) => (e.category, e.tags)).toSet(), {('meals', ' x ')});
+    await db.replaceEntries(before);
+    expect((await db.watchYear(2026).first).map((e) => (e.category, e.tags)).toSet(), {('supplies', '')});
+    await expectLater(db.editEntries([a], (e) => e.copyWith(id: 77)), throwsArgumentError);
+    expect((await db.watchYear(2026).first).length, 2, reason: 'failed edit rolled back');
+
+    final gone = await db.deleteEntries([a, b]);
+    expect(await db.watchYear(2026).first, isEmpty);
+    expect((await db.attachment(att))!.entryId, isNull, reason: 'receipt kept, unmatched');
+    await db.restoreEntries(gone);
+    expect((await db.watchYear(2026).first).map((e) => e.party).toSet(), {'A', 'B'});
+    expect((await db.attachment(att))!.entryId, a, reason: 'undo relinks the receipt');
+  });
 }

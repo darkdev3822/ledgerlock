@@ -17,6 +17,7 @@ import '../ledger/category_icons.dart';
 import '../ledger/budgets_screen.dart';
 import '../ledger/entry_screen.dart';
 import '../search/search_screen.dart';
+import '../ledger/bulk_edit.dart';
 import '../taxes/checkin_screen.dart';
 import '../taxes/guidance_section.dart';
 import '../taxes/pending_card.dart';
@@ -523,7 +524,19 @@ class EntryTile extends StatelessWidget {
 
   /// Search terms to highlight in the title.
   final List<String> highlight;
-  const EntryTile({super.key, required this.entry, required this.rules, this.highlight = const []});
+
+  /// Selection mode (Records): non-null shows a check instead of the icon; [onTap]/[onLongPress] override opening.
+  final bool? selected;
+  final VoidCallback? onTap, onLongPress;
+  const EntryTile({
+    super.key,
+    required this.entry,
+    required this.rules,
+    this.highlight = const [],
+    this.selected,
+    this.onTap,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -538,16 +551,27 @@ class EntryTile extends StatelessWidget {
       if (entry.isIncome && entry.feeCents > 0) 'fee ${formatCents(entry.feeCents)}',
       for (final t in tagList(entry.tags)) '#$t',
     ];
+    final sel = selected;
     return ListTile(
-      onTap: () => openEntry(context, existing: entry),
+      onTap: onTap ?? () => openEntry(context, existing: entry),
+      onLongPress: onLongPress,
+      selected: sel == true,
+      selectedTileColor: ll.accentSoft.withValues(alpha: 0.5),
       leading: Container(
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: entry.isIncome ? ll.accentSoft : ll.surfaceAlt,
+          color: sel == true ? ll.accent : (entry.isIncome ? ll.accentSoft : ll.surfaceAlt),
           borderRadius: BorderRadius.circular(13),
         ),
-        child: Icon(categoryIcon(entry.category), size: 20, color: entry.isIncome ? ll.accent : ll.muted),
+        child: sel == null
+            ? Icon(categoryIcon(entry.category), size: 20, color: entry.isIncome ? ll.accent : ll.muted)
+            : Icon(
+                sel ? Icons.check_rounded : Icons.circle_outlined,
+                size: 20,
+                color: sel ? ll.onAccent : ll.muted,
+                semanticLabel: sel ? 'Selected' : 'Not selected',
+              ),
       ),
       title: HighlightText(title, highlight, maxLines: 1),
       subtitle: Text(
@@ -594,6 +618,14 @@ enum _Filter { all, income, expenses }
 class _RecordsTabState extends ConsumerState<RecordsTab> {
   _Filter _filter = _Filter.all;
 
+  /// Selected record ids (long-press to start). Empty = normal mode.
+  Set<int> _sel = {};
+
+  void _toggle(int id) {
+    HapticFeedback.selectionClick();
+    setState(() => _sel = _sel.contains(id) ? ({..._sel}..remove(id)) : {..._sel, id});
+  }
+
   bool _matches(LedgerEntry e, TaxRules rules) => _filter == _Filter.all || (_filter == _Filter.income) == e.isIncome;
 
   Future<void> _delete(LedgerEntry e) async {
@@ -618,9 +650,15 @@ class _RecordsTabState extends ConsumerState<RecordsTab> {
     }
     int sum(Iterable<LedgerEntry> l, bool income) =>
         l.where((e) => e.isIncome == income && (!income || e.paid)).fold(0, (a, e) => a + e.amountCents);
-    return PullToSearch(
+    // Only records still on screen count as selected (a filter, year or business change drops the rest).
+    final selected = [
+      for (final e in shown)
+        if (_sel.contains(e.id)) e,
+    ];
+    final selecting = selected.isNotEmpty;
+    final list = PullToSearch(
       child: ListView(
-        padding: _pad,
+        padding: selecting ? _pad.copyWith(bottom: 180) : _pad,
         children: [
           TextField(
             readOnly: true,
@@ -687,34 +725,68 @@ class _RecordsTabState extends ConsumerState<RecordsTab> {
                           LLGroup(
                             children: [
                               for (final e in m.value)
-                                Dismissible(
-                                  key: ValueKey(e.id),
-                                  direction: DismissDirection.endToStart,
-                                  background: Container(
-                                    alignment: Alignment.centerRight,
-                                    padding: const EdgeInsets.only(right: Space.xl),
-                                    color: ll.expense,
-                                    child: const Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          'Delete',
-                                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                                        ),
-                                        SizedBox(width: Space.sm),
-                                        Icon(Icons.delete_outline_rounded, color: Colors.white),
-                                      ],
+                                if (selecting)
+                                  EntryTile(
+                                    key: ValueKey(e.id),
+                                    entry: e,
+                                    rules: rules!,
+                                    selected: _sel.contains(e.id),
+                                    onTap: () => _toggle(e.id),
+                                    onLongPress: () => _toggle(e.id),
+                                  )
+                                else
+                                  Dismissible(
+                                    key: ValueKey(e.id),
+                                    direction: DismissDirection.endToStart,
+                                    background: Container(
+                                      alignment: Alignment.centerRight,
+                                      padding: const EdgeInsets.only(right: Space.xl),
+                                      color: ll.expense,
+                                      child: const Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            'Delete',
+                                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                          ),
+                                          SizedBox(width: Space.sm),
+                                          Icon(Icons.delete_outline_rounded, color: Colors.white),
+                                        ],
+                                      ),
                                     ),
+                                    onDismissed: (_) => _delete(e),
+                                    child: EntryTile(entry: e, rules: rules!, onLongPress: () => _toggle(e.id)),
                                   ),
-                                  onDismissed: (_) => _delete(e),
-                                  child: EntryTile(entry: e, rules: rules!),
-                                ),
                             ],
                           ),
                         ],
                       ),
                     ),
                 ],
+              ),
+            ),
+        ],
+      ),
+    );
+    return PopScope(
+      canPop: !selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => _sel = {});
+      },
+      child: Stack(
+        children: [
+          list,
+          if (selecting && rules != null)
+            Positioned(
+              left: Space.gutter,
+              right: Space.gutter,
+              bottom: Space.sm,
+              child: SelectionBar(
+                selected: selected,
+                total: shown.length,
+                rules: rules,
+                onSelectAll: () => setState(() => _sel = {for (final e in shown) e.id}),
+                onClear: () => setState(() => _sel = {}),
               ),
             ),
         ],
