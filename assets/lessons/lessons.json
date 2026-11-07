@@ -54,9 +54,9 @@
       "minutes": 2,
       "trigger": "first_income",
       "body": [
-        "At a job, your employer takes Social Security and Medicare out of every paycheck and pays a matching share themselves. When you work for yourself, nobody does that for you, so you pay both halves. That is self-employment tax.",
+        "Self-employment tax is the Social Security and Medicare tax for people who work for themselves. It's like the Social Security and Medicare taxes taken out of most paychecks, except you figure it and pay it yourself.",
         "It is figured on Schedule SE: {{se_rate}} of {{se_factor}} of your net profit. Of that rate, {{se_ss_rate}} is Social Security and {{se_medicare_rate}} is Medicare. If your net earnings from self-employment are under {{se_min}} for the year, you don't owe it.",
-        "Regular income tax comes on top, at your usual rate, on the same profit. Self-employment tax is the part that surprises people, because it applies even when your income tax is low."
+        "Regular income tax comes on top. Part of your self-employment tax can be deducted when your income tax is figured, which lowers your income tax a little. Self-employment tax is the part that surprises people, because it applies even when your income tax is low."
       ],
       "you": "se_tax",
       "action": "open_taxes",
@@ -67,7 +67,8 @@
         "Schedule SE (Form 1040) and its instructions for the year",
         "IRS Self-Employment Tax page (Social Security and Medicare taxes)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner, against irs.gov Self-Employment Tax page (updated 30-Oct-2026); 92.35% stays a rules-file placeholder (pending 2026 Schedule SE)"
     },
     {
       "id": "basics_profit",
@@ -78,7 +79,7 @@
       "body": [
         "On Schedule C you list what came in and what you spent to earn it. Income minus deductible business expenses is your net profit, and both income tax and self-employment tax are figured on that profit, not on everything that came in.",
         "That is why recording expenses matters twice: each business dollar you record lowers the profit both taxes are based on.",
-        "An expense counts when it is ordinary and necessary for your business. If something is partly personal, like a phone, only the business share counts; LedgerLock's business % slider handles that."
+        "An expense counts when it's ordinary and necessary: common in your kind of business, and helpful for it. If something is partly personal, like a phone, only the business share counts; LedgerLock's business % slider handles that."
       ],
       "you": "profit",
       "action": "add_expense",
@@ -87,10 +88,10 @@
       ],
       "checkAgainst": [
         "Schedule C (Form 1040) instructions",
-        "Publication 334, Tax Guide for Small Business (deductible expenses: ordinary and necessary)",
-        "Publication 535 or its successor guidance on business expenses"
+        "Publication 334, Tax Guide for Small Business (deductible expenses: ordinary and necessary)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner, against Publication 334 (2025) ch. 1 (Schedule C net profit) and ch. 8 (ordinary and necessary; partly personal)"
     },
     {
       "id": "basics_quarterly",
@@ -99,9 +100,9 @@
       "minutes": 3,
       "trigger": "quarter_soon",
       "body": [
-        "Nobody withholds tax from side income, but the IRS still expects it to be paid as you earn it, not all in April. Self-employed people do that with estimated tax payments.",
+        "Nobody withholds tax from side income, but the IRS says taxes must be paid as you earn or receive income during the year, not all at once in April. Self-employed people do that with estimated tax payments.",
         "For {{year}} the due dates are: {{q_dates}}. Each payment covers the months before it.",
-        "If you pay too little during the year you can owe an underpayment penalty, even if you pay everything when you file. The IRS has rules for how much is enough; Form 1040-ES explains them. If you also have a job, raising your paycheck withholding can cover some or all of it instead.",
+        "If you pay too little or too late during the year, you can owe a penalty, even if you end up getting a refund when you file. Form 1040-ES explains how much to pay. If you also have a job, asking your employer to withhold more from your paycheck can cover some or all of it instead.",
         "Log each payment in LedgerLock so the app can tell you what's left."
       ],
       "you": "quarterly",
@@ -115,7 +116,8 @@
         "Publication 505, Tax Withholding and Estimated Tax",
         "Quarterly due dates in the verified rules file"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against irs.gov Estimated taxes page (25-Sep-2026); due dates from the verified rules file"
     },
     {
       "id": "basics_set_aside",
@@ -136,7 +138,8 @@
       "checkAgainst": [
         "App behaviour only (no IRS figure). Check wording stays a rule of thumb, never 'what you owe'"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against app behaviour only (rule of thumb, no IRS figure)"
     },
     {
       "id": "basics_records",
@@ -145,9 +148,9 @@
       "minutes": 2,
       "trigger": "has_missing_receipts",
       "body": [
-        "If the IRS ever asks, you need to show where your income came from and that your expenses were real and for business. Keep receipts, invoices, bank and platform statements, your mileage log and any 1099s you receive.",
-        "A receipt should show who you paid, how much, when and what for. A short note on the record (\"printer ink for client brochures\") helps a lot later.",
-        "How long to keep them depends on your situation; the IRS explains it on its recordkeeping pages. LedgerLock keeps photos of receipts encrypted on this phone, so make a backup and keep it somewhere safe."
+        "If the IRS ever asks, your records need to show where your income came from and back up your expenses. Keep receipts, invoices, bank and card statements, your mileage log and any 1099s you receive.",
+        "A receipt or other document should show who you paid, how much, that you paid it, when, and what it was for. A short note on the record (\"printer ink for client brochures\") helps a lot later.",
+        "How long to keep them depends on what the record is for; the IRS explains it on its recordkeeping pages. LedgerLock keeps photos of receipts encrypted on this phone, so make a backup and keep it somewhere safe."
       ],
       "you": "records",
       "action": "search_no_receipt",
@@ -158,7 +161,8 @@
         "Publication 583, Starting a Business and Keeping Records",
         "IRS 'How long should I keep records?' page"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against irs.gov What kind of records should I keep (03-Aug-2026), How long should I keep records (30-Jun-2026), Pub 463 (2025) ch. 5"
     },
     {
       "id": "basics_cash_basis",
@@ -167,9 +171,9 @@
       "minutes": 2,
       "trigger": "has_unpaid",
       "body": [
-        "Most people with a side business use the cash method: income counts in the year you actually receive it, and expenses in the year you pay them.",
+        "Most individuals and many small businesses use the cash method: income counts in the year you receive it, and expenses in the year you pay them.",
         "So an invoice you send in December that's paid in January belongs to the next tax year. That is why LedgerLock leaves unpaid invoices out of your totals and asks when the money arrived when you mark one received.",
-        "There are other methods (accrual), and businesses that keep inventory can have extra rules. If that's you, it's worth asking a preparer."
+        "There are other methods (accrual), and businesses that buy or make goods to sell generally have extra inventory rules. If that's you, it's worth asking a preparer."
       ],
       "you": "cash_basis",
       "action": "search_unpaid",
@@ -180,7 +184,8 @@
         "Publication 538, Accounting Periods and Methods (cash method)",
         "Publication 334 (accounting methods)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against Publication 538 (01/2022): cash method income/expenses, who uses it, inventories"
     },
     {
       "id": "basics_1099",
@@ -189,8 +194,8 @@
       "minutes": 3,
       "trigger": "has_1099",
       "body": [
-        "A 1099 is a form a payer sends to you and to the IRS saying how much they paid you. Clients may send a 1099-NEC; payment apps and marketplaces send a 1099-K. For {{year}} a 1099-K is required when payments go over {{k_threshold}}.",
-        "Getting a form or not doesn't change what you owe: all income is taxable whether or not anyone reports it.",
+        "A 1099 is a form a payer sends to you and to the IRS saying how much they paid you. Clients may send a 1099-NEC. Payment apps and online marketplaces send a 1099-K when your payments go over {{k_threshold}}; card payment processors send one no matter how much.",
+        "Getting a form or not doesn't change what you owe: whether or not you receive one, you still have to report your income.",
         "Because the IRS gets a copy, your return should account for what's on each form. Enter yours in LedgerLock and it compares them with your records, so a mismatch shows up before you file, not in a letter afterwards."
       ],
       "you": "forms_1099",
@@ -204,7 +209,8 @@
         "Instructions for Forms 1099-MISC and 1099-NEC",
         "1099-K threshold in the verified rules file (keyFigure form_1099k_threshold)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against irs.gov Understanding your Form 1099-K (28-Oct-2026); threshold from the verified rules file"
     },
     {
       "id": "products_fees",
@@ -213,9 +219,9 @@
       "minutes": 2,
       "trigger": "always",
       "body": [
-        "Marketplace and payment fees are a business expense. So are shipping labels you pay for, packaging and refunds you give back.",
+        "Marketplace and payment fees, shipping, refunds and credits you give back aren't income: you can deduct them from the gross amount.",
         "Record what the buyer paid as income and the fee separately (LedgerLock has a fee field for that), rather than only the smaller payout. Your totals then match what the platform reports, and the fee still lowers your profit.",
-        "If you resell things you bought for yourself at a loss, like old clothes, that's usually not business income at all; selling things you bought or made to sell is. The difference matters, so read the IRS guidance or ask a preparer if you're unsure."
+        "Selling your own used things for less than you paid (old clothes, furniture) isn't a profit, and a loss on a personal item can't be deducted. The IRS explains how to report it so you aren't taxed on it. Selling things you bought or made to sell is business income."
       ],
       "you": "profit",
       "action": "add_income",
@@ -223,11 +229,10 @@
         "form_1099k"
       ],
       "checkAgainst": [
-        "IRS 'Understanding your Form 1099-K' page (personal items sold at a loss)",
-        "Schedule C instructions (returns and allowances, other expenses)",
-        "Publication 334"
+        "IRS 'What to do with Form 1099-K' page (fees, refunds, shipping; personal items sold at a loss)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against irs.gov What to do with Form 1099-K (27-Jul-2026)"
     },
     {
       "id": "products_1099k",
@@ -236,8 +241,8 @@
       "minutes": 2,
       "trigger": "has_1099",
       "body": [
-        "A 1099-K shows the gross amount of payments: before fees, before refunds, often including the shipping and sales tax the buyer paid. So it's usually higher than what reached your bank.",
-        "That's expected. You report the gross, then deduct fees, refunds and costs as expenses, which brings the profit back to the real number.",
+        "The gross amount on a 1099-K doesn't take out fees, refunds, credits, shipping or discounts. So it's usually higher than what reached your bank.",
+        "That's expected. You report the gross, then deduct those amounts using your records, which brings the profit back to the real number. And just because a payment is on a 1099-K doesn't mean it's taxable: money from friends and family, for example, isn't business income.",
         "LedgerLock compares each 1099-K with the income you recorded from that platform. If the form is higher, check for missing sales first, then remember fees and refunds are included in the form's figure."
       ],
       "you": "forms_1099",
@@ -246,9 +251,10 @@
         "form_1099k"
       ],
       "checkAgainst": [
-        "IRS 'Understanding your Form 1099-K' page (gross amount, what to do if it includes fees/refunds)"
+        "IRS 'What to do with Form 1099-K' page"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against irs.gov What to do with Form 1099-K (27-Jul-2026)"
     },
     {
       "id": "services_clients",
@@ -257,8 +263,8 @@
       "minutes": 2,
       "trigger": "always",
       "body": [
-        "Clients that are businesses may send you a 1099-NEC early in the year for what they paid you. Some won't, even if they should; your income is taxable either way.",
-        "Keep a copy of every invoice and mark it received when the money lands. An unpaid invoice isn't income yet under the cash method, and LedgerLock keeps it out of your totals until you mark it paid.",
+        "Business clients that pay you for your work may have to send you a 1099-NEC early in the year. Some won't, and your income has to be reported either way, form or no form.",
+        "Keep a copy of every invoice and mark it received when the money lands. Under the cash method, an unpaid invoice isn't income yet, and LedgerLock keeps it out of your totals until you mark it paid.",
         "Invoices unpaid for a long time show up under Needs attention on Home, so they don't get forgotten."
       ],
       "you": "cash_basis",
@@ -270,7 +276,8 @@
         "Instructions for Forms 1099-MISC and 1099-NEC (who must file)",
         "Publication 334 (income)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against Instructions for Forms 1099-MISC and 1099-NEC (12/2026), Pub 538, irs.gov Gig economy tax center (09-Jul-2026)"
     },
     {
       "id": "services_home_office",
@@ -279,9 +286,9 @@
       "minutes": 3,
       "trigger": "always",
       "body": [
-        "If part of your home is used regularly and only for your business, you may be able to deduct a home office. A desk in the corner of a room used for other things usually doesn't qualify; the space has to be used exclusively for work.",
+        "If you use a specific area of your home only for your business, and on a regular basis, you may be able to deduct a home office. It doesn't have to be a whole room, but that area can't be used for anything else.",
         "The simplified method is {{home_office_rate}} per square foot, for up to {{home_office_max}} square feet. LedgerLock supports this method on the Taxes tab. There is also a regular method based on your actual home costs, which takes more records.",
-        "The deduction can't create a loss: it's limited by your business profit."
+        "The deduction is limited by your business income: it can't be more than what the business earns after its other expenses."
       ],
       "you": "home_office",
       "action": "open_home_office",
@@ -292,7 +299,8 @@
         "Publication 587, Business Use of Your Home (regular and exclusive use, simplified method, limit)",
         "Home office keyFigures in the verified rules file"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against Publication 587 (2025): exclusive and regular use, simplified method, income limit; rate and cap from the verified rules file"
     },
     {
       "id": "driving_mileage",
@@ -301,9 +309,9 @@
       "minutes": 3,
       "trigger": "has_trips",
       "body": [
-        "Business driving is often the biggest deduction for drivers. With the standard mileage rate you deduct {{mileage_rate}} per business mile instead of tracking gas, repairs and insurance one by one.",
-        "You need a log written at the time: the date, how far, and the business purpose. Driving between rides or deliveries for the app counts; driving from home to a regular job doesn't.",
-        "You can choose actual car expenses instead of the standard rate, but there are rules about switching between the two methods. Read the IRS guidance or ask a preparer before you switch."
+        "Business driving can be one of your biggest deductions. With the standard mileage rate you deduct {{mileage_rate}} per business mile instead of adding up gas, repairs and insurance.",
+        "Keep a log written at or near the time: the date, how far, where you went, and the business purpose. Commuting between home and a regular place of work doesn't count, however far it is.",
+        "You can use actual car expenses instead of the standard rate. To use the standard rate at all, you must choose it in the first year the car is used for business; switching between methods has rules, so read the IRS guidance or ask a preparer first."
       ],
       "you": "mileage",
       "action": "log_trip",
@@ -315,7 +323,8 @@
         "Mileage rate keyFigure in the verified rules file",
         "Commuting rules for gig drivers (Publication 463 and the IRS Gig Economy Tax Center)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against Publication 463 (2025): commuting, choosing the standard rate, records (Table 5-1); rate from the verified rules file"
     },
     {
       "id": "driving_earnings",
@@ -324,9 +333,9 @@
       "minutes": 2,
       "trigger": "always",
       "body": [
-        "Your driving app's yearly summary usually shows what riders or customers paid, the fees the app kept, and what you received. Record the full amount as income and the app's fees as an expense, the same way the summary is laid out.",
-        "Tips are part of your income too, whether they came through the app or in cash. Rules for tips have been changing, so check the IRS guidance for the year when you file.",
-        "Phone and data plans used for the work can count too, for the business share only."
+        "Your driving app's yearly summary usually shows what riders or customers paid, the fees the app kept, and what you received. Record the full amount as income and the app's fees as an expense; the fees aren't income to you.",
+        "Gig income has to be reported in whatever form it's paid, cash included, and that covers tips. The IRS has a newer \"No Tax on Tips\" deduction, so check its guidance for the year when you file.",
+        "A phone and data plan used for the work can count too, for the business part only."
       ],
       "you": "profit",
       "action": "add_income",
@@ -339,7 +348,8 @@
         "IRS guidance on tips for the tax year (any new tip deduction rules)",
         "Publication 334 (income, fees)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against irs.gov What to do with Form 1099-K, Gig economy tax center (09-Jul-2026), Pub 334 (partly personal), IRS \"No Tax on Tips\" article (Mar 2026)"
     },
     {
       "id": "creator_gear",
@@ -348,9 +358,9 @@
       "minutes": 3,
       "trigger": "always",
       "body": [
-        "Cameras, microphones, lights, editing software and subscriptions used for your channel are business expenses. If you also use them personally, deduct only the business share (the business % slider).",
-        "Sponsorships, platform payouts, memberships and tips are all income.",
-        "Products brands send you in exchange for content can count as income at their value, even though no money changed hands. Gifts with no strings attached may be treated differently. The line isn't always obvious, so check the IRS guidance or ask a preparer, and keep the brand's emails."
+        "Cameras, microphones, lights, editing software and subscriptions used for your channel are business expenses. If you also use them personally, deduct only the business part (the business % slider).",
+        "Sponsorships, platform payouts, memberships and tips are all income, however they're paid.",
+        "Products a brand gives you in exchange for content count too: the IRS says the fair market value of goods or services you receive in exchange is income. If you're not sure whether something was in exchange or a plain gift, ask a preparer, and keep the brand's emails."
       ],
       "you": "profit",
       "action": "add_expense",
@@ -362,7 +372,8 @@
         "Publication 334 (business expenses, depreciation vs expensing for equipment)",
         "IRS Gig Economy Tax Center (digital content creators)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against Publication 334 (partly personal), Publication 525 (2025) bartering, Gig economy tax center"
     },
     {
       "id": "money_separate",
@@ -371,8 +382,8 @@
       "minutes": 2,
       "trigger": "always",
       "body": [
-        "A separate bank account (and card) for the business is the single easiest way to keep good records. Every transaction in it is business, so year-end is a matter of reading one statement instead of sorting a year of mixed spending.",
-        "It doesn't need to be a business account; a second personal checking account works for many side businesses. It also makes setting tax money aside automatic: move your set-aside percentage to savings whenever money comes in.",
+        "The IRS suggests that one of the first things you do when you start a business is open a business checking account, kept separate from your personal one, and use it for business only.",
+        "Every transaction in it is then business, so year-end is a matter of reading one statement instead of sorting a year of mixed spending. It also makes setting tax money aside easy: move your set-aside percentage to savings whenever money comes in.",
         "LedgerLock can import a bank or platform CSV, so a dedicated account also means fewer records to type."
       ],
       "you": "set_aside",
@@ -384,7 +395,8 @@
       "checkAgainst": [
         "Publication 583 (separate business bank account recommended for recordkeeping)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against Publication 583 (12/2024), Business checkbook"
     },
     {
       "id": "money_pricing",
@@ -405,7 +417,8 @@
       "checkAgainst": [
         "App behaviour only (no IRS figure); keep it general, no pricing advice"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against app behaviour only (general money guidance, no IRS claim)"
     },
     {
       "id": "money_retirement",
@@ -414,7 +427,7 @@
       "minutes": 3,
       "trigger": "always",
       "body": [
-        "Self-employed people can open retirement accounts of their own, such as a SEP IRA or a solo 401(k). Money you put in can lower your taxable income for the year, within limits the IRS sets each year.",
+        "Self-employed people can set up retirement plans of their own: a SEP, a SIMPLE IRA, or a one-participant 401(k), sometimes called a solo 401(k). If you're self-employed, you can deduct what you put into your own SEP IRA, within limits that change each year.",
         "Which one fits depends on how much you earn from the business, whether you have a job with its own plan, and how much paperwork you want. A brokerage or a fee-only adviser can explain the options; LedgerLock doesn't recommend any.",
         "Even small, regular contributions matter, because a side business usually has no employer match."
       ],
@@ -427,7 +440,8 @@
         "Publication 560, Retirement Plans for Small Business (SEP, SIMPLE, solo 401(k))",
         "IRS retirement plans for self-employed people page"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against irs.gov Retirement plans for self-employed people (11-Aug-2026), Publication 560 (2025)"
     },
     {
       "id": "money_llc",
@@ -436,9 +450,9 @@
       "minutes": 3,
       "trigger": "always",
       "body": [
-        "An LLC is a legal structure you set up with your state. Its main purpose is to separate the business legally from you; rules, fees and protection vary by state.",
-        "For federal tax, a single-owner LLC is by default treated like a sole proprietorship: you still file Schedule C and pay self-employment tax. Forming one doesn't lower your taxes by itself.",
-        "Some owners later choose to have their business taxed differently (for example as an S corporation). That changes payroll, filings and costs, and is something to decide with a tax professional, not an app."
+        "An LLC is a legal structure created under your state's law. Rules and fees vary by state.",
+        "For federal income tax, a single-owner LLC is by default treated as separate from you only on paper: you still report the business on Schedule C and pay self-employment tax the same way as a sole proprietor. Forming one doesn't lower your taxes by itself.",
+        "An LLC can choose to be taxed as a corporation instead. That changes filings and costs, and is something to decide with a tax professional, not an app."
       ],
       "you": "none",
       "action": "none",
@@ -450,7 +464,8 @@
         "IRS 'Single member limited liability companies' page (disregarded entity, Schedule C)",
         "IRS LLC page (entity classification election)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against irs.gov Single member limited liability companies (27-Jul-2026)"
     },
     {
       "id": "money_health",
@@ -460,8 +475,8 @@
       "trigger": "always",
       "body": [
         "If your side business is your main work, health insurance is on you. Common routes are a spouse's or partner's plan, the Health Insurance Marketplace, or a plan through a job you still have.",
-        "Self-employed people who pay for their own health insurance may be able to deduct the premiums, but only if they weren't eligible for an employer's plan (yours or a spouse's) for those months, and only up to the business's profit. It's figured on its own form, not on Schedule C.",
-        "Marketplace plans can come with a premium tax credit based on your income, and the two rules interact. If you're in that situation, this is one to check with the IRS guidance or a preparer."
+        "Self-employed people who pay for their own health insurance may be able to deduct the premiums, figured on Form 7206. You can't take it for any month you were eligible for an employer-subsidized plan, yours or a spouse's, even if you didn't sign up, and it's limited by the business's net earnings.",
+        "Marketplace plans can come with a premium tax credit based on your income, and the two rules interact (the IRS points to Publication 974). If you're in that situation, this is one to check with a preparer."
       ],
       "you": "none",
       "action": "none",
@@ -470,10 +485,10 @@
       ],
       "checkAgainst": [
         "Form 7206, Self-Employed Health Insurance Deduction, and its instructions (eligibility, profit limit)",
-        "Publication 974, Premium Tax Credit (interaction with the self-employed health insurance deduction)",
-        "Publication 535 or successor guidance on business expenses (insurance)"
+        "Publication 974, Premium Tax Credit (interaction with the self-employed health insurance deduction)"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against Instructions for Form 7206 (2025), irs.gov About Form 7206 (27-Jun-2026)"
     },
     {
       "id": "money_emergency",
@@ -494,7 +509,8 @@
       "checkAgainst": [
         "General money guidance only (no IRS claim). Check it stays general and gives no investment advice"
       ],
-      "verified": false
+      "verified": true,
+      "reviewed": "2026-11-07: owner approved Claude's sourced fixes; checked against general money guidance only (no IRS claim)"
     }
   ]
 }

@@ -7,15 +7,15 @@ Numbers appear as `{{placeholders}}`: they come from the verified rules file, so
 placeholder is used, not a value. When every claim checks out, set `"verified": true` on the lesson.
 Anything wrong or unsure: fix the text (or delete the sentence) first. Release builds show only verified lessons.
 
-**Status:** 0 of 20 verified.
+**Status:** 20 of 20 verified.
 
-## [ ] Why side income has its own tax  (`basics_se_tax`, The basics)
+## [x] Why side income has its own tax  (`basics_se_tax`, The basics)
 
-> At a job, your employer takes Social Security and Medicare out of every paycheck and pays a matching share themselves. When you work for yourself, nobody does that for you, so you pay both halves. That is self-employment tax.
+> Self-employment tax is the Social Security and Medicare tax for people who work for themselves. It's like the Social Security and Medicare taxes taken out of most paychecks, except you figure it and pay it yourself.
 >
 > It is figured on Schedule SE: {{se_rate}} of {{se_factor}} of your net profit. Of that rate, {{se_ss_rate}} is Social Security and {{se_medicare_rate}} is Medicare. If your net earnings from self-employment are under {{se_min}} for the year, you don't owe it.
 >
-> Regular income tax comes on top, at your usual rate, on the same profit. Self-employment tax is the part that surprises people, because it applies even when your income tax is low.
+> Regular income tax comes on top. Part of your self-employment tax can be deducted when your income tax is figured, which lowers your income tax a little. Self-employment tax is the part that surprises people, because it applies even when your income tax is low.
 >
 
 **Check against:**
@@ -24,29 +24,28 @@ Anything wrong or unsure: fix the text (or delete the sentence) first. Release b
 
 Shown when: `first_income` · Your-numbers block: `se_tax` · Button: `open_taxes` · Source links (verified resources): se_tax_center
 
-## [ ] You're taxed on profit, not sales  (`basics_profit`, The basics)
+## [x] You're taxed on profit, not sales  (`basics_profit`, The basics)
 
 > On Schedule C you list what came in and what you spent to earn it. Income minus deductible business expenses is your net profit, and both income tax and self-employment tax are figured on that profit, not on everything that came in.
 >
 > That is why recording expenses matters twice: each business dollar you record lowers the profit both taxes are based on.
 >
-> An expense counts when it is ordinary and necessary for your business. If something is partly personal, like a phone, only the business share counts; LedgerLock's business % slider handles that.
+> An expense counts when it's ordinary and necessary: common in your kind of business, and helpful for it. If something is partly personal, like a phone, only the business share counts; LedgerLock's business % slider handles that.
 >
 
 **Check against:**
 - Schedule C (Form 1040) instructions
 - Publication 334, Tax Guide for Small Business (deductible expenses: ordinary and necessary)
-- Publication 535 or its successor guidance on business expenses
 
 Shown when: `always` · Your-numbers block: `profit` · Button: `add_expense` · Source links (verified resources): se_tax_center
 
-## [ ] Paying during the year: quarterly estimates  (`basics_quarterly`, The basics)
+## [x] Paying during the year: quarterly estimates  (`basics_quarterly`, The basics)
 
-> Nobody withholds tax from side income, but the IRS still expects it to be paid as you earn it, not all in April. Self-employed people do that with estimated tax payments.
+> Nobody withholds tax from side income, but the IRS says taxes must be paid as you earn or receive income during the year, not all at once in April. Self-employed people do that with estimated tax payments.
 >
 > For {{year}} the due dates are: {{q_dates}}. Each payment covers the months before it.
 >
-> If you pay too little during the year you can owe an underpayment penalty, even if you pay everything when you file. The IRS has rules for how much is enough; Form 1040-ES explains them. If you also have a job, raising your paycheck withholding can cover some or all of it instead.
+> If you pay too little or too late during the year, you can owe a penalty, even if you end up getting a refund when you file. Form 1040-ES explains how much to pay. If you also have a job, asking your employer to withhold more from your paycheck can cover some or all of it instead.
 >
 > Log each payment in LedgerLock so the app can tell you what's left.
 >
@@ -58,7 +57,7 @@ Shown when: `always` · Your-numbers block: `profit` · Button: `add_expense` ·
 
 Shown when: `quarter_soon` · Your-numbers block: `quarterly` · Button: `open_payments` · Source links (verified resources): se_tax_center, payment_plans
 
-## [ ] How much to set aside  (`basics_set_aside`, The basics)
+## [x] How much to set aside  (`basics_set_aside`, The basics)
 
 > The safest habit is to move part of every payment into a separate savings account the day it arrives, so tax money is never spent.
 >
@@ -72,13 +71,13 @@ Shown when: `quarter_soon` · Your-numbers block: `quarterly` · Button: `open_p
 
 Shown when: `always` · Your-numbers block: `set_aside` · Button: `open_taxes` · Source links (verified resources): se_tax_center
 
-## [ ] What records to keep  (`basics_records`, The basics)
+## [x] What records to keep  (`basics_records`, The basics)
 
-> If the IRS ever asks, you need to show where your income came from and that your expenses were real and for business. Keep receipts, invoices, bank and platform statements, your mileage log and any 1099s you receive.
+> If the IRS ever asks, your records need to show where your income came from and back up your expenses. Keep receipts, invoices, bank and card statements, your mileage log and any 1099s you receive.
 >
-> A receipt should show who you paid, how much, when and what for. A short note on the record ("printer ink for client brochures") helps a lot later.
+> A receipt or other document should show who you paid, how much, that you paid it, when, and what it was for. A short note on the record ("printer ink for client brochures") helps a lot later.
 >
-> How long to keep them depends on your situation; the IRS explains it on its recordkeeping pages. LedgerLock keeps photos of receipts encrypted on this phone, so make a backup and keep it somewhere safe.
+> How long to keep them depends on what the record is for; the IRS explains it on its recordkeeping pages. LedgerLock keeps photos of receipts encrypted on this phone, so make a backup and keep it somewhere safe.
 >
 
 **Check against:**
@@ -87,13 +86,13 @@ Shown when: `always` · Your-numbers block: `set_aside` · Button: `open_taxes` 
 
 Shown when: `has_missing_receipts` · Your-numbers block: `records` · Button: `search_no_receipt` · Source links (verified resources): se_tax_center
 
-## [ ] Income counts when you're paid  (`basics_cash_basis`, The basics)
+## [x] Income counts when you're paid  (`basics_cash_basis`, The basics)
 
-> Most people with a side business use the cash method: income counts in the year you actually receive it, and expenses in the year you pay them.
+> Most individuals and many small businesses use the cash method: income counts in the year you receive it, and expenses in the year you pay them.
 >
 > So an invoice you send in December that's paid in January belongs to the next tax year. That is why LedgerLock leaves unpaid invoices out of your totals and asks when the money arrived when you mark one received.
 >
-> There are other methods (accrual), and businesses that keep inventory can have extra rules. If that's you, it's worth asking a preparer.
+> There are other methods (accrual), and businesses that buy or make goods to sell generally have extra inventory rules. If that's you, it's worth asking a preparer.
 >
 
 **Check against:**
@@ -102,11 +101,11 @@ Shown when: `has_missing_receipts` · Your-numbers block: `records` · Button: `
 
 Shown when: `has_unpaid` · Your-numbers block: `cash_basis` · Button: `search_unpaid` · Source links (verified resources): se_tax_center
 
-## [ ] 1099 forms: what they mean  (`basics_1099`, The basics)
+## [x] 1099 forms: what they mean  (`basics_1099`, The basics)
 
-> A 1099 is a form a payer sends to you and to the IRS saying how much they paid you. Clients may send a 1099-NEC; payment apps and marketplaces send a 1099-K. For {{year}} a 1099-K is required when payments go over {{k_threshold}}.
+> A 1099 is a form a payer sends to you and to the IRS saying how much they paid you. Clients may send a 1099-NEC. Payment apps and online marketplaces send a 1099-K when your payments go over {{k_threshold}}; card payment processors send one no matter how much.
 >
-> Getting a form or not doesn't change what you owe: all income is taxable whether or not anyone reports it.
+> Getting a form or not doesn't change what you owe: whether or not you receive one, you still have to report your income.
 >
 > Because the IRS gets a copy, your return should account for what's on each form. Enter yours in LedgerLock and it compares them with your records, so a mismatch shows up before you file, not in a letter afterwards.
 >
@@ -118,41 +117,39 @@ Shown when: `has_unpaid` · Your-numbers block: `cash_basis` · Button: `search_
 
 Shown when: `has_1099` · Your-numbers block: `forms_1099` · Button: `open_1099s` · Source links (verified resources): form_1099k, se_tax_center
 
-## [ ] Fees, refunds and shipping  (`products_fees`, Selling products)
+## [x] Fees, refunds and shipping  (`products_fees`, Selling products)
 
-> Marketplace and payment fees are a business expense. So are shipping labels you pay for, packaging and refunds you give back.
+> Marketplace and payment fees, shipping, refunds and credits you give back aren't income: you can deduct them from the gross amount.
 >
 > Record what the buyer paid as income and the fee separately (LedgerLock has a fee field for that), rather than only the smaller payout. Your totals then match what the platform reports, and the fee still lowers your profit.
 >
-> If you resell things you bought for yourself at a loss, like old clothes, that's usually not business income at all; selling things you bought or made to sell is. The difference matters, so read the IRS guidance or ask a preparer if you're unsure.
+> Selling your own used things for less than you paid (old clothes, furniture) isn't a profit, and a loss on a personal item can't be deducted. The IRS explains how to report it so you aren't taxed on it. Selling things you bought or made to sell is business income.
 >
 
 **Check against:**
-- IRS 'Understanding your Form 1099-K' page (personal items sold at a loss)
-- Schedule C instructions (returns and allowances, other expenses)
-- Publication 334
+- IRS 'What to do with Form 1099-K' page (fees, refunds, shipping; personal items sold at a loss)
 
 Shown when: `always` · Your-numbers block: `profit` · Button: `add_income` · Source links (verified resources): form_1099k
 
-## [ ] Why your 1099-K looks too high  (`products_1099k`, Selling products)
+## [x] Why your 1099-K looks too high  (`products_1099k`, Selling products)
 
-> A 1099-K shows the gross amount of payments: before fees, before refunds, often including the shipping and sales tax the buyer paid. So it's usually higher than what reached your bank.
+> The gross amount on a 1099-K doesn't take out fees, refunds, credits, shipping or discounts. So it's usually higher than what reached your bank.
 >
-> That's expected. You report the gross, then deduct fees, refunds and costs as expenses, which brings the profit back to the real number.
+> That's expected. You report the gross, then deduct those amounts using your records, which brings the profit back to the real number. And just because a payment is on a 1099-K doesn't mean it's taxable: money from friends and family, for example, isn't business income.
 >
 > LedgerLock compares each 1099-K with the income you recorded from that platform. If the form is higher, check for missing sales first, then remember fees and refunds are included in the form's figure.
 >
 
 **Check against:**
-- IRS 'Understanding your Form 1099-K' page (gross amount, what to do if it includes fees/refunds)
+- IRS 'What to do with Form 1099-K' page
 
 Shown when: `has_1099` · Your-numbers block: `forms_1099` · Button: `open_1099s` · Source links (verified resources): form_1099k
 
-## [ ] Clients, invoices and 1099-NECs  (`services_clients`, Services and freelance)
+## [x] Clients, invoices and 1099-NECs  (`services_clients`, Services and freelance)
 
-> Clients that are businesses may send you a 1099-NEC early in the year for what they paid you. Some won't, even if they should; your income is taxable either way.
+> Business clients that pay you for your work may have to send you a 1099-NEC early in the year. Some won't, and your income has to be reported either way, form or no form.
 >
-> Keep a copy of every invoice and mark it received when the money lands. An unpaid invoice isn't income yet under the cash method, and LedgerLock keeps it out of your totals until you mark it paid.
+> Keep a copy of every invoice and mark it received when the money lands. Under the cash method, an unpaid invoice isn't income yet, and LedgerLock keeps it out of your totals until you mark it paid.
 >
 > Invoices unpaid for a long time show up under Needs attention on Home, so they don't get forgotten.
 >
@@ -163,13 +160,13 @@ Shown when: `has_1099` · Your-numbers block: `forms_1099` · Button: `open_1099
 
 Shown when: `always` · Your-numbers block: `cash_basis` · Button: `add_income` · Source links (verified resources): se_tax_center
 
-## [ ] Working from home  (`services_home_office`, Services and freelance)
+## [x] Working from home  (`services_home_office`, Services and freelance)
 
-> If part of your home is used regularly and only for your business, you may be able to deduct a home office. A desk in the corner of a room used for other things usually doesn't qualify; the space has to be used exclusively for work.
+> If you use a specific area of your home only for your business, and on a regular basis, you may be able to deduct a home office. It doesn't have to be a whole room, but that area can't be used for anything else.
 >
 > The simplified method is {{home_office_rate}} per square foot, for up to {{home_office_max}} square feet. LedgerLock supports this method on the Taxes tab. There is also a regular method based on your actual home costs, which takes more records.
 >
-> The deduction can't create a loss: it's limited by your business profit.
+> The deduction is limited by your business income: it can't be more than what the business earns after its other expenses.
 >
 
 **Check against:**
@@ -178,13 +175,13 @@ Shown when: `always` · Your-numbers block: `cash_basis` · Button: `add_income`
 
 Shown when: `always` · Your-numbers block: `home_office` · Button: `open_home_office` · Source links (verified resources): se_tax_center
 
-## [ ] Mileage: the deduction that adds up  (`driving_mileage`, Rideshare and delivery)
+## [x] Mileage: the deduction that adds up  (`driving_mileage`, Rideshare and delivery)
 
-> Business driving is often the biggest deduction for drivers. With the standard mileage rate you deduct {{mileage_rate}} per business mile instead of tracking gas, repairs and insurance one by one.
+> Business driving can be one of your biggest deductions. With the standard mileage rate you deduct {{mileage_rate}} per business mile instead of adding up gas, repairs and insurance.
 >
-> You need a log written at the time: the date, how far, and the business purpose. Driving between rides or deliveries for the app counts; driving from home to a regular job doesn't.
+> Keep a log written at or near the time: the date, how far, where you went, and the business purpose. Commuting between home and a regular place of work doesn't count, however far it is.
 >
-> You can choose actual car expenses instead of the standard rate, but there are rules about switching between the two methods. Read the IRS guidance or ask a preparer before you switch.
+> You can use actual car expenses instead of the standard rate. To use the standard rate at all, you must choose it in the first year the car is used for business; switching between methods has rules, so read the IRS guidance or ask a preparer first.
 >
 
 **Check against:**
@@ -194,13 +191,13 @@ Shown when: `always` · Your-numbers block: `home_office` · Button: `open_home_
 
 Shown when: `has_trips` · Your-numbers block: `mileage` · Button: `log_trip` · Source links (verified resources): se_tax_center
 
-## [ ] Fees, tips and the app's summary  (`driving_earnings`, Rideshare and delivery)
+## [x] Fees, tips and the app's summary  (`driving_earnings`, Rideshare and delivery)
 
-> Your driving app's yearly summary usually shows what riders or customers paid, the fees the app kept, and what you received. Record the full amount as income and the app's fees as an expense, the same way the summary is laid out.
+> Your driving app's yearly summary usually shows what riders or customers paid, the fees the app kept, and what you received. Record the full amount as income and the app's fees as an expense; the fees aren't income to you.
 >
-> Tips are part of your income too, whether they came through the app or in cash. Rules for tips have been changing, so check the IRS guidance for the year when you file.
+> Gig income has to be reported in whatever form it's paid, cash included, and that covers tips. The IRS has a newer "No Tax on Tips" deduction, so check its guidance for the year when you file.
 >
-> Phone and data plans used for the work can count too, for the business share only.
+> A phone and data plan used for the work can count too, for the business part only.
 >
 
 **Check against:**
@@ -210,13 +207,13 @@ Shown when: `has_trips` · Your-numbers block: `mileage` · Button: `log_trip` �
 
 Shown when: `always` · Your-numbers block: `profit` · Button: `add_income` · Source links (verified resources): form_1099k, se_tax_center
 
-## [ ] Gear, software and free products  (`creator_gear`, Content creators)
+## [x] Gear, software and free products  (`creator_gear`, Content creators)
 
-> Cameras, microphones, lights, editing software and subscriptions used for your channel are business expenses. If you also use them personally, deduct only the business share (the business % slider).
+> Cameras, microphones, lights, editing software and subscriptions used for your channel are business expenses. If you also use them personally, deduct only the business part (the business % slider).
 >
-> Sponsorships, platform payouts, memberships and tips are all income.
+> Sponsorships, platform payouts, memberships and tips are all income, however they're paid.
 >
-> Products brands send you in exchange for content can count as income at their value, even though no money changed hands. Gifts with no strings attached may be treated differently. The line isn't always obvious, so check the IRS guidance or ask a preparer, and keep the brand's emails.
+> Products a brand gives you in exchange for content count too: the IRS says the fair market value of goods or services you receive in exchange is income. If you're not sure whether something was in exchange or a plain gift, ask a preparer, and keep the brand's emails.
 >
 
 **Check against:**
@@ -226,11 +223,11 @@ Shown when: `always` · Your-numbers block: `profit` · Button: `add_income` · 
 
 Shown when: `always` · Your-numbers block: `profit` · Button: `add_expense` · Source links (verified resources): se_tax_center
 
-## [ ] Keep business money separate  (`money_separate`, Beyond taxes)
+## [x] Keep business money separate  (`money_separate`, Beyond taxes)
 
-> A separate bank account (and card) for the business is the single easiest way to keep good records. Every transaction in it is business, so year-end is a matter of reading one statement instead of sorting a year of mixed spending.
+> The IRS suggests that one of the first things you do when you start a business is open a business checking account, kept separate from your personal one, and use it for business only.
 >
-> It doesn't need to be a business account; a second personal checking account works for many side businesses. It also makes setting tax money aside automatic: move your set-aside percentage to savings whenever money comes in.
+> Every transaction in it is then business, so year-end is a matter of reading one statement instead of sorting a year of mixed spending. It also makes setting tax money aside easy: move your set-aside percentage to savings whenever money comes in.
 >
 > LedgerLock can import a bank or platform CSV, so a dedicated account also means fewer records to type.
 >
@@ -240,7 +237,7 @@ Shown when: `always` · Your-numbers block: `profit` · Button: `add_expense` ·
 
 Shown when: `always` · Your-numbers block: `set_aside` · Button: `none` · Source links (verified resources): se_tax_center, score
 
-## [ ] Price with taxes in mind  (`money_pricing`, Beyond taxes)
+## [x] Price with taxes in mind  (`money_pricing`, Beyond taxes)
 
 > A sale isn't all yours: fees come off the top, costs come next, and part of what's left goes to tax. Pricing that only covers materials and your time before tax can mean working for much less than you think.
 >
@@ -254,9 +251,9 @@ Shown when: `always` · Your-numbers block: `set_aside` · Button: `none` · Sou
 
 Shown when: `always` · Your-numbers block: `set_aside` · Button: `none` · Source links (verified resources): score
 
-## [ ] Retirement savings when you're self-employed  (`money_retirement`, Beyond taxes)
+## [x] Retirement savings when you're self-employed  (`money_retirement`, Beyond taxes)
 
-> Self-employed people can open retirement accounts of their own, such as a SEP IRA or a solo 401(k). Money you put in can lower your taxable income for the year, within limits the IRS sets each year.
+> Self-employed people can set up retirement plans of their own: a SEP, a SIMPLE IRA, or a one-participant 401(k), sometimes called a solo 401(k). If you're self-employed, you can deduct what you put into your own SEP IRA, within limits that change each year.
 >
 > Which one fits depends on how much you earn from the business, whether you have a job with its own plan, and how much paperwork you want. A brokerage or a fee-only adviser can explain the options; LedgerLock doesn't recommend any.
 >
@@ -269,13 +266,13 @@ Shown when: `always` · Your-numbers block: `set_aside` · Button: `none` · Sou
 
 Shown when: `always` · Your-numbers block: `none` · Button: `none` · Source links (verified resources): se_tax_center
 
-## [ ] Do you need an LLC?  (`money_llc`, Beyond taxes)
+## [x] Do you need an LLC?  (`money_llc`, Beyond taxes)
 
-> An LLC is a legal structure you set up with your state. Its main purpose is to separate the business legally from you; rules, fees and protection vary by state.
+> An LLC is a legal structure created under your state's law. Rules and fees vary by state.
 >
-> For federal tax, a single-owner LLC is by default treated like a sole proprietorship: you still file Schedule C and pay self-employment tax. Forming one doesn't lower your taxes by itself.
+> For federal income tax, a single-owner LLC is by default treated as separate from you only on paper: you still report the business on Schedule C and pay self-employment tax the same way as a sole proprietor. Forming one doesn't lower your taxes by itself.
 >
-> Some owners later choose to have their business taxed differently (for example as an S corporation). That changes payroll, filings and costs, and is something to decide with a tax professional, not an app.
+> An LLC can choose to be taxed as a corporation instead. That changes filings and costs, and is something to decide with a tax professional, not an app.
 >
 
 **Check against:**
@@ -284,23 +281,22 @@ Shown when: `always` · Your-numbers block: `none` · Button: `none` · Source l
 
 Shown when: `always` · Your-numbers block: `none` · Button: `none` · Source links (verified resources): se_tax_center, score
 
-## [ ] Health insurance when you work for yourself  (`money_health`, Beyond taxes)
+## [x] Health insurance when you work for yourself  (`money_health`, Beyond taxes)
 
 > If your side business is your main work, health insurance is on you. Common routes are a spouse's or partner's plan, the Health Insurance Marketplace, or a plan through a job you still have.
 >
-> Self-employed people who pay for their own health insurance may be able to deduct the premiums, but only if they weren't eligible for an employer's plan (yours or a spouse's) for those months, and only up to the business's profit. It's figured on its own form, not on Schedule C.
+> Self-employed people who pay for their own health insurance may be able to deduct the premiums, figured on Form 7206. You can't take it for any month you were eligible for an employer-subsidized plan, yours or a spouse's, even if you didn't sign up, and it's limited by the business's net earnings.
 >
-> Marketplace plans can come with a premium tax credit based on your income, and the two rules interact. If you're in that situation, this is one to check with the IRS guidance or a preparer.
+> Marketplace plans can come with a premium tax credit based on your income, and the two rules interact (the IRS points to Publication 974). If you're in that situation, this is one to check with a preparer.
 >
 
 **Check against:**
 - Form 7206, Self-Employed Health Insurance Deduction, and its instructions (eligibility, profit limit)
 - Publication 974, Premium Tax Credit (interaction with the self-employed health insurance deduction)
-- Publication 535 or successor guidance on business expenses (insurance)
 
 Shown when: `always` · Your-numbers block: `none` · Button: `none` · Source links (verified resources): se_tax_center
 
-## [ ] A cushion for slow months  (`money_emergency`, Beyond taxes)
+## [x] A cushion for slow months  (`money_emergency`, Beyond taxes)
 
 > Side income goes up and down: a slow month, a client who pays late, a platform that changes its rules. A small cushion of savings keeps one bad month from becoming a debt.
 >

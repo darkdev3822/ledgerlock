@@ -102,8 +102,11 @@ void main() {
   test('release builds show only verified lessons; drafts appear only when asked (debug review)', () {
     expect(lib.visible(drafts: false).every((l) => l.verified), isTrue);
     expect(lib.visible(drafts: true).length, lib.lessons.length);
-    // Today every lesson is a draft: nothing ships until the owner's review.
-    expect(lib.tracksFor(const {}, drafts: false), isEmpty);
+    // Every lesson that ships carries the owner's review note.
+    final raw = (jsonDecode(File('assets/lessons/lessons.json').readAsStringSync())['lessons'] as List).cast<Map>();
+    for (final l in raw.where((l) => l['verified'] == true)) {
+      expect('${l['reviewed'] ?? ''}', contains('owner'), reason: '${l['id']} verified without a review note');
+    }
   });
 
   test('tracks follow how you earn; suggestions prefer the lesson whose moment has come', () {
@@ -139,8 +142,16 @@ void main() {
     )!;
     expect(next.id, isNot(first.id));
     expect(
-      suggestLesson(lib, types: {'driving'}, done: const {}, dismissed: const {}, triggers: triggers, drafts: false),
-      isNull,
+      suggestLesson(
+        lib,
+        types: {'driving'},
+        done: const {},
+        dismissed: const {},
+        triggers: triggers,
+        drafts: false,
+      )?.id,
+      first.id,
+      reason: 'all lessons are verified, so release builds suggest the same',
     );
   });
 }

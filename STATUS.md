@@ -444,4 +444,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   tour (tourSignal -> shell goes Home first). SECURITY T48. Tests TO1 x4, TO2. 1782 tests.
   Owner: Learn should ship in the next beta -> lessons must be reviewed/verified first (docs/LESSONS_REVIEW.md);
   next beta after the owner is happy with the tour.
+- LESSONS REVIEW (2026-11-07, owner: "use your suggested fix for all of these"): all 20 lessons checked claim by claim
+  against irs.gov pages/publications fetched today (each lesson's "reviewed" note names its sources), fixed where the
+  IRS wording differed, then verified -> Learn ships in release builds. Wrong/unsourced claims removed: home office
+  "corner of a room" (wrong: a specific area can qualify), "a second personal account works" (Pub 583 says business
+  checking), "driving between rides counts" (unsourced -> commuting rule), 1099-K threshold (apps/marketplaces only;
+  cards always), S-corp wording, "sales tax" on 1099-K. Pub 535 discontinued (removed from checklists). Re-check every
+  lesson at each annual review (rates/forms change; 1099-NEC limit is $2,000 for 2026, not used in lessons).
 
