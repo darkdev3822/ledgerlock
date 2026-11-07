@@ -197,47 +197,61 @@ class _HeroCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${s.netCents < 0 ? 'Net loss' : 'Net profit'} · $year',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.text.titleSmall?.copyWith(
-                          color: dim,
-                          fontFamily: Fonts.voice,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
-                        ),
+                Builder(
+                  builder: (context) {
+                    // Big text (150%+): title and privacy pill each get their own line instead of both being cut.
+                    final big = MediaQuery.textScalerOf(context).scale(1) >= 1.5;
+                    final title = Text(
+                      '${s.netCents < 0 ? 'Net loss' : 'Net profit'} · $year',
+                      maxLines: big ? 2 : 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.titleSmall?.copyWith(
+                        color: dim,
+                        fontFamily: Fonts.voice,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
                       ),
-                    ),
-                    const SizedBox(width: Space.sm),
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: onHero.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(Radii.pill),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.lock_rounded, size: 12, color: dim),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                'On this phone only',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: context.text.labelSmall?.copyWith(color: dim),
-                              ),
+                    );
+                    final pill = Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: onHero.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(Radii.pill),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lock_rounded, size: 12, color: dim),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'On this phone only',
+                              maxLines: big ? 2 : 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.text.labelSmall?.copyWith(color: dim),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    );
+                    if (big) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          title,
+                          const SizedBox(height: Space.xs),
+                          pill,
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(child: title),
+                        const SizedBox(width: Space.sm),
+                        Flexible(child: pill),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: Space.md),
                 AnimatedMoney(s.netCents, style: context.text.displaySmall, color: onHero),

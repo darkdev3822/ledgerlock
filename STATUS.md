@@ -336,6 +336,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   ONLY (refuses non-emulator serials). Found + fixed: landscape/split-screen entry screen was all keypad
   (amount and categories hidden, Save impossible) -> side-by-side layout when the window is wide and < 600 dp
   tall (decided on window size so the soft keyboard can't flip it). Tests L1 x3.
+  Full run 7 profiles x 7 variants: no crashes, Flutter errors or overflows. Second find: Home backup nudge at
+  200% text on a 720p phone squeezed the message to a word a line -> button moves under it (test B2 x4);
+  profit card header cut to "Net prof..." / "On this ..." -> stacks at 150%+ text (test H1).
+  Lab gotchas: setup scrolls to fields under the keyboard on small screens; swiftshader emulators sometimes die
+  (host GPU) -> the lab reboots and retries that variant once.
   Not covered by emulators: Samsung One UI itself, Android < 16 (needs system images; owner runs sdkmanager).
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter

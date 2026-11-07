@@ -200,20 +200,42 @@ class BackupNudge extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: Space.md),
       child: LLCard(
-        child: Row(
-          children: [
-            Icon(Icons.save_outlined, color: context.ll.warning),
-            const SizedBox(width: Space.md),
-            Expanded(
-              child: Text(
-                last == null
-                    ? 'No backup yet. If this phone is lost, a backup is the only way back.'
-                    : 'Last backup ${DateFormat.MMMd().format(last)}. Time for a fresh one.',
-                style: context.text.bodyMedium,
-              ),
-            ),
-            TextButton(onPressed: () => runBackup(context, app), child: const Text('Back up')),
-          ],
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final msg = Text(
+              last == null
+                  ? 'No backup yet. If this phone is lost, a backup is the only way back.'
+                  : 'Last backup ${DateFormat.MMMd().format(last)}. Time for a fresh one.',
+              style: context.text.bodyMedium,
+            );
+            final icon = Icon(Icons.save_outlined, color: context.ll.warning);
+            final button = TextButton(onPressed: () => runBackup(context, app), child: const Text('Back up'));
+            // Big text on a narrow phone: the button goes under the message instead of squeezing it to a word a line.
+            if (box.maxWidth / MediaQuery.textScalerOf(context).scale(1) < 240) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      icon,
+                      const SizedBox(width: Space.md),
+                      Expanded(child: msg),
+                    ],
+                  ),
+                  Align(alignment: Alignment.centerRight, child: button),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                icon,
+                const SizedBox(width: Space.md),
+                Expanded(child: msg),
+                button,
+              ],
+            );
+          },
         ),
       ),
     );

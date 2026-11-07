@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -18,6 +19,7 @@ import 'package:ledgerlock/main.dart';
 import 'package:ledgerlock/security/biometric_reset.dart';
 import 'package:ledgerlock/security/vault.dart';
 import 'package:ledgerlock/tax/checkin.dart';
+import 'package:ledgerlock/ui/backup_screens.dart';
 import 'package:ledgerlock/ui/design/theme.dart';
 import 'package:ledgerlock/ui/ledger/entry_screen.dart';
 import 'package:ledgerlock/ui/ledger/import_screen.dart';
@@ -947,6 +949,49 @@ void main() {
       await t.runAsync(db.close);
     });
   }
+
+  for (final (w, scale, stacked) in [
+    (360.0, 2.0, true),
+    (320.0, 1.3, true),
+    (320.0, 1.0, false),
+    (412.0, 1.3, false),
+  ]) {
+    testWidgets('B2 backup nudge at w$w x$scale: button ${stacked ? 'under' : 'beside'} the message', (t) async {
+      final err = await stress(
+        t,
+        const Scaffold(
+          body: Padding(padding: EdgeInsets.all(16), child: BackupNudge(hasData: true)),
+        ),
+        b: Brightness.light,
+        width: w,
+        scale: scale,
+      );
+      expect(err, isNull);
+      final msg = t.getRect(find.textContaining('No backup yet'));
+      final btn = t.getRect(find.text('Back up'));
+      expect(btn.top >= msg.bottom, stacked);
+      // Never squeezed to a word a line: the message keeps most of the card's width.
+      expect(msg.width, greaterThan((w - 32) * (stacked ? 0.6 : 0.4)));
+    });
+  }
+
+  testWidgets('H1 at 200% text the profit card shows its title and "On this phone only" in full', (t) async {
+    final err = await stress(
+      t,
+      const AppShell(),
+      b: Brightness.light,
+      width: 360,
+      scale: 2.0,
+      entries: [_e(1, '2026-10-01', income: true, cents: 45000, cat: 'gross_receipts')],
+    );
+    expect(err, isNull);
+    for (final label in ['Net profit', 'On this phone only']) {
+      final f = find.textContaining(label);
+      await t.scrollUntilVisible(f, 200, scrollable: find.byType(Scrollable).first);
+      final p = t.renderObject<RenderParagraph>(f);
+      expect(p.didExceedMaxLines, isFalse, reason: label);
+    }
+  });
 
   testWidgets('M3 one business: no business row or chip bar anywhere', (t) async {
     final db = memDb();

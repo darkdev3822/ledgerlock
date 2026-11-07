@@ -115,20 +115,34 @@ def launch(d):
     time.sleep(6)
 
 
+def reveal(d, label=None, fields=0):
+    # Small screens: scroll until the label (or that many text fields) is visible.
+    for _ in range(6):
+        if (label and d.has(label)) or (fields and len(d.fields()) >= fields):
+            return
+        d.swipe_up()
+
+
 def setup(d):
     d.tap('Get started', timeout=60)
     d.type_into(0, PASSWORD)
-    d.type_into(1, PASSWORD)
     d.key(4)
+    reveal(d, fields=2)
+    d.type_into(len(d.fields()) - 1, PASSWORD)
+    d.key(4)
+    reveal(d, 'Create encrypted vault')
     d.tap('Create encrypted vault')
     d.wait("I've written it down", 60)
     key = [l for l in d.labels() if re.fullmatch(r'([A-Z0-9]{5}\n){5}[A-Z0-9]{5}', l)][0].split('\n')
+    reveal(d, "I've written it down")
     d.tap("I've written it down")
     d.type_into(0, f'{key[4]}-{key[5]}')
     d.key(4)
+    reveal(d, 'Confirm')
     d.tap('Confirm')
     d.tap('Not now', timeout=20)
     d.tap('Selling products', timeout=20)
+    reveal(d, 'Continue')
     d.tap('Continue')
     d.tap('Look around first', timeout=20)
     d.wait('Home', 20)
@@ -203,6 +217,10 @@ def journey(d, tag, shots):
             d.tap(t, exact=True)
             time.sleep(1)
             d.shot(f'{shots}/{tag}-{t.lower()}.png')
+        for _ in range(4):  # big text / landscape: the card can be below the fold
+            if any(l.startswith('Net profit') for l in d.labels()):
+                break
+            d.swipe_up()
         if not any(l.startswith('Net profit') for l in d.labels()):
             raise AssertionError('Home has no profit card after adding records')
 
@@ -236,6 +254,18 @@ def bad_log(d):
     return hits[:40]
 
 
+def alive(d):
+    return run([ADB, '-s', d.s, 'get-state']).stdout.strip() == 'device'
+
+
+def fresh(name, port):
+    d = boot(name, port)
+    d.adb('install', '-r', APK)
+    launch(d)
+    setup(d)
+    return d
+
+
 def lab(name, port=5556):
     device, stands_for = PROFILES[name]
     shots = f'{OUT}/{name}'
@@ -256,18 +286,28 @@ def lab(name, port=5556):
             report.append(f'setup: FAIL {e}'[:600])
             return report
         for vname, cmds in VARIANTS:
-            for c in RESET:
-                d.adb(*c, check=False)
-            for c in cmds:
-                if c == 'DENSITY+20%':
-                    base = int(re.findall(r'\d+', d.adb('shell', 'wm', 'density'))[0])
-                    d.adb('shell', 'wm', 'density', str(int(base * 1.2)))
-                else:
+            for attempt in range(2):
+                for c in RESET:
                     d.adb(*c, check=False)
-            time.sleep(2)
-            launch(d)
-            unlock(d)
-            steps = journey(d, vname, shots)
+                for c in cmds:
+                    if c == 'DENSITY+20%':
+                        base = int(re.findall(r'\d+', d.adb('shell', 'wm', 'density'))[0])
+                        d.adb('shell', 'wm', 'density', str(int(base * 1.2)))
+                    else:
+                        d.adb(*c, check=False)
+                time.sleep(2)
+                try:
+                    launch(d)
+                    unlock(d)
+                    steps = journey(d, vname, shots)
+                    break
+                except Exception as e:  # noqa: BLE001
+                    if alive(d) or attempt:
+                        raise
+                    # The emulator itself died (host GPU/RAM), not the app: boot a fresh one and retry once.
+                    report.append(f'[{vname}] emulator crashed, rebooted and retried ({str(e)[:120]})')
+                    time.sleep(5)
+                    d = fresh(name, port)
             bad = bad_log(d)
             ok = all(s == 'ok' for _, s in steps) and not bad
             report.append(f'[{vname}] {"PASS" if ok else "PROBLEMS"}')
