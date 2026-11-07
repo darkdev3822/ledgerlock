@@ -395,6 +395,7 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   changelogs 1003/2003/4003, README line. LL_RELEASE=1 gate passes (no rules/deps changes since beta 2). Signed
   release APKs built: same cert 115b9496...e410, no INTERNET. Emulator: published beta 2 -> beta 3 upgrade kept
   records; second business, chip bar, journey under it, combined SE tax correct; no log errors.
-  NOT YET: tag v1.0.0-beta.3 + GitHub pre-release: waiting for the owner's go-ahead.
+  PUBLISHED (owner: "publish"): tag v1.0.0-beta.3, GitHub pre-release with 3 APKs + SHA-256s + cert hash +
+  "don't restore a beta 3 backup into beta 1/2" note; download re-verified. Next release: bump appVersion + pubspec.
   Known residual: beta 2 itself still accepts beta 3 backups (can't patch old builds); release notes say so.
 
