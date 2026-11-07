@@ -31,6 +31,9 @@ meals %, any category/line changes.
 Resources (name, URL, who it's for, any income limit): IRS Free File, VITA, TCE, Taxpayer Advocate Service,
 IRS payment plans, Low Income Taxpayer Clinics, IRS Self-Employed Tax Center, IRS 1099-K page, IRS disaster
 relief page, SCORE.
+Learn lessons: every sentence of each lesson against its "Check against" list in docs/LESSONS_REVIEW.md
+(regenerate it with `python3 tool/lessons_review.py`). Set `"verified": true` per lesson only when all of it
+checks out; fix or delete anything unsure. Re-check verified lessons each year too (rules and forms change).
 
 ## Log
 | Year file | Reviewed on | Notes |

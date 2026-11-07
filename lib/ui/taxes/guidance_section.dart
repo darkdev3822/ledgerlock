@@ -92,7 +92,7 @@ class GuidanceSection extends ConsumerWidget {
                   subtitle: Text([s.resource.purpose, if (s.why != null) s.why!].join('\n')),
                   isThreeLine: s.why != null,
                   trailing: Icon(Icons.open_in_new_rounded, size: 20, color: ll.muted),
-                  onTap: () => _confirmOpen(context, s.resource),
+                  onTap: () => confirmOpenResource(context, s.resource),
                 ),
             ],
           ),
@@ -124,7 +124,8 @@ class GuidanceSection extends ConsumerWidget {
   }
 }
 
-Future<void> _confirmOpen(BuildContext context, Resource r) async {
+/// Asks before leaving the app for a resource link (shared with Learn lessons).
+Future<void> confirmOpenResource(BuildContext context, Resource r) async {
   final host = Uri.parse(r.url).host.replaceFirst('www.', '');
   final go = await showModalBottomSheet<bool>(
     context: context,

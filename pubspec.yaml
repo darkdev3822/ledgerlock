@@ -72,6 +72,7 @@ flutter:
   assets:
     - assets/tax_rules/
     - assets/licenses/
+    - assets/lessons/
   # Bundled (never fetched at runtime). SIL OFL 1.1, licences in assets/licenses/.
   fonts:
     - family: Manrope

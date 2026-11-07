@@ -16,6 +16,8 @@ import 'package:ledgerlock/data/csv_import.dart';
 import 'package:ledgerlock/data/database.dart';
 import 'package:ledgerlock/data/tax_rules.dart';
 import 'package:ledgerlock/main.dart';
+import 'package:ledgerlock/learn/lessons.dart';
+import 'package:ledgerlock/ui/learn/learn_screen.dart';
 import 'package:ledgerlock/security/encrypted_file_store.dart';
 import 'package:ledgerlock/media/documents.dart';
 import 'package:ledgerlock/platform/launch_inbox.dart';
@@ -115,6 +117,36 @@ Future<void> loadFonts() async {
 }
 
 final longName = 'X' * 200;
+late LessonLibrary lessonLib;
+const lessonIds = [
+  'basics_se_tax',
+  'basics_profit',
+  'basics_quarterly',
+  'basics_set_aside',
+  'basics_records',
+  'basics_cash_basis',
+  'basics_1099',
+  'products_fees',
+  'products_1099k',
+  'services_clients',
+  'services_home_office',
+  'driving_mileage',
+  'driving_earnings',
+  'creator_gear',
+  'money_separate',
+  'money_pricing',
+  'money_retirement',
+  'money_llc',
+];
+
+/// A lesson page by id (the library loads in setUpAll, after the screen map is built).
+class _LessonById extends StatelessWidget {
+  final String id;
+  const _LessonById(this.id);
+  @override
+  Widget build(BuildContext context) => LessonScreen(lesson: lessonLib.lessons.firstWhere((l) => l.id == id));
+}
+
 final emojiName = '🧾💸🔥🙂👩🏽‍💻' * 30;
 final arabicName = 'شركة التصميم الرقمي المحدودة للخدمات الإبداعية ' * 4;
 const huge = 99999999999; // $999,999,999.99
@@ -248,6 +280,8 @@ void main() {
   setUpAll(() async {
     await loadFonts();
     rules = {for (final y in TaxRules.supportedYears) y: await TaxRules.load(y)};
+    showLessonDrafts = true; // stress the draft lessons too (Home suggestion, Taxes entry, every lesson page)
+    lessonLib = await LessonLibrary.load();
   });
   setUp(() => dir = Directory.systemTemp.createTempSync('ll_fuzz'));
   tearDown(() => dir.deleteSync(recursive: true));
@@ -277,6 +311,7 @@ void main() {
           appControllerProvider.overrideWith((ref) => controller),
           todayProvider.overrideWithValue(today ?? DateTime(2026, 11, 1, 9)),
           taxRulesProvider.overrideWith((ref, year) async => rules[year]!),
+          lessonLibraryProvider.overrideWith((ref) async => lessonLib),
           entriesProvider.overrideWith(
             (ref, year) => Stream.value(entries.where((e) => e.date.startsWith('$year')).toList()),
           ),
@@ -333,6 +368,8 @@ void main() {
     'budgets': (const BudgetsScreen(), const []),
     'categories': (const CategoriesScreen(), const []),
     'businesses': (const BusinessesScreen(), const []),
+    'learn': (const LearnScreen(), const []),
+    for (final id in lessonIds) 'lesson_$id': (_LessonById(id), const []),
     'import_map': (
       ImportScreen(
         initialRows: [
@@ -416,6 +453,7 @@ void main() {
           appControllerProvider.overrideWith((ref) => c),
           todayProvider.overrideWithValue(today ?? DateTime(2026, 11, 1, 9)),
           taxRulesProvider.overrideWith((ref, year) async => rules[year]!),
+          lessonLibraryProvider.overrideWith((ref) async => lessonLib),
         ],
         child: MaterialApp(theme: buildTheme(Brightness.light), home: home),
       ),
@@ -1025,6 +1063,7 @@ void main() {
           appControllerProvider.overrideWith((ref) => c),
           todayProvider.overrideWithValue(DateTime(2026, 11, 1, 9)),
           taxRulesProvider.overrideWith((ref, year) async => rules[year]!),
+          lessonLibraryProvider.overrideWith((ref) async => lessonLib),
         ],
         child: MaterialApp(theme: buildTheme(Brightness.light), home: const AppShell()),
       ),
@@ -1148,6 +1187,7 @@ void main() {
           appControllerProvider.overrideWith((ref) => DbController(dataDir: dir, testDb: db)..debugShowReady()),
           todayProvider.overrideWithValue(DateTime(2026, 11, 1, 9)),
           taxRulesProvider.overrideWith((ref, year) async => rules[2026]!),
+          lessonLibraryProvider.overrideWith((ref) async => lessonLib),
         ],
         child: MaterialApp(
           theme: buildTheme(Brightness.light),
@@ -1168,6 +1208,63 @@ void main() {
     await settle(t);
     expect(t.takeException(), isNull);
     expect(find.text('Every month'), findsOneWidget);
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('LE1 Learn: driver sees basics/driving/money, a lesson fills its numbers, shows your miles, Got it', (
+    t,
+  ) async {
+    final db = memDb();
+    await t.runAsync(() => db.addTrip(TripsCompanion.insert(date: '2026-03-02', milesTenths: 1000)));
+    final c = await pumpWithDb(t, opener(() => const LearnScreen()), db);
+    c.businessTypes = {'driving'};
+    await t.tap(find.text('open'));
+    await settle(t);
+    expect(find.text('THE BASICS'), findsOneWidget);
+    expect(find.text('RIDESHARE AND DELIVERY'), findsOneWidget);
+    expect(find.text('SELLING PRODUCTS'), findsNothing);
+    await t.scrollUntilVisible(
+      find.text('Mileage: the deduction that adds up'),
+      200,
+      scrollable: find.descendant(of: find.byType(LearnScreen), matching: find.byType(Scrollable)).first,
+    );
+    await t.tap(find.text('Mileage: the deduction that adds up'));
+    await settle(t);
+    expect(find.textContaining('{{'), findsNothing);
+    expect(find.textContaining('72.5¢'), findsOneWidget);
+    expect(find.textContaining('1 trip, 100.0 miles in 2026'), findsOneWidget);
+    await t.ensureVisible(find.text('Got it'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Got it'));
+    await settle(t);
+    expect(c.lessonsDone, contains('driving_mileage'));
+    expect(await t.runAsync(() => db.getSetting('lessonsDone')), 'driving_mileage');
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('LE2 Home suggests the lesson whose moment has come; Not now hides it for good', (t) async {
+    final db = memDb();
+    await t.runAsync(
+      () => db.addForm1099(Forms1099Companion.insert(year: 2026, kind: '1099-K', payer: 'Etsy', amountCents: 100)),
+    );
+    final c = await pumpWithDb(t, const AppShell(), db);
+    c.businessTypes = {'products'};
+    c.notifyListeners();
+    await settle(t);
+    await t.scrollUntilVisible(
+      find.text('WORTH KNOWING').hitTestable(),
+      200,
+      scrollable: find.descendant(of: find.byType(HomeTab), matching: find.byType(Scrollable)).first,
+    );
+    expect(find.text('1099 forms: what they mean'), findsOneWidget);
+    await t.tap(find.byTooltip('Not now'));
+    await settle(t);
+    expect(c.lessonsDismissed, contains('basics_1099'));
+    expect(find.text('1099 forms: what they mean'), findsNothing);
     await t.pumpWidget(const SizedBox());
     await settle(t);
     await t.runAsync(db.close);
@@ -1319,6 +1416,7 @@ void main() {
           appControllerProvider.overrideWith((ref) => c),
           todayProvider.overrideWithValue(DateTime(2026, 11, 1, 9)),
           taxRulesProvider.overrideWith((ref, year) async => rules[year]!),
+          lessonLibraryProvider.overrideWith((ref) async => lessonLib),
         ],
         child: const LedgerLockApp(),
       ),

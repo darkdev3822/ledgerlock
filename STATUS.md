@@ -419,4 +419,13 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   8 overflowing bottom sheets, PDF font (Manrope embedded), summary/insights speed (13x/40x). Android monkey on a lab
   emulator: 18,000 events clean. Known: one Flutter-internal debug assertion (EditableText caret during page slide;
   release unaffected) is ignored by the monkey. search_test's 50 ms budget fails only when the machine is loaded.
+- LEARN (2026-11-07, owner's idea: courses by how you earn, taxes and beyond): assets/lessons/lessons.json (6 tracks:
+  basics, products, services, driving, creator, money; 18 DRAFT lessons), lib/learn/lessons.dart (strict loader,
+  {{placeholders}} from the rules file, triggers, suggestion), lib/ui/learn/learn_screen.dart (Learn list, lesson page
+  with "What this means for you" from the user's data + one action + verified source links; Home "Worth knowing";
+  Taxes "Learn" entry). Release builds show only verified lessons -> nothing ships until the owner's review
+  (docs/LESSONS_REVIEW.md via tool/lessons_review.py; step added to ANNUAL_RULES_REVIEW.md). Debug builds and
+  `showLessonDrafts = true` in tests show drafts with a DRAFT badge. SECURITY T47. 1676 tests. Emulator-checked.
+  Next for Learn: owner reviews drafts in the Dec 1 window; then more lessons (products: inventory/COGS needs app
+  support first; money: health insurance, emergency fund).
 

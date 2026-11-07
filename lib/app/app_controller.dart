@@ -126,6 +126,24 @@ class AppController extends ChangeNotifier {
   /// Home office square feet per tax year (simplified method), 0 = none.
   Map<int, int> homeOfficeSqft = {};
 
+  /// Learn: lessons read, and suggestions dismissed on Home (ids only, encrypted settings).
+  Set<String> lessonsDone = {}, lessonsDismissed = {};
+
+  static Set<String> _ids(String? v) =>
+      (v ?? '').split(',').where((s) => RegExp(r'^[a-z0-9_]{1,40}$').hasMatch(s)).take(500).toSet();
+
+  Future<void> markLessonDone(String id, {bool done = true}) async {
+    lessonsDone = done ? {...lessonsDone, id} : ({...lessonsDone}..remove(id));
+    notifyListeners();
+    await db?.setSetting('lessonsDone', lessonsDone.join(','));
+  }
+
+  Future<void> dismissLesson(String id) async {
+    lessonsDismissed = {...lessonsDismissed, id};
+    notifyListeners();
+    await db?.setSetting('lessonsDismissed', lessonsDismissed.join(','));
+  }
+
   /// Reminders (SPEC §2.6, §2.13). Stored in the encrypted DB; only generic notification text leaves it.
   bool quarterlyReminders = false;
 
@@ -282,6 +300,8 @@ class AppController extends ChangeNotifier {
     filedYears = (await db.getSetting('filedYears') ?? '').split(',').map(int.tryParse).whereType<int>().toSet();
     businessTypes = (await db.getSetting('businessTypes') ?? '').split(',').where((t) => t.isNotEmpty).toSet();
     lastCheckIn = _pastDate(await db.getSetting('lastCheckIn'));
+    lessonsDone = _ids(await db.getSetting('lessonsDone'));
+    lessonsDismissed = _ids(await db.getSetting('lessonsDismissed'));
     dismissedCheckIns = (await db.getSetting('dismissedCheckIns') ?? '').split('\n').where((k) => k.isNotEmpty).toSet();
     slots = await vault.enabledSlots();
     // Repeating records due since the last unlock (catch-up capped per rule). Never blocks unlocking.
