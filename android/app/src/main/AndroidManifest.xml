@@ -41,7 +41,36 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Long-press shortcuts on the app icon (new expense / income, scan, trip): all go via LaunchActivity. -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
+        <!-- Invisible trampoline: "Share > LedgerLock" for receipts (images, PDF), shortcuts and the Quick Settings
+             tile. Reads a shared file into memory only; the app asks before anything enters the vault (T44). -->
+        <activity
+            android:name=".LaunchActivity"
+            android:exported="true"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:label="LedgerLock"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter android:label="Add to LedgerLock">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+        </activity>
+        <service
+            android:name=".ScanTile"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_scan"
+            android:label="@string/tile_scan"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
         <receiver android:name=".ReminderReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

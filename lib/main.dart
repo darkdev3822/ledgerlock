@@ -38,6 +38,9 @@ Future<void> main() async {
     tempDir: await getTemporaryDirectory(),
   );
   await app.init();
+  // Shortcut / tile / shared file that started the app, and any that arrive while it runs (T44).
+  await app.pullLaunch();
+  app.launches.listen(app.pullLaunch);
   _registerLicenses();
   runApp(ProviderScope(overrides: [appControllerProvider.overrideWith((ref) => app)], child: const LedgerLockApp()));
 }

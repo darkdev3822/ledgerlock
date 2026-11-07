@@ -17,8 +17,8 @@ import '../design/theme.dart';
 import '../shell/tabs.dart';
 import '../vault/vault_screens.dart';
 
-Future<void> openSearch(BuildContext context) =>
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
+Future<void> openSearch(BuildContext context, {String text = ''}) =>
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => SearchScreen(initialText: text)));
 
 /// Pull down past the top of a list to open search (SPEC §4: "pull down on any list"). Counts overscroll during
 /// one drag; opens once per drag when it passes [threshold]. Works with Android's clamping scroll.

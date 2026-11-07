@@ -16,6 +16,9 @@ import 'package:ledgerlock/data/csv_import.dart';
 import 'package:ledgerlock/data/database.dart';
 import 'package:ledgerlock/data/tax_rules.dart';
 import 'package:ledgerlock/main.dart';
+import 'package:ledgerlock/security/encrypted_file_store.dart';
+import 'package:ledgerlock/media/documents.dart';
+import 'package:ledgerlock/platform/launch_inbox.dart';
 import 'package:ledgerlock/security/biometric_reset.dart';
 import 'package:ledgerlock/security/vault.dart';
 import 'package:ledgerlock/tax/checkin.dart';
@@ -53,6 +56,18 @@ class DbController extends AppController {
   DbController({required super.dataDir, required this.testDb}) : super(biometrics: FakeBiometrics(), year: 2026);
   @override
   AppDatabase? get db => testDb;
+}
+
+/// DbController with a real encrypted file store, for flows that import files (shared receipts).
+class DocsController extends DbController {
+  final Documents docs;
+  DocsController({required super.dataDir, required AppDatabase super.testDb})
+    : docs = Documents(
+        testDb,
+        EncryptedFileStore(Directory('${dataDir.path}/files'), Uint8List(32)..fillRange(0, 32, 7)),
+      );
+  @override
+  Documents? get documents => docs;
 }
 
 /// Simulates a slow phone: writes take 300 ms (real DB runs in a background isolate).
@@ -991,6 +1006,136 @@ void main() {
       final p = t.renderObject<RenderParagraph>(f);
       expect(p.didExceedMaxLines, isFalse, reason: label);
     }
+  });
+
+  Future<DocsController> pumpShell(WidgetTester t, AppDatabase db, Map<String, Object?> launch) async {
+    t.view.physicalSize = const Size(390, 844);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final c = DocsController(dataDir: dir, testDb: db)..debugShowReady();
+    c.pendingLaunch = null;
+    await t.runAsync(() async {
+      // Same path as the app: Android hands over a map, the controller checks it.
+      c.pendingLaunch = parseLaunch(launch);
+    });
+    c.debugLaunchAt(DateTime.now());
+    await t.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appControllerProvider.overrideWith((ref) => c),
+          todayProvider.overrideWithValue(DateTime(2026, 11, 1, 9)),
+          taxRulesProvider.overrideWith((ref, year) async => rules[year]!),
+        ],
+        child: MaterialApp(theme: buildTheme(Brightness.light), home: const AppShell()),
+      ),
+    );
+    await settle(t);
+    return c;
+  }
+
+  final pdfBytes = Uint8List.fromList([...'%PDF-1.7 receipt'.codeUnits]);
+
+  testWidgets('SH1 a shared PDF asks first: Discard keeps nothing, "Vault only" stores it encrypted', (t) async {
+    final db = memDb();
+    await pumpShell(t, db, {'kind': 'share', 'name': 'invoice.pdf', 'mime': 'application/pdf', 'bytes': pdfBytes});
+    expect(find.text('Add this to LedgerLock?'), findsOneWidget);
+    expect(find.text('invoice.pdf'), findsOneWidget);
+    await t.tap(find.text('Discard'));
+    await settle(t);
+    expect((await t.runAsync(() => db.watchAttachments(2026).first))!, isEmpty);
+
+    await t.pumpWidget(const SizedBox());
+    await pumpShell(t, db, {'kind': 'share', 'name': 'invoice.pdf', 'mime': 'image/png', 'bytes': pdfBytes});
+    await t.tap(find.text('Save to the Vault only'));
+    await settle(t);
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await settle(t);
+    final att = (await t.runAsync(() => db.watchAttachments(2026).first))!;
+    expect((att.single.name, att.single.mime, att.single.folder), ('invoice.pdf', 'application/pdf', 'receipt'));
+    final stored = Directory('${dir.path}/files').listSync().whereType<File>().map((f) => f.readAsBytesSync());
+    expect(stored.any((x) => String.fromCharCodes(x).contains('receipt')), isFalse, reason: 'encrypted at rest');
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('SH2 shortcuts: New income opens the income form; a refused share explains why', (t) async {
+    final db = memDb();
+    await pumpShell(t, db, {'kind': 'income'});
+    expect(find.text('Save income'), findsOneWidget);
+    await t.pumpWidget(const SizedBox());
+    await pumpShell(t, db, {'kind': 'share', 'name': 'x.png', 'bytes': Uint8List.fromList('MZ'.codeUnits)});
+    expect(find.text('LedgerLock can only take a photo or a PDF.'), findsOneWidget);
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('UN1 "Saved · Undo": undo removes a new record, and puts an edited one back', (t) async {
+    final db = memDb();
+    await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    await t.tap(find.text('open'));
+    await settle(t);
+    for (final k in ['1', '2']) {
+      await t.tap(find.text(k));
+    }
+    await t.tap(find.byType(ChoiceChip).first);
+    await t.pump();
+    await t.tap(find.text('Save expense'));
+    await settle(t);
+    expect((await t.runAsync(() => db.watchYear(2026).first))!.length, 1);
+    await t.tap(find.text('Undo'));
+    await settle(t);
+    expect((await t.runAsync(() => db.watchYear(2026).first))!, isEmpty);
+
+    final id = (await t.runAsync(
+      () => db.addEntry(
+        LedgerEntriesCompanion.insert(isIncome: false, date: '2026-10-01', amountCents: 1200, category: 'supplies'),
+      ),
+    ))!;
+    final before = (await t.runAsync(() => db.watchYear(2026).first))!.single;
+    await t.pumpWidget(const SizedBox());
+    await pumpWithDb(t, opener(() => EntryScreen(existing: before)), db);
+    await t.tap(find.text('open'));
+    await settle(t);
+    await t.enterText(find.widgetWithText(TextField, 'Paid to'), 'Changed');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await settle(t);
+    await t.tap(find.text('Save changes'));
+    await settle(t);
+    expect((await t.runAsync(() => db.watchYear(2026).first))!.single.party, 'Changed');
+    await t.tap(find.text('Undo'));
+    await settle(t);
+    final back = (await t.runAsync(() => db.watchYear(2026).first))!.single;
+    expect((back.id, back.party), (id, ''));
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('AT1 Needs attention: lists a big expense without a receipt; hiding it sticks', (t) async {
+    final db = memDb();
+    await t.runAsync(
+      () => db.addEntry(
+        LedgerEntriesCompanion.insert(isIncome: false, date: '2026-10-01', amountCents: 12000, category: 'supplies'),
+      ),
+    );
+    await pumpWithDb(t, const AppShell(), db);
+    await settle(t);
+    await t.scrollUntilVisible(
+      find.text('NEEDS ATTENTION', findRichText: true).hitTestable(),
+      200,
+      scrollable: find.descendant(of: find.byType(HomeTab), matching: find.byType(Scrollable)).first,
+    );
+    await t.pumpAndSettle();
+    expect(find.text('1 expense over \$75 without a receipt'), findsOneWidget);
+    await t.tap(find.byTooltip('Hide until there are more'));
+    await settle(t);
+    expect(find.text('NEEDS ATTENTION'), findsNothing);
+    expect(await t.runAsync(() => db.getSetting('attention:no_receipt:2026')), '1');
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
   });
 
   testWidgets('M3 one business: no business row or chip bar anywhere', (t) async {

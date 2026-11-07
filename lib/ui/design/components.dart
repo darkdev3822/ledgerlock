@@ -375,14 +375,16 @@ class LLSegmented<T> extends StatelessWidget {
 }
 
 /// Success moment (peak-end rule): a check that pops in, a firm haptic, one plain line saying what happened.
-/// Pass the messenger captured before popping a route.
-void showSuccess(ScaffoldMessengerState? messenger, String message) {
+/// Pass the messenger captured before popping a route. [onUndo] adds an Undo button (5 s, never persistent: U4).
+void showSuccess(ScaffoldMessengerState? messenger, String message, {VoidCallback? onUndo}) {
   HapticFeedback.mediumImpact();
   messenger
     ?..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
-        duration: const Duration(milliseconds: 2600),
+        duration: onUndo == null ? const Duration(milliseconds: 2600) : const Duration(seconds: 5),
+        persist: false,
+        action: onUndo == null ? null : SnackBarAction(label: 'Undo', onPressed: onUndo),
         content: Row(
           children: [
             const _PopCheck(),

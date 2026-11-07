@@ -398,4 +398,19 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   PUBLISHED (owner: "publish"): tag v1.0.0-beta.3, GitHub pre-release with 3 APKs + SHA-256s + cert hash +
   "don't restore a beta 3 backup into beta 1/2" note; download re-verified. Next release: bump appVersion + pubspec.
   Known residual: beta 2 itself still accepts beta 3 backups (can't patch old builds); release notes say so.
+- QoL BATCH (2026-11-07, owner picked 5 of my list): (1) "Share > LedgerLock" for photos/PDFs: LaunchActivity
+  trampoline + LaunchInbox.kt (memory only) -> lib/platform/launch_inbox.dart (sniff type from bytes) -> after unlock
+  "Add this to LedgerLock?" (New expense with OCR / Vault only / Discard). (2) Long-press icon shortcuts: New
+  expense, New income, Scan receipt, Log a trip (res/xml/shortcuts.xml). (3) Quick Settings tile "Scan receipt"
+  (ScanTile.kt). (4) Home "Needs attention": expenses > $75 without receipt, invoices unpaid > 30 days, 1099s
+  higher than records; tap opens the fix; X hides a row until its count grows (lib/data/attention.dart,
+  ui/shell/attention_card.dart). (5) "Saved · Undo" for new one-off records and edits. Camera double-start fix.
+  SECURITY T44/T45. 1035 tests. Emulator-verified (share from Files incl. OCR, hostile file:// share refused,
+  shortcuts warm + cold through unlock, tile from the QS panel).
+  Gotchas: adb `am start SEND` with a MediaStore URI fails (shell can't grant it): test shares from the Files app.
+  `cmd statusbar click-tile` doesn't wake a tile whose panel is closed; tap it in the expanded panel. Debug APK
+  reinstall drops the tile from QS (re-add). Headless emulators still crash now and then (swiftshader).
+  Ideas not built yet (from the same list): running-quarter line on the entry screen, quarter-end amount
+  notification, year-end checklist, Material You colors (vet package), quiet milestones, split receipts;
+  safe-harbor payment target waits for the Dec 1 rules review (IRS figures, never from memory).
 

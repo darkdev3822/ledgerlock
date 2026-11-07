@@ -13,6 +13,9 @@ import '../ledger/entry_screen.dart';
 import '../search/search_screen.dart';
 import '../vault/capture_screen.dart';
 import '../vault/vault_screens.dart';
+import '../../platform/launch_inbox.dart';
+import '../taxes/tools.dart' show MileageScreen;
+import '../vault/shared_file_sheet.dart';
 import 'tabs.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -46,7 +49,64 @@ class _AppShellState extends ConsumerState<AppShell> {
         case 'add':
           openEntry(context);
       }
+      _launch(); // a shortcut, the tile or a shared file that opened (or unlocked) the app
     });
+    _signal = ref.read(appControllerProvider).launchSignal..addListener(_launch);
+  }
+
+  late final ValueNotifier<int> _signal;
+
+  @override
+  void dispose() {
+    _signal.removeListener(_launch);
+    super.dispose();
+  }
+
+  /// Home-screen shortcuts, the Quick Settings tile and "Share > LedgerLock" (SECURITY.md T44).
+  Future<void> _launch() async {
+    if (!mounted) return;
+    final app = ref.read(appControllerProvider);
+    final a = app.takeLaunch();
+    switch (a) {
+      case null:
+        return;
+      case ShortcutAction(kind: 'income'):
+        await openEntry(context, income: true);
+      case ShortcutAction(kind: 'scan'):
+        await _scan();
+      case ShortcutAction(kind: 'trip'):
+        final m = MileageScreen(app.selectedYear);
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => m));
+        await m.addTrip(context, ref);
+      case ShortcutAction():
+        await openEntry(context);
+      case ShareFailed(:final why):
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(why)));
+      case SharedFile():
+        await _shared(a);
+    }
+  }
+
+  /// Nothing enters the vault until the user says so; "Discard" leaves no trace.
+  Future<void> _shared(SharedFile f) async {
+    final choice = await askSharedFile(context, f);
+    if (choice == null || !mounted) return;
+    final app = ref.read(appControllerProvider);
+    final docs = app.documents;
+    if (docs == null) return;
+    final id = await docs.importFile(
+      name: f.name,
+      mime: f.mime,
+      bytes: f.bytes,
+      folder: 'receipt',
+      year: app.selectedYear,
+    );
+    if (!mounted) return;
+    if (choice == SharedChoice.expense) {
+      await openEntry(context, receiptId: id);
+    } else {
+      showSuccess(ScaffoldMessenger.maybeOf(context), 'Saved to the Vault, encrypted.');
+    }
   }
 
   Future<void> _scan() async {

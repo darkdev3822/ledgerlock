@@ -138,28 +138,9 @@ class MainActivity : FlutterFragmentActivity() {
         }.start()
     }
 
-    private fun readCapped(input: java.io.InputStream): ByteArray {
-        val out = java.io.ByteArrayOutputStream()
-        val buf = ByteArray(64 * 1024)
-        var total = 0L
-        while (true) {
-            val n = input.read(buf)
-            if (n < 0) break
-            total += n
-            out.write(buf, 0, n)
-            if (total > maxBytes) break
-        }
-        return out.toByteArray()
-    }
+    private fun readCapped(input: java.io.InputStream) = LaunchInbox.readCapped(input)
 
-    /** Display names come from other apps: cap length, drop control and bidi-override characters (T21). */
-    private fun cleanName(raw: String?): String? {
-        if (raw == null) return null
-        val cleaned = raw.filter { ch ->
-            !Character.isISOControl(ch) && ch !in '\u202A'..'\u202E' && ch !in '\u2066'..'\u2069' && ch != '\u200E' && ch != '\u200F'
-        }.trim()
-        return cleaned.take(120).ifEmpty { null }
-    }
+    private fun cleanName(raw: String?) = LaunchInbox.cleanName(raw)
 
     private val linkHosts = setOf("irs.gov", "score.org")
 
@@ -183,8 +164,21 @@ class MainActivity : FlutterFragmentActivity() {
         if (android.os.Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on)
     }
 
+    private var launchChannel: MethodChannel? = null
+
+    override fun onResume() {
+        super.onResume()
+        // A share / shortcut / tile arrived while the app was already running: tell Dart to take it.
+        if (LaunchInbox.has()) launchChannel?.invokeMethod("ready", null)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        launchChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "ledgerlock/launch").also {
+            it.setMethodCallHandler { call, result ->
+                if (call.method == "take") result.success(LaunchInbox.take()) else result.notImplemented()
+            }
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "ledgerlock/files").setMethodCallHandler { call, result ->
             when (call.method) {
                 "pick" -> {

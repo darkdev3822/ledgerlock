@@ -324,7 +324,10 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     final category = _category!;
     final pct = _income ? 100 : _businessPct.round();
     final fee = _income ? _feeCents.clamp(0, _cents) : 0;
+    VoidCallback? undo; // "Saved · Undo": a new one-off record is removed, an edit goes back to how it was
     if (_editing) {
+      final before = widget.existing!;
+      undo = () => db.replaceEntries([before]);
       await db.saveEntry(
         widget.existing!.copyWith(
           isIncome: _income,
@@ -380,6 +383,8 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           businessId: Value(_business),
         ),
       );
+      // Not for repeats: undoing would also have to remove the rule and any copies it filled in.
+      if (ruleId == null) undo = () => db.deleteEntry(newId);
       // A backdated repeat ("Netflix since January") fills in the dates already passed.
       if (ruleId != null) _caughtUp = await db.runRecurring(ref.read(todayProvider));
       for (final r in _pendingReceipts) {
@@ -402,6 +407,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           : _date.year == ref.read(appControllerProvider).selectedYear
           ? 'Saved to ${DateFormat.MMMM().format(_date)}.'
           : 'Saved to ${DateFormat.yMMMM().format(_date)}. Switch the year to see it.',
+      onUndo: undo,
     );
   }
 

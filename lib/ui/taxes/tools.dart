@@ -296,7 +296,8 @@ class MileageScreen extends ConsumerWidget {
   final int year;
   const MileageScreen(this.year, {super.key});
 
-  Future<void> _add(BuildContext context, WidgetRef ref) async {
+  /// The "Add a business trip" sheet (also opened by the "Log a trip" home-screen shortcut).
+  Future<void> addTrip(BuildContext context, WidgetRef ref) async {
     final db = ref.read(appControllerProvider).db;
     if (db == null) return;
     final today = ref.read(todayProvider);
@@ -374,7 +375,7 @@ class MileageScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text('Mileage · $year')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _add(context, ref),
+        onPressed: () => addTrip(context, ref),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add trip'),
       ),

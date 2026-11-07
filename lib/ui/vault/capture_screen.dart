@@ -27,6 +27,10 @@ class CaptureScreen extends ConsumerStatefulWidget {
 class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindingObserver {
   CameraController? _cam;
   String? _error;
+
+  /// One camera start at a time: opening from the Quick Settings tile resumes the app while the screen's first start
+  /// is still running, and a second bind fails ("too many use cases"). [_paused]: went to the background mid-start.
+  bool _starting = false, _paused = false;
   bool _busy = false;
   Completer<YuvFrame>? _want;
 
@@ -47,14 +51,18 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
+      _paused = true;
       _cam?.dispose();
       _cam = null;
-    } else if (state == AppLifecycleState.resumed && _cam == null && mounted) {
-      _start();
+    } else if (state == AppLifecycleState.resumed) {
+      _paused = false;
+      if (_cam == null && !_starting && mounted) _start();
     }
   }
 
   Future<void> _start() async {
+    if (_starting) return;
+    _starting = true;
     try {
       final cams = await availableCameras();
       final back = cams.firstWhere((c) => c.lensDirection == CameraLensDirection.back, orElse: () => cams.first);
@@ -66,19 +74,23 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
       );
       await c.initialize();
       await c.startImageStream(_onFrame);
-      if (!mounted) {
-        await c.dispose();
+      if (!mounted || _paused) {
+        await c.dispose(); // left the screen or the app while starting; resume starts a fresh one
         return;
       }
       setState(() => _cam = c);
     } on CameraException catch (e) {
+      if (!mounted) return;
       setState(
         () => _error = e.code == 'CameraAccessDenied'
             ? 'Camera access is off. Allow it in Android settings, or import a photo instead.'
             : 'The camera isn\'t available right now.',
       );
     } catch (_) {
-      setState(() => _error = 'No camera found. You can import a photo or PDF instead.');
+      if (mounted) setState(() => _error = 'No camera found. You can import a photo or PDF instead.');
+    } finally {
+      _starting = false;
+      if (mounted && !_paused && _cam == null && _error == null) _start(); // a resume came in while starting
     }
   }
 

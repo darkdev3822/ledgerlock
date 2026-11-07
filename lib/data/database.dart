@@ -355,6 +355,12 @@ class AppDatabase extends _$AppDatabase {
 
   // ---------- attachments ----------
 
+  /// Ids of records with at least one receipt or document attached (any year's folder).
+  Stream<Set<int>> watchLinkedEntryIds() => customSelect(
+    'SELECT DISTINCT entry_id FROM attachments WHERE entry_id IS NOT NULL',
+    readsFrom: {attachments},
+  ).watch().map((rows) => {for (final r in rows) r.read<int>('entry_id')});
+
   Stream<List<Attachment>> watchAttachments(int year, {String? folder}) {
     final q = select(attachments)..where((a) => a.year.equals(year));
     if (folder != null) q.where((a) => a.folder.equals(folder));

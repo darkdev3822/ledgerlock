@@ -15,6 +15,7 @@ import '../media/documents.dart';
 import '../backup/backup.dart';
 import '../platform/backup_files.dart';
 import '../platform/document_picker.dart';
+import '../platform/launch_inbox.dart';
 import '../platform/secure_window.dart';
 import '../security/auto_lock.dart';
 import '../security/biometric_reset.dart';
@@ -32,6 +33,39 @@ class AppController extends ChangeNotifier {
   final Vault vault;
   final BiometricSecretStore biometrics;
   final DocumentPicker picker;
+
+  /// Shortcuts, the Quick Settings tile and files shared from other apps (T44).
+  final LaunchSource launches;
+
+  /// The action waiting for the app shell (taken once). Kept across the lock screen, so a share or shortcut still
+  /// works after unlocking (returning from the sharing app often auto-locks at the same moment). In memory only,
+  /// and dropped if nobody unlocks within [launchTtl].
+  LaunchAction? pendingLaunch;
+  DateTime? _launchAt;
+  static const launchTtl = Duration(minutes: 10);
+
+  /// Bumped when a new action arrives while the app is running.
+  final launchSignal = ValueNotifier<int>(0);
+
+  /// Asks Android for a waiting action (at start, and when it says one arrived).
+  Future<void> pullLaunch() async {
+    final a = await launches.take();
+    if (a == null) return;
+    pendingLaunch = a;
+    _launchAt = DateTime.now();
+    launchSignal.value++;
+  }
+
+  @visibleForTesting
+  void debugLaunchAt(DateTime at) => _launchAt = at;
+
+  LaunchAction? takeLaunch({DateTime? now}) {
+    final a = pendingLaunch;
+    pendingLaunch = null;
+    final at = _launchAt;
+    if (a == null || at == null || (now ?? DateTime.now()).difference(at) > launchTtl) return null;
+    return a;
+  }
 
   /// Platform temp/cache dir: wiped on start and lock so no stray plaintext survives.
   final Directory? tempDir;
@@ -108,11 +142,13 @@ class AppController extends ChangeNotifier {
     required this.dataDir,
     required this.biometrics,
     DocumentPicker? picker,
+    LaunchSource? launches,
     this.tempDir,
     Vault? vault,
     int? year,
   }) : vault = vault ?? Vault(dataDir),
        picker = picker ?? ChannelDocumentPicker(),
+       launches = launches ?? ChannelLaunchSource(),
        selectedYear = year ?? _defaultYear();
 
   static int _defaultYear() {

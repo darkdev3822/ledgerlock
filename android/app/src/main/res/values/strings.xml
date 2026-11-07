@@ -2,4 +2,9 @@
 <resources>
     <string name="widget_title">Next estimated tax</string>
     <string name="widget_description">The next quarterly tax due date. Shows no amounts or records.</string>
+    <string name="sc_expense">New expense</string>
+    <string name="sc_income">New income</string>
+    <string name="sc_scan">Scan receipt</string>
+    <string name="sc_trip">Log a trip</string>
+    <string name="tile_scan">Scan receipt</string>
 </resources>

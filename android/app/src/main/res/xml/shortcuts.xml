@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon. Each opens the app (unlock as usual) via LaunchActivity; nothing is shown before unlock. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="expense" android:enabled="true" android:icon="@drawable/ic_shortcut_expense"
+        android:shortcutShortLabel="@string/sc_expense">
+        <intent android:action="com.darkdev.ledgerlock.EXPENSE" android:targetPackage="com.darkdev.ledgerlock"
+            android:targetClass="com.darkdev.ledgerlock.LaunchActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="income" android:enabled="true" android:icon="@drawable/ic_shortcut_income"
+        android:shortcutShortLabel="@string/sc_income">
+        <intent android:action="com.darkdev.ledgerlock.INCOME" android:targetPackage="com.darkdev.ledgerlock"
+            android:targetClass="com.darkdev.ledgerlock.LaunchActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="scan" android:enabled="true" android:icon="@drawable/ic_shortcut_scan"
+        android:shortcutShortLabel="@string/sc_scan">
+        <intent android:action="com.darkdev.ledgerlock.SCAN" android:targetPackage="com.darkdev.ledgerlock"
+            android:targetClass="com.darkdev.ledgerlock.LaunchActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="trip" android:enabled="true" android:icon="@drawable/ic_shortcut_trip"
+        android:shortcutShortLabel="@string/sc_trip">
+        <intent android:action="com.darkdev.ledgerlock.TRIP" android:targetPackage="com.darkdev.ledgerlock"
+            android:targetClass="com.darkdev.ledgerlock.LaunchActivity" />
+    </shortcut>
+</shortcuts>
