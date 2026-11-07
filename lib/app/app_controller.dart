@@ -126,6 +126,17 @@ class AppController extends ChangeNotifier {
   /// Home office square feet per tax year (simplified method), 0 = none.
   Map<int, int> homeOfficeSqft = {};
 
+  /// Year-end checklist items ticked by hand, per tax year (ids, encrypted settings 'yearEnd:YEAR').
+  Map<int, Set<String>> yearEndTicks = {};
+
+  Future<void> toggleYearEnd(int year, String id) async {
+    final now = {...?yearEndTicks[year]};
+    if (!now.remove(id)) now.add(id);
+    yearEndTicks = {...yearEndTicks, year: now};
+    notifyListeners();
+    await db?.setSetting('yearEnd:$year', now.join(','));
+  }
+
   /// Learn: lessons read, and suggestions dismissed on Home (ids only, encrypted settings).
   Set<String> lessonsDone = {}, lessonsDismissed = {};
 
@@ -301,6 +312,7 @@ class AppController extends ChangeNotifier {
     businessTypes = (await db.getSetting('businessTypes') ?? '').split(',').where((t) => t.isNotEmpty).toSet();
     lastCheckIn = _pastDate(await db.getSetting('lastCheckIn'));
     lessonsDone = _ids(await db.getSetting('lessonsDone'));
+    yearEndTicks = {for (final y in TaxRules.supportedYears) y: _ids(await db.getSetting('yearEnd:$y'))};
     lessonsDismissed = _ids(await db.getSetting('lessonsDismissed'));
     dismissedCheckIns = (await db.getSetting('dismissedCheckIns') ?? '').split('\n').where((k) => k.isNotEmpty).toSet();
     slots = await vault.enabledSlots();

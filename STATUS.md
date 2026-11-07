@@ -428,4 +428,13 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   `showLessonDrafts = true` in tests show drafts with a DRAFT badge. SECURITY T47. 1676 tests. Emulator-checked.
   Next for Learn: owner reviews drafts in the Dec 1 window; then more lessons (products: inventory/COGS needs app
   support first; money: health insurance, emergency fund).
+- YEAR-END + QUARTER LINE (2026-11-07): Year-end checklist Dec 1 - Jan 31 for the year ending (lib/data/year_end.dart,
+  ui/taxes/year_end_screen.dart; Home + Taxes card "Wrapping up YEAR"): auto items (backup < 30 d, receipts > $75,
+  invoices unpaid > 30 d, Q4 payment logged) + manual ticks (December trips if driving, 1099s, personal spending;
+  settings yearEnd:YEAR) + "I've filed" switch; hidden when filed or all done. New records show "Q4 with this: $X
+  profit · set aside about $Y" (QuarterDue.period parses rules 'covers'; same summarize as Taxes; new one-off records
+  only). Lessons: +health insurance, +slow-month cushion (20 drafts). Tests: year_end_test, ui_stress YE1/QL1, layout
+  year_end + every lesson (ids read from the asset).
+  Test gotcha: any widget test with a real DB must unmount + settle before close (closeDb helper in ui_stress);
+  the quarter line keeps a live query on the entry screen and made the old pattern hang.
 

@@ -14,6 +14,7 @@ import '../../data/database.dart';
 import '../../data/recurring.dart';
 import '../../media/receipt_parser.dart';
 import '../../platform/ocr.dart';
+import '../../data/ledger.dart' show EntryData, summarize;
 import '../../data/tax_rules.dart';
 import '../design/components.dart';
 import '../design/theme.dart';
@@ -149,6 +150,42 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     if (id == null || db == null) return;
     final r = await db.recurring(id);
     if (mounted) setState(() => _rule = r);
+  }
+
+  /// "Q4 with this: $2,140 profit · set aside about $535": the estimated-tax period this record falls in, figured
+  /// the same way as the Taxes tab (all businesses, cash basis), including the record being typed. New records only.
+  Widget? _quarterLine(BuildContext context, TaxRules rules) {
+    if (_date.year != rules.year || (_income && !_paid)) return null;
+    final q = rules.quarterlyDue.where((q) {
+      final p = q.period(rules.year);
+      return p != null && !_date.isBefore(p.$1) && !_date.isAfter(p.$2);
+    }).firstOrNull;
+    final p = q?.period(rules.year);
+    if (q == null || p == null) return null;
+    final all = ref.watch(allEntriesProvider(rules.year)).value;
+    if (all == null) return null;
+    final inPeriod = [
+      for (final e in all)
+        if (!e.day.isBefore(p.$1) && !e.day.isAfter(p.$2)) e.data,
+      EntryData(
+        isIncome: _income,
+        date: _date,
+        amountCents: _cents,
+        feeCents: _income ? _feeCents.clamp(0, _cents) : 0,
+        businessPct: _income ? 100 : _businessPct.round(),
+        category: _category ?? (_income ? 'other_income' : 'other_expense'),
+        paid: true,
+      ),
+    ];
+    final s = summarize(inPeriod, rules, setAsidePct: ref.watch(appControllerProvider.select((a) => a.setAsidePct)));
+    return Padding(
+      padding: const EdgeInsets.only(top: Space.sm),
+      child: Text(
+        '${q.quarter} with this: ${formatCents(s.netCents)} ${s.netCents < 0 ? 'loss' : 'profit'}'
+        '${s.setAsideCents > 0 ? ' · set aside about ${formatCents(s.setAsideCents)}' : ''}',
+        style: context.text.labelMedium?.copyWith(color: context.ll.muted),
+      ),
+    );
   }
 
   Future<void> _pickRepeat() async {
@@ -549,6 +586,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                     ],
                   ),
                 ),
+                if (_cents > 0 && !_editing) ?_quarterLine(context, rules),
                 if (_cents == 0 && _frequent.isNotEmpty) ...[
                   const SizedBox(height: Space.md),
                   Text('Again?', style: context.text.labelMedium?.copyWith(color: ll.muted)),

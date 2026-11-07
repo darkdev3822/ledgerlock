@@ -1,12 +1,50 @@
 {
   "note": "Short offline lessons (SPEC: Learn). DRAFTS: every lesson is verified=false until the owner checks each claim against the documents in checkAgainst during the annual review (docs/LESSONS_REVIEW.md). Release builds show only verified lessons. Never type a tax number here: use a {{placeholder}} filled from the verified rules file. sources = ids from resources.json only.",
   "tracks": [
-    {"id": "basics", "title": "The basics", "subtitle": "How side-income taxes work", "for": []},
-    {"id": "products", "title": "Selling products", "subtitle": "Marketplaces, fees and 1099-Ks", "for": ["products"]},
-    {"id": "services", "title": "Services and freelance", "subtitle": "Clients, invoices and your workspace", "for": ["services"]},
-    {"id": "driving", "title": "Rideshare and delivery", "subtitle": "Miles, fees and tips", "for": ["driving"]},
-    {"id": "creator", "title": "Content creators", "subtitle": "Gear, sponsorships and free products", "for": ["creator"]},
-    {"id": "money", "title": "Beyond taxes", "subtitle": "Running your side business well", "for": []}
+    {
+      "id": "basics",
+      "title": "The basics",
+      "subtitle": "How side-income taxes work",
+      "for": []
+    },
+    {
+      "id": "products",
+      "title": "Selling products",
+      "subtitle": "Marketplaces, fees and 1099-Ks",
+      "for": [
+        "products"
+      ]
+    },
+    {
+      "id": "services",
+      "title": "Services and freelance",
+      "subtitle": "Clients, invoices and your workspace",
+      "for": [
+        "services"
+      ]
+    },
+    {
+      "id": "driving",
+      "title": "Rideshare and delivery",
+      "subtitle": "Miles, fees and tips",
+      "for": [
+        "driving"
+      ]
+    },
+    {
+      "id": "creator",
+      "title": "Content creators",
+      "subtitle": "Gear, sponsorships and free products",
+      "for": [
+        "creator"
+      ]
+    },
+    {
+      "id": "money",
+      "title": "Beyond taxes",
+      "subtitle": "Running your side business well",
+      "for": []
+    }
   ],
   "lessons": [
     {
@@ -22,8 +60,13 @@
       ],
       "you": "se_tax",
       "action": "open_taxes",
-      "sources": ["se_tax_center"],
-      "checkAgainst": ["Schedule SE (Form 1040) and its instructions for the year", "IRS Self-Employment Tax page (Social Security and Medicare taxes)"],
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "Schedule SE (Form 1040) and its instructions for the year",
+        "IRS Self-Employment Tax page (Social Security and Medicare taxes)"
+      ],
       "verified": false
     },
     {
@@ -39,8 +82,14 @@
       ],
       "you": "profit",
       "action": "add_expense",
-      "sources": ["se_tax_center"],
-      "checkAgainst": ["Schedule C (Form 1040) instructions", "Publication 334, Tax Guide for Small Business (deductible expenses: ordinary and necessary)", "Publication 535 or its successor guidance on business expenses"],
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "Schedule C (Form 1040) instructions",
+        "Publication 334, Tax Guide for Small Business (deductible expenses: ordinary and necessary)",
+        "Publication 535 or its successor guidance on business expenses"
+      ],
       "verified": false
     },
     {
@@ -57,8 +106,15 @@
       ],
       "you": "quarterly",
       "action": "open_payments",
-      "sources": ["se_tax_center", "payment_plans"],
-      "checkAgainst": ["Form 1040-ES (estimated tax) instructions for the year", "Publication 505, Tax Withholding and Estimated Tax", "Quarterly due dates in the verified rules file"],
+      "sources": [
+        "se_tax_center",
+        "payment_plans"
+      ],
+      "checkAgainst": [
+        "Form 1040-ES (estimated tax) instructions for the year",
+        "Publication 505, Tax Withholding and Estimated Tax",
+        "Quarterly due dates in the verified rules file"
+      ],
       "verified": false
     },
     {
@@ -74,8 +130,12 @@
       ],
       "you": "set_aside",
       "action": "open_taxes",
-      "sources": ["se_tax_center"],
-      "checkAgainst": ["App behaviour only (no IRS figure). Check wording stays a rule of thumb, never 'what you owe'"],
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "App behaviour only (no IRS figure). Check wording stays a rule of thumb, never 'what you owe'"
+      ],
       "verified": false
     },
     {
@@ -91,8 +151,13 @@
       ],
       "you": "records",
       "action": "search_no_receipt",
-      "sources": ["se_tax_center"],
-      "checkAgainst": ["Publication 583, Starting a Business and Keeping Records", "IRS 'How long should I keep records?' page"],
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "Publication 583, Starting a Business and Keeping Records",
+        "IRS 'How long should I keep records?' page"
+      ],
       "verified": false
     },
     {
@@ -108,8 +173,13 @@
       ],
       "you": "cash_basis",
       "action": "search_unpaid",
-      "sources": ["se_tax_center"],
-      "checkAgainst": ["Publication 538, Accounting Periods and Methods (cash method)", "Publication 334 (accounting methods)"],
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "Publication 538, Accounting Periods and Methods (cash method)",
+        "Publication 334 (accounting methods)"
+      ],
       "verified": false
     },
     {
@@ -125,8 +195,15 @@
       ],
       "you": "forms_1099",
       "action": "open_1099s",
-      "sources": ["form_1099k", "se_tax_center"],
-      "checkAgainst": ["IRS 'Understanding your Form 1099-K' page", "Instructions for Forms 1099-MISC and 1099-NEC", "1099-K threshold in the verified rules file (keyFigure form_1099k_threshold)"],
+      "sources": [
+        "form_1099k",
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "IRS 'Understanding your Form 1099-K' page",
+        "Instructions for Forms 1099-MISC and 1099-NEC",
+        "1099-K threshold in the verified rules file (keyFigure form_1099k_threshold)"
+      ],
       "verified": false
     },
     {
@@ -142,8 +219,14 @@
       ],
       "you": "profit",
       "action": "add_income",
-      "sources": ["form_1099k"],
-      "checkAgainst": ["IRS 'Understanding your Form 1099-K' page (personal items sold at a loss)", "Schedule C instructions (returns and allowances, other expenses)", "Publication 334"],
+      "sources": [
+        "form_1099k"
+      ],
+      "checkAgainst": [
+        "IRS 'Understanding your Form 1099-K' page (personal items sold at a loss)",
+        "Schedule C instructions (returns and allowances, other expenses)",
+        "Publication 334"
+      ],
       "verified": false
     },
     {
@@ -159,8 +242,12 @@
       ],
       "you": "forms_1099",
       "action": "open_1099s",
-      "sources": ["form_1099k"],
-      "checkAgainst": ["IRS 'Understanding your Form 1099-K' page (gross amount, what to do if it includes fees/refunds)"],
+      "sources": [
+        "form_1099k"
+      ],
+      "checkAgainst": [
+        "IRS 'Understanding your Form 1099-K' page (gross amount, what to do if it includes fees/refunds)"
+      ],
       "verified": false
     },
     {
@@ -176,8 +263,13 @@
       ],
       "you": "cash_basis",
       "action": "add_income",
-      "sources": ["se_tax_center"],
-      "checkAgainst": ["Instructions for Forms 1099-MISC and 1099-NEC (who must file)", "Publication 334 (income)"],
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "Instructions for Forms 1099-MISC and 1099-NEC (who must file)",
+        "Publication 334 (income)"
+      ],
       "verified": false
     },
     {
@@ -193,8 +285,13 @@
       ],
       "you": "home_office",
       "action": "open_home_office",
-      "sources": ["se_tax_center"],
-      "checkAgainst": ["Publication 587, Business Use of Your Home (regular and exclusive use, simplified method, limit)", "Home office keyFigures in the verified rules file"],
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "Publication 587, Business Use of Your Home (regular and exclusive use, simplified method, limit)",
+        "Home office keyFigures in the verified rules file"
+      ],
       "verified": false
     },
     {
@@ -210,8 +307,14 @@
       ],
       "you": "mileage",
       "action": "log_trip",
-      "sources": ["se_tax_center"],
-      "checkAgainst": ["Publication 463, Travel, Gift, and Car Expenses (standard mileage rate, records, choosing a method)", "Mileage rate keyFigure in the verified rules file", "Commuting rules for gig drivers (Publication 463 and the IRS Gig Economy Tax Center)"],
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "Publication 463, Travel, Gift, and Car Expenses (standard mileage rate, records, choosing a method)",
+        "Mileage rate keyFigure in the verified rules file",
+        "Commuting rules for gig drivers (Publication 463 and the IRS Gig Economy Tax Center)"
+      ],
       "verified": false
     },
     {
@@ -227,8 +330,15 @@
       ],
       "you": "profit",
       "action": "add_income",
-      "sources": ["form_1099k", "se_tax_center"],
-      "checkAgainst": ["IRS Gig Economy Tax Center", "IRS guidance on tips for the tax year (any new tip deduction rules)", "Publication 334 (income, fees)"],
+      "sources": [
+        "form_1099k",
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "IRS Gig Economy Tax Center",
+        "IRS guidance on tips for the tax year (any new tip deduction rules)",
+        "Publication 334 (income, fees)"
+      ],
       "verified": false
     },
     {
@@ -244,8 +354,14 @@
       ],
       "you": "profit",
       "action": "add_expense",
-      "sources": ["se_tax_center"],
-      "checkAgainst": ["Publication 525, Taxable and Nontaxable Income (bartering / property received for services)", "Publication 334 (business expenses, depreciation vs expensing for equipment)", "IRS Gig Economy Tax Center (digital content creators)"],
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "Publication 525, Taxable and Nontaxable Income (bartering / property received for services)",
+        "Publication 334 (business expenses, depreciation vs expensing for equipment)",
+        "IRS Gig Economy Tax Center (digital content creators)"
+      ],
       "verified": false
     },
     {
@@ -261,8 +377,13 @@
       ],
       "you": "set_aside",
       "action": "none",
-      "sources": ["se_tax_center", "score"],
-      "checkAgainst": ["Publication 583 (separate business bank account recommended for recordkeeping)"],
+      "sources": [
+        "se_tax_center",
+        "score"
+      ],
+      "checkAgainst": [
+        "Publication 583 (separate business bank account recommended for recordkeeping)"
+      ],
       "verified": false
     },
     {
@@ -278,8 +399,12 @@
       ],
       "you": "set_aside",
       "action": "none",
-      "sources": ["score"],
-      "checkAgainst": ["App behaviour only (no IRS figure); keep it general, no pricing advice"],
+      "sources": [
+        "score"
+      ],
+      "checkAgainst": [
+        "App behaviour only (no IRS figure); keep it general, no pricing advice"
+      ],
       "verified": false
     },
     {
@@ -295,8 +420,13 @@
       ],
       "you": "none",
       "action": "none",
-      "sources": ["se_tax_center"],
-      "checkAgainst": ["Publication 560, Retirement Plans for Small Business (SEP, SIMPLE, solo 401(k))", "IRS retirement plans for self-employed people page"],
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "Publication 560, Retirement Plans for Small Business (SEP, SIMPLE, solo 401(k))",
+        "IRS retirement plans for self-employed people page"
+      ],
       "verified": false
     },
     {
@@ -312,8 +442,58 @@
       ],
       "you": "none",
       "action": "none",
-      "sources": ["se_tax_center", "score"],
-      "checkAgainst": ["IRS 'Single member limited liability companies' page (disregarded entity, Schedule C)", "IRS LLC page (entity classification election)"],
+      "sources": [
+        "se_tax_center",
+        "score"
+      ],
+      "checkAgainst": [
+        "IRS 'Single member limited liability companies' page (disregarded entity, Schedule C)",
+        "IRS LLC page (entity classification election)"
+      ],
+      "verified": false
+    },
+    {
+      "id": "money_health",
+      "track": "money",
+      "title": "Health insurance when you work for yourself",
+      "minutes": 3,
+      "trigger": "always",
+      "body": [
+        "If your side business is your main work, health insurance is on you. Common routes are a spouse's or partner's plan, the Health Insurance Marketplace, or a plan through a job you still have.",
+        "Self-employed people who pay for their own health insurance may be able to deduct the premiums, but only if they weren't eligible for an employer's plan (yours or a spouse's) for those months, and only up to the business's profit. It's figured on its own form, not on Schedule C.",
+        "Marketplace plans can come with a premium tax credit based on your income, and the two rules interact. If you're in that situation, this is one to check with the IRS guidance or a preparer."
+      ],
+      "you": "none",
+      "action": "none",
+      "sources": [
+        "se_tax_center"
+      ],
+      "checkAgainst": [
+        "Form 7206, Self-Employed Health Insurance Deduction, and its instructions (eligibility, profit limit)",
+        "Publication 974, Premium Tax Credit (interaction with the self-employed health insurance deduction)",
+        "Publication 535 or successor guidance on business expenses (insurance)"
+      ],
+      "verified": false
+    },
+    {
+      "id": "money_emergency",
+      "track": "money",
+      "title": "A cushion for slow months",
+      "minutes": 2,
+      "trigger": "always",
+      "body": [
+        "Side income goes up and down: a slow month, a client who pays late, a platform that changes its rules. A small cushion of savings keeps one bad month from becoming a debt.",
+        "Keep it apart from your tax savings, so a slow month never eats the money you owe the IRS. Two separate pots, labeled, is enough.",
+        "Your monthly chart on Home shows how uneven your income really is. The uneven months are what the cushion is for."
+      ],
+      "you": "profit",
+      "action": "none",
+      "sources": [
+        "score"
+      ],
+      "checkAgainst": [
+        "General money guidance only (no IRS claim). Check it stays general and gives no investment advice"
+      ],
       "verified": false
     }
   ]

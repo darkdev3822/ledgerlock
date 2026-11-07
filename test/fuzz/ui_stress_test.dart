@@ -1,6 +1,7 @@
 // QA fuzz: layout stress (text scale, narrow width, hostile data, both themes) and logic repros.
 // Cases named FINDING were confirmed bugs, fixed in M9.5; they now run as regression tests.
 // Run: flutter test test/fuzz/ui_stress_test.dart
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart' show Value;
@@ -18,6 +19,7 @@ import 'package:ledgerlock/data/tax_rules.dart';
 import 'package:ledgerlock/main.dart';
 import 'package:ledgerlock/learn/lessons.dart';
 import 'package:ledgerlock/ui/learn/learn_screen.dart';
+import 'package:ledgerlock/ui/taxes/year_end_screen.dart';
 import 'package:ledgerlock/security/encrypted_file_store.dart';
 import 'package:ledgerlock/media/documents.dart';
 import 'package:ledgerlock/platform/launch_inbox.dart';
@@ -118,25 +120,11 @@ Future<void> loadFonts() async {
 
 final longName = 'X' * 200;
 late LessonLibrary lessonLib;
-const lessonIds = [
-  'basics_se_tax',
-  'basics_profit',
-  'basics_quarterly',
-  'basics_set_aside',
-  'basics_records',
-  'basics_cash_basis',
-  'basics_1099',
-  'products_fees',
-  'products_1099k',
-  'services_clients',
-  'services_home_office',
-  'driving_mileage',
-  'driving_earnings',
-  'creator_gear',
-  'money_separate',
-  'money_pricing',
-  'money_retirement',
-  'money_llc',
+
+/// Every lesson in the bundled file (read at test definition, so new lessons are stressed automatically).
+final lessonIds = [
+  for (final l in (jsonDecode(File('assets/lessons/lessons.json').readAsStringSync()) as Map)['lessons'] as List)
+    (l as Map)['id'] as String,
 ];
 
 /// A lesson page by id (the library loads in setUpAll, after the screen map is built).
@@ -369,6 +357,7 @@ void main() {
     'categories': (const CategoriesScreen(), const []),
     'businesses': (const BusinessesScreen(), const []),
     'learn': (const LearnScreen(), const []),
+    'year_end': (const YearEndScreen(year: 2026), const []),
     for (final id in lessonIds) 'lesson_$id': (_LessonById(id), const []),
     'import_map': (
       ImportScreen(
@@ -470,6 +459,13 @@ void main() {
     await t.pumpAndSettle();
   }
 
+  /// Unmount, let pending work finish, then close: a live query parked in the fake clock otherwise blocks close().
+  Future<void> closeDb(WidgetTester t, AppDatabase db) async {
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  }
+
   Widget opener(Widget Function() screen) => Scaffold(
     body: Builder(
       builder: (c) => TextButton(
@@ -494,7 +490,7 @@ void main() {
     await t.tap(find.text('5'));
     await t.pump();
     expect(find.text(r'$0.05'), findsOneWidget);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('U10b Android Back closing the soft keyboard brings the keypad back', (t) async {
@@ -510,7 +506,7 @@ void main() {
     await t.pumpAndSettle();
     addTearDown(t.view.resetViewInsets);
     expect(find.text('5'), findsOneWidget);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   // Tester's phone is a foldable: the keypad grew with the screen WIDTH (aspect-ratio keys), so on the wide inner
@@ -540,7 +536,9 @@ void main() {
       await settle(t);
       final rows = await t.runAsync(() => db.watchYear(2026).first);
       expect(rows!.length, 1);
-      await t.runAsync(db.close);
+      await t.pumpWidget(const SizedBox()); // unmount first: a live query parked in the fake clock blocks close()
+      await settle(t);
+      await closeDb(t, db);
     });
   }
 
@@ -565,7 +563,7 @@ void main() {
     expect(rec.single.every, 'month');
     expect(rec.single.amountCents, 15);
     expect(DateTime.parse(rec.single.nextDate).isAfter(DateTime.parse(rows.single.date)), isTrue);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('B1 setting a budget from the dialog saves it without errors', (t) async {
@@ -581,7 +579,7 @@ void main() {
     expect(t.takeException(), isNull);
     expect(find.text(r'$100 / mo'), findsOneWidget);
     expect(app.budgets['contract_labor'], 10000);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('S1 search remembers a query after 2 s with results, and saves one with the star', (t) async {
@@ -618,7 +616,7 @@ void main() {
     await t.tap(find.text('Clear'));
     await settle(t);
     expect(find.text('Recent'), findsNothing);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('D1 Duplicate makes a new record dated today with the same details', (t) async {
@@ -657,7 +655,7 @@ void main() {
     // Unmount and let pending queries finish inside the fake clock, or close() waits forever (test-only).
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('P1 pulling down at the top of a list opens search', (t) async {
@@ -666,7 +664,7 @@ void main() {
     await t.fling(find.byType(ListView), const Offset(0, 400), 1000);
     await settle(t);
     expect(find.byType(SearchScreen), findsOneWidget);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('C1 adding your own category saves it and shows the line it counts on', (t) async {
@@ -690,7 +688,7 @@ void main() {
     expect(stored, contains('Client lunches'));
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('M1 adding a business lists it, and removing it moves its records to the main business', (t) async {
@@ -729,7 +727,7 @@ void main() {
     expect(rows!.single.businessId, AppDatabase.mainBusinessId, reason: 'record kept, moved to main');
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('M2 with a business on screen, a new record saves to it (and can be switched)', (t) async {
@@ -751,7 +749,7 @@ void main() {
     expect(rows!.single.businessId, id);
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('Q1 "Again?" chip fills a frequent record in one tap and saves it', (t) async {
@@ -785,7 +783,7 @@ void main() {
     expect((n.party, n.amountCents, n.category, n.tags), ('Starbucks', 540, 'meals', ' client-a '));
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('S2 select records: change category with undo, select all, delete with undo', (t) async {
@@ -837,7 +835,7 @@ void main() {
     expect((await cats()).length, 3);
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   for (final (w, scale) in [(320.0, 2.0), (880.0, 1.3), (390.0, 1.0)]) {
@@ -879,7 +877,7 @@ void main() {
       await settle(t);
       await t.pumpWidget(const SizedBox());
       await settle(t);
-      await t.runAsync(db.close);
+      await closeDb(t, db);
     });
   }
 
@@ -917,7 +915,7 @@ void main() {
     expect((n.paid, n.date), (true, '2026-11-01'));
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('I2 selected unpaid invoices: Received, keeping each invoice date; undo', (t) async {
@@ -942,7 +940,7 @@ void main() {
     expect(rows.every((e) => !e.paid), isTrue);
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('T1 a trip driven again fills from its chip and saves', (t) async {
@@ -974,7 +972,7 @@ void main() {
     expect((trips.first.milesTenths, trips.first.purpose, trips.first.route), (124, 'Client visit', 'Home to Acme'));
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   for (final size in [const Size(844, 390), const Size(915, 412), const Size(600, 400)]) {
@@ -999,7 +997,7 @@ void main() {
       expect((await t.runAsync(() => db.watchYear(2026).first))!.single.amountCents, 1250);
       await t.pumpWidget(const SizedBox());
       await settle(t);
-      await t.runAsync(db.close);
+      await closeDb(t, db);
     });
   }
 
@@ -1095,7 +1093,7 @@ void main() {
     expect(stored.any((x) => String.fromCharCodes(x).contains('receipt')), isFalse, reason: 'encrypted at rest');
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('SH2 shortcuts: New income opens the income form; a refused share explains why', (t) async {
@@ -1107,7 +1105,7 @@ void main() {
     expect(find.text('LedgerLock can only take a photo or a PDF.'), findsOneWidget);
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('UN1 "Saved · Undo": undo removes a new record, and puts an edited one back', (t) async {
@@ -1149,7 +1147,7 @@ void main() {
     expect((back.id, back.party), (id, ''));
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('AT1 Needs attention: lists a big expense without a receipt; hiding it sticks', (t) async {
@@ -1174,7 +1172,7 @@ void main() {
     expect(await t.runAsync(() => db.getSetting('attention:no_receipt:2026')), '1');
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('K1 bottom sheets scroll instead of overflowing on a small phone with big text (monkey find)', (t) async {
@@ -1210,7 +1208,7 @@ void main() {
     expect(find.text('Every month'), findsOneWidget);
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('LE1 Learn: driver sees basics/driving/money, a lesson fills its numbers, shows your miles, Got it', (
@@ -1243,7 +1241,7 @@ void main() {
     expect(await t.runAsync(() => db.getSetting('lessonsDone')), 'driving_mileage');
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('LE2 Home suggests the lesson whose moment has come; Not now hides it for good', (t) async {
@@ -1267,7 +1265,64 @@ void main() {
     expect(find.text('1099 forms: what they mean'), findsNothing);
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
+  });
+
+  testWidgets('YE1 in December Home offers the year-end checklist; ticks stick; marking the year filed hides it', (
+    t,
+  ) async {
+    final db = memDb();
+    await t.runAsync(
+      () => db.addEntry(
+        LedgerEntriesCompanion.insert(isIncome: true, date: '2026-06-01', amountCents: 50000, category: 'services'),
+      ),
+    );
+    final c = await pumpWithDb(t, const AppShell(), db, today: DateTime(2026, 12, 5, 9));
+    await settle(t);
+    await t.scrollUntilVisible(
+      find.text('Year-end checklist').hitTestable(),
+      200,
+      scrollable: find.descendant(of: find.byType(HomeTab), matching: find.byType(Scrollable)).first,
+    );
+    expect(find.text('WRAPPING UP 2026'), findsOneWidget);
+    await t.tap(find.text('Year-end checklist'));
+    await settle(t);
+    await t.tap(find.text('Check for personal spending'));
+    await settle(t);
+    expect(c.yearEndTicks[2026], contains('personal'));
+    expect(await t.runAsync(() => db.getSetting('yearEnd:2026')), 'personal');
+    await t.tap(find.text("I've filed my 2026 return"));
+    await settle(t);
+    expect(c.filedYears, contains(2026));
+    await t.pageBack();
+    await settle(t);
+    expect(find.text('WRAPPING UP 2026'), findsNothing);
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await closeDb(t, db);
+  });
+
+  testWidgets('QL1 a new record shows its estimated-tax period with it included (same maths as Taxes)', (t) async {
+    final db = memDb();
+    await t.runAsync(
+      () => db.addEntry(
+        LedgerEntriesCompanion.insert(isIncome: true, date: '2026-10-01', amountCents: 100000, category: 'services'),
+      ),
+    );
+    await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    await t.tap(find.text('open'));
+    await settle(t);
+    expect(find.textContaining('with this:'), findsNothing, reason: 'no amount yet');
+    for (final k in ['2', '0', '0', '00']) {
+      await t.tap(find.text(k).last);
+    }
+    await t.tap(find.byType(ChoiceChip).first); // first expense category (fully deductible)
+    await settle(t);
+    // Q4 (Sep 1 - Dec 31): $1,000 in, $200 expense -> $800 profit; 25% set-aside -> $200.
+    expect(find.text('Q4 with this: \$800.00 profit · set aside about \$200.00'), findsOneWidget);
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await closeDb(t, db);
   });
 
   testWidgets('M3 one business: no business row or chip bar anywhere', (t) async {
@@ -1280,7 +1335,7 @@ void main() {
     expect(app.newRecordBusiness, AppDatabase.mainBusinessId);
     await t.pumpWidget(const SizedBox());
     await settle(t);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('U11 keypad stays after tapping chips, segments, slider and switch', (t) async {
@@ -1299,7 +1354,7 @@ void main() {
     await t.tap(find.byType(SwitchListTile));
     await t.pumpAndSettle();
     expect(find.text('5'), findsOneWidget, reason: 'non-text controls must not hide the keypad');
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('U12 a disabled Save says what is missing', (t) async {
@@ -1312,7 +1367,7 @@ void main() {
     await t.pump();
     final picked = find.byWidgetPredicate((w) => w is ChoiceChip && w.selected);
     if (picked.evaluate().isEmpty) expect(find.textContaining('Pick a category'), findsOneWidget);
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   });
 
   testWidgets('FINDING U1: entry Save tapped twice (slow write) creates two records and pops twice', (t) async {
@@ -1333,7 +1388,7 @@ void main() {
     t.takeException();
     expect(find.text('open'), findsOneWidget, reason: 'second pop must not remove the screen underneath');
     expect(rows!.length, 1, reason: 'double tap on Save must not create a duplicate');
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   }, skip: !_confirm); // FINDING U1: EntryScreen._save has no in-flight guard: 2 records + 2 pops
 
   testWidgets('FINDING U2: tools sheet disposes TextEditingControllers while the sheet animates out', (t) async {
@@ -1347,7 +1402,7 @@ void main() {
     await t.tap(find.widgetWithText(FilledButton, 'Save'));
     await settle(t);
     expect(t.takeException(), isNull, reason: 'TextEditingController used after being disposed (tools.dart _sheet)');
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   }, skip: !_confirm); // FINDING U2: tools.dart disposes sheet controllers right after showModalBottomSheet returns
 
   testWidgets('FINDING U2b: payment sheet Save tapped twice (slow write) logs two payments', (t) async {
@@ -1368,7 +1423,7 @@ void main() {
     t.takeException();
     expect(find.text('Payment log · 2026'), findsOneWidget, reason: 'second pop must not close the payment log');
     expect(rows!.length, 1, reason: 'double tap on Save must not log two payments');
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   }, skip: !_confirm); // FINDING U2b: _sheet Save has no in-flight guard
 
   test('U3 undo delete keeps the receipt linked', () async {
@@ -1435,7 +1490,7 @@ void main() {
     await t.pump(const Duration(seconds: 10));
     expect(find.byType(WelcomeScreen), findsOneWidget);
     expect(find.text('Record deleted'), findsNothing, reason: 'undo snackbar (persist: true) survives lock');
-    await t.runAsync(db.close);
+    await closeDb(t, db);
   }, skip: !_confirm);
 
   testWidgets('FINDING U5: due countdown off by one across DST (Mar 1 -> Apr 15 shows 44 days)', (t) async {

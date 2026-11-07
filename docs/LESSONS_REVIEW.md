@@ -7,7 +7,7 @@ Numbers appear as `{{placeholders}}`: they come from the verified rules file, so
 placeholder is used, not a value. When every claim checks out, set `"verified": true` on the lesson.
 Anything wrong or unsure: fix the text (or delete the sentence) first. Release builds show only verified lessons.
 
-**Status:** 0 of 18 verified.
+**Status:** 0 of 20 verified.
 
 ## [ ] Why side income has its own tax  (`basics_se_tax`, The basics)
 
@@ -283,3 +283,33 @@ Shown when: `always` · Your-numbers block: `none` · Button: `none` · Source l
 - IRS LLC page (entity classification election)
 
 Shown when: `always` · Your-numbers block: `none` · Button: `none` · Source links (verified resources): se_tax_center, score
+
+## [ ] Health insurance when you work for yourself  (`money_health`, Beyond taxes)
+
+> If your side business is your main work, health insurance is on you. Common routes are a spouse's or partner's plan, the Health Insurance Marketplace, or a plan through a job you still have.
+>
+> Self-employed people who pay for their own health insurance may be able to deduct the premiums, but only if they weren't eligible for an employer's plan (yours or a spouse's) for those months, and only up to the business's profit. It's figured on its own form, not on Schedule C.
+>
+> Marketplace plans can come with a premium tax credit based on your income, and the two rules interact. If you're in that situation, this is one to check with the IRS guidance or a preparer.
+>
+
+**Check against:**
+- Form 7206, Self-Employed Health Insurance Deduction, and its instructions (eligibility, profit limit)
+- Publication 974, Premium Tax Credit (interaction with the self-employed health insurance deduction)
+- Publication 535 or successor guidance on business expenses (insurance)
+
+Shown when: `always` · Your-numbers block: `none` · Button: `none` · Source links (verified resources): se_tax_center
+
+## [ ] A cushion for slow months  (`money_emergency`, Beyond taxes)
+
+> Side income goes up and down: a slow month, a client who pays late, a platform that changes its rules. A small cushion of savings keeps one bad month from becoming a debt.
+>
+> Keep it apart from your tax savings, so a slow month never eats the money you owe the IRS. Two separate pots, labeled, is enough.
+>
+> Your monthly chart on Home shows how uneven your income really is. The uneven months are what the cushion is for.
+>
+
+**Check against:**
+- General money guidance only (no IRS claim). Check it stays general and gives no investment advice
+
+Shown when: `always` · Your-numbers block: `profit` · Button: `none` · Source links (verified resources): score

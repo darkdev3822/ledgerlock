@@ -56,7 +56,7 @@ const keys = [
   'homeOfficeSqft:2025',
   'incomeGoal:2025',
   'w2Wages:2025',
-  'attention:no_receipt:2026', 'lessonsDone', 'lessonsDismissed',
+  'attention:no_receipt:2026', 'lessonsDone', 'lessonsDismissed', 'yearEnd:2026', 'yearEnd:2025',
 ];
 
 const junk = <String>[

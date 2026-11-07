@@ -8,6 +8,17 @@ class QuarterDue {
   final String covers;
   final DateTime due;
   const QuarterDue(this.quarter, this.covers, this.due);
+
+  static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  /// The months this payment covers in [year], from [covers] ("Apr 1 - May 31"); null if it can't be read.
+  (DateTime, DateTime)? period(int year) {
+    final m = RegExp(r'^([A-Z][a-z]{2}) (\d{1,2}) - ([A-Z][a-z]{2}) (\d{1,2})$').firstMatch(covers.trim());
+    if (m == null) return null;
+    final a = _months.indexOf(m[1]!), b = _months.indexOf(m[3]!);
+    if (a < 0 || b < 0) return null;
+    return (DateTime(year, a + 1, int.parse(m[2]!)), DateTime(year, b + 1, int.parse(m[4]!)));
+  }
 }
 
 class Category {

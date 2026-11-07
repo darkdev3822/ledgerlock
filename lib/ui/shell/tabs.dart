@@ -23,6 +23,7 @@ import '../taxes/guidance_section.dart';
 import '../taxes/pending_card.dart';
 import '../taxes/tools.dart';
 import '../learn/learn_screen.dart';
+import '../taxes/year_end_screen.dart';
 import 'attention_card.dart';
 import 'insights_card.dart';
 
@@ -85,6 +86,7 @@ class HomeTab extends ConsumerWidget {
             ),
           ],
         ),
+      if (yearEndDue(ref) case final y?) YearEndCard(year: y),
       if (ref.watch(visibleAttentionProvider(year)).isNotEmpty) AttentionCard(year: year),
       if (LessonSuggestionCard.pick(ref, year) != null) LessonSuggestionCard(year: year),
       BudgetsCard(year: year),
@@ -1081,6 +1083,7 @@ class TaxesTab extends ConsumerWidget {
           ],
         ),
       if (rules != null && rules.pending.isNotEmpty) PendingFiguresCard(rules: rules),
+      if (yearEndDue(ref) case final y?) YearEndCard(year: y),
       if (LearnEntryCard.mine(ref).isNotEmpty) const LearnEntryCard(),
       GuidanceSection(year: year),
       Column(
