@@ -23,6 +23,7 @@ import '../taxes/guidance_section.dart';
 import '../taxes/pending_card.dart';
 import '../taxes/tools.dart';
 import '../learn/learn_screen.dart';
+import '../tour/app_tour.dart';
 import '../taxes/year_end_screen.dart';
 import 'attention_card.dart';
 import 'insights_card.dart';
@@ -55,7 +56,10 @@ class HomeTab extends ConsumerWidget {
       _Greeting(today: today, rules: rules, s: s, hasEntries: entries.isNotEmpty),
       const CheckInCard(),
       BackupNudge(hasData: entries.isNotEmpty),
-      _HeroCard(year: year, s: s),
+      KeyedSubtree(
+        key: TourTargets.hero,
+        child: _HeroCard(year: year, s: s),
+      ),
       if (entries.isNotEmpty)
         Row(
           children: [

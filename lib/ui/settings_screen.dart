@@ -337,6 +337,17 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SectionHeader('Help'),
+          LLGroup(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.explore_outlined),
+                title: const Text('Take the app tour'),
+                subtitle: const Text('A two-minute look around'),
+                onTap: app.requestTour,
+              ),
+            ],
+          ),
           const SectionHeader('About'),
           LLGroup(
             children: [

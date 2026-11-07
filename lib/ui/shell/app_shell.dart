@@ -16,6 +16,7 @@ import '../vault/vault_screens.dart';
 import '../../platform/launch_inbox.dart';
 import '../taxes/tools.dart' show MileageScreen;
 import '../vault/shared_file_sheet.dart';
+import '../tour/app_tour.dart';
 import 'tabs.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -34,7 +35,12 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     // Onboarding's last step may ask for a first action.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      // Just finished setup: offer the tour first, then do what the last setup step asked for.
+      if (ref.read(appControllerProvider).takeTourOffer() && await offerAppTour(context) && mounted) {
+        await _tour();
+      }
       if (!mounted) return;
       final added = ref.read(appControllerProvider).takeRecurringAdded();
       if (added > 0) {
@@ -52,13 +58,24 @@ class _AppShellState extends ConsumerState<AppShell> {
       _launch(); // a shortcut, the tile or a shared file that opened (or unlocked) the app
     });
     _signal = ref.read(appControllerProvider).launchSignal..addListener(_launch);
+    _tourSignal = ref.read(appControllerProvider).tourSignal..addListener(_tour);
   }
 
-  late final ValueNotifier<int> _signal;
+  late final ValueNotifier<int> _signal, _tourSignal;
+
+  /// The tour points at Home and the bars, so it always starts on Home.
+  Future<void> _tour() async {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    if (_tab != 0) setState(() => _tab = 0);
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) await showAppTour(context);
+  }
 
   @override
   void dispose() {
     _signal.removeListener(_launch);
+    _tourSignal.removeListener(_tour);
     super.dispose();
   }
 
@@ -147,16 +164,30 @@ class _AppShellState extends ConsumerState<AppShell> {
               ),
               const SizedBox(width: Space.sm),
             ],
-            YearSwitcher(year: app.selectedYear, onChanged: app.setYear, filed: app.filedYears),
+            KeyedSubtree(
+              key: TourTargets.year,
+              child: YearSwitcher(year: app.selectedYear, onChanged: app.setYear, filed: app.filedYears),
+            ),
             if (_tab == 0) const Spacer(),
           ],
         ),
         // Several businesses: a chip row to pick which one the tabs show (hidden with one business).
         bottom: app.multiBusiness ? const BusinessBar() : null,
         actions: [
-          IconButton(tooltip: 'Search', icon: const Icon(Icons.search_rounded), onPressed: () => openSearch(context)),
-          IconButton(tooltip: 'Add a record', icon: const Icon(Icons.add_rounded), onPressed: () => openEntry(context)),
           IconButton(
+            key: TourTargets.search,
+            tooltip: 'Search',
+            icon: const Icon(Icons.search_rounded),
+            onPressed: () => openSearch(context),
+          ),
+          IconButton(
+            key: TourTargets.add,
+            tooltip: 'Add a record',
+            icon: const Icon(Icons.add_rounded),
+            onPressed: () => openEntry(context),
+          ),
+          IconButton(
+            key: TourTargets.settings,
             tooltip: 'Settings',
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
@@ -279,6 +310,12 @@ class LLBottomBar extends StatelessWidget {
       final (off, on, label) = _items[i];
       final selected = i == index;
       return Expanded(
+        key: switch (i) {
+          1 => TourTargets.records,
+          2 => TourTargets.vault,
+          3 => TourTargets.taxes,
+          _ => null,
+        },
         child: Semantics(
           selected: selected,
           button: true,
@@ -333,6 +370,7 @@ class LLBottomBar extends StatelessWidget {
                   child: Transform.translate(
                     offset: const Offset(0, -14),
                     child: Semantics(
+                      key: TourTargets.scan,
                       button: true,
                       label: 'Scan a receipt',
                       child: GestureDetector(

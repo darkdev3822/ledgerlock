@@ -20,6 +20,7 @@ import 'package:ledgerlock/main.dart';
 import 'package:ledgerlock/learn/lessons.dart';
 import 'package:ledgerlock/ui/learn/learn_screen.dart';
 import 'package:ledgerlock/ui/taxes/year_end_screen.dart';
+import 'package:ledgerlock/ui/tour/app_tour.dart';
 import 'package:ledgerlock/security/encrypted_file_store.dart';
 import 'package:ledgerlock/media/documents.dart';
 import 'package:ledgerlock/platform/launch_inbox.dart';
@@ -1322,6 +1323,94 @@ void main() {
     expect(find.text('Q4 with this: \$800.00 profit · set aside about \$200.00'), findsOneWidget);
     await t.pumpWidget(const SizedBox());
     await settle(t);
+    await closeDb(t, db);
+  });
+
+  for (final (w, h, scale, b) in [
+    (390.0, 844.0, 1.0, Brightness.light),
+    (320.0, 640.0, 2.0, Brightness.dark),
+    (844.0, 390.0, 1.0, Brightness.light),
+    (880.0, 950.0, 1.3, Brightness.dark),
+  ]) {
+    testWidgets('TO1 tour offered after setup walks every step on ${w.toInt()}x${h.toInt()} x$scale', (t) async {
+      final db = memDb();
+      final c = await pumpWithDb(t, const SizedBox(), db);
+      t.view.physicalSize = Size(w, h);
+      c.offerTour = true; // what finishing setup does
+      await t.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appControllerProvider.overrideWith((ref) => c),
+            todayProvider.overrideWithValue(DateTime(2026, 11, 1, 9)),
+            taxRulesProvider.overrideWith((ref, year) async => rules[year]!),
+            lessonLibraryProvider.overrideWith((ref) async => lessonLib),
+          ],
+          child: MaterialApp(
+            theme: buildTheme(b),
+            builder: (ctx, child) => MediaQuery(
+              data: MediaQuery.of(ctx).copyWith(textScaler: TextScaler.linear(scale)),
+              child: child!,
+            ),
+            home: const AppShell(),
+          ),
+        ),
+      );
+      await settle(t);
+      expect(find.text('Want a quick tour?'), findsOneWidget);
+      await t.tap(find.text('Show me around'));
+      await settle(t);
+      final screen = Offset.zero & Size(w, h);
+      for (final (i, step) in tourSteps.indexed) {
+        expect(find.text(step.title), findsOneWidget, reason: 'step $i');
+        expect(t.takeException(), isNull, reason: 'step $i');
+        final key = step.target;
+        if (key != null) {
+          final box = key.currentContext!.findRenderObject()! as RenderBox;
+          final r = box.localToGlobal(Offset.zero) & box.size;
+          expect(screen.overlaps(r), isTrue, reason: 'step $i target must be on screen: $r');
+        }
+        final next = find.text(i == 0 ? 'Start' : (i == tourSteps.length - 1 ? "Let's go" : 'Next'));
+        await t.ensureVisible(next);
+        await t.tap(next);
+        await settle(t);
+      }
+      expect(find.text(tourSteps.last.title), findsNothing, reason: 'tour closed');
+      expect(c.offerTour, isFalse, reason: 'offered once');
+      await closeDb(t, db);
+    });
+  }
+
+  testWidgets('TO2 "Maybe later" skips it; Settings > Take the app tour replays it from Home; Skip ends it', (t) async {
+    final db = memDb();
+    final c = await pumpWithDb(t, const SizedBox(), db);
+    c.offerTour = true;
+    await t.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appControllerProvider.overrideWith((ref) => c),
+          todayProvider.overrideWithValue(DateTime(2026, 11, 1, 9)),
+          taxRulesProvider.overrideWith((ref, year) async => rules[year]!),
+          lessonLibraryProvider.overrideWith((ref) async => lessonLib),
+        ],
+        child: MaterialApp(theme: buildTheme(Brightness.light), home: const AppShell()),
+      ),
+    );
+    await settle(t);
+    await t.tap(find.text('Maybe later'));
+    await settle(t);
+    expect(find.text(tourSteps.first.title), findsNothing);
+    await t.tap(find.text('Taxes').last);
+    await settle(t);
+    await t.tap(find.byTooltip('Settings'));
+    await settle(t);
+    await t.scrollUntilVisible(find.text('Take the app tour'), 300, scrollable: find.byType(Scrollable).last);
+    await t.tap(find.text('Take the app tour'));
+    await settle(t);
+    expect(find.text(tourSteps.first.title), findsOneWidget);
+    expect(find.text('Good morning'), findsOneWidget, reason: 'back on Home underneath');
+    await t.tap(find.text('Skip tour'));
+    await settle(t);
+    expect(find.text(tourSteps.first.title), findsNothing);
     await closeDb(t, db);
   });
 

@@ -437,4 +437,11 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   year_end + every lesson (ids read from the asset).
   Test gotcha: any widget test with a real DB must unmount + settle before close (closeDb helper in ui_stress);
   the quarter line keeps a live query on the entry screen and made the old pattern hang.
+- APP TOUR (2026-11-07, owner request before the next beta): lib/ui/tour/app_tour.dart. "Want a quick tour?" sheet
+  right after setup (AppController.offerTour set by finishOnboarding, taken once by the shell, before any first
+  action); 11 steps with a spotlight on real widgets (TourTargets GlobalKeys: hero card, add, scan, Records, Vault,
+  Taxes, search, year, settings) in plain, encouraging words; Back/Next/Skip; replay: Settings > Help > Take the app
+  tour (tourSignal -> shell goes Home first). SECURITY T48. Tests TO1 x4, TO2. 1782 tests.
+  Owner: Learn should ship in the next beta -> lessons must be reviewed/verified first (docs/LESSONS_REVIEW.md);
+  next beta after the owner is happy with the tour.
 

@@ -597,8 +597,22 @@ class AppController extends ChangeNotifier {
   }
 
   /// Last onboarding step. [action]: 'scan', 'add' or null (look around).
+  /// Offer the app tour when Home first appears (set once, by finishing setup; the shell takes it).
+  bool offerTour = false;
+
+  /// Bumped by Settings > "Take the app tour": the shell goes Home and runs it.
+  final tourSignal = ValueNotifier<int>(0);
+  void requestTour() => tourSignal.value++;
+
+  bool takeTourOffer() {
+    final o = offerTour;
+    offerTour = false;
+    return o;
+  }
+
   Future<void> finishOnboarding(String? action) async {
     onboarded = true;
+    offerTour = true;
     firstAction = action;
     await db?.setSetting('onboarded', 'true');
     stage = Stage.ready;
