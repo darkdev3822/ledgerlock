@@ -10,6 +10,13 @@ import 'recurring.dart';
 
 part 'database.g.dart';
 
+/// Separate businesses (SPEC §3), each with its own Schedule C. Row 1 always exists and can't be deleted.
+@DataClassName('Business')
+class Businesses extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+}
+
 /// Key/value app settings (e.g. auto-lock minutes).
 class Settings extends Table {
   TextColumn get key => text()();
@@ -42,6 +49,9 @@ class LedgerEntries extends Table {
   /// Tags as ' a b ' (normalizeTags): lower-case words, space-separated, padded so `LIKE '% a %'` matches exactly.
   TextColumn get tags => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// v11: which business (Businesses.id) this belongs to. 1 = the main business every existing row moves to.
+  IntColumn get businessId => integer().withDefault(const Constant(1))();
 }
 
 /// Estimated tax payments made to the IRS (payment log, SPEC §2.6). taxYear = the year the payment is for.
@@ -64,6 +74,9 @@ class Trips extends Table {
   IntColumn get milesTenths => integer()();
   TextColumn get purpose => text().withDefault(const Constant(''))();
   TextColumn get route => text().withDefault(const Constant(''))();
+
+  /// v11: which business (Businesses.id) this belongs to. 1 = the main business every existing row moves to.
+  IntColumn get businessId => integer().withDefault(const Constant(1))();
 }
 
 /// 1099 forms received, to reconcile with recorded income (1099 tracker).
@@ -75,6 +88,9 @@ class Forms1099 extends Table {
   TextColumn get payer => text()(); // matched against entry platform/party (case-insensitive)
   IntColumn get amountCents => integer()();
   IntColumn get attachmentId => integer().nullable().references(Attachments, #id, onDelete: KeyAction.setNull)();
+
+  /// v11: which business (Businesses.id) this belongs to. 1 = the main business every existing row moves to.
+  IntColumn get businessId => integer().withDefault(const Constant(1))();
 }
 
 /// Repeating records (SPEC §3: subscriptions, rent share). A template plus a schedule; copies are added on unlock
@@ -97,6 +113,9 @@ class Recurrings extends Table {
   /// v10: copies keep the first record's tags, and repeating income can make unpaid invoices (paid = false).
   TextColumn get tags => text().withDefault(const Constant(''))();
   BoolColumn get paid => boolean().withDefault(const Constant(true))();
+
+  /// v11: which business (Businesses.id) this belongs to. 1 = the main business every existing row moves to.
+  IntColumn get businessId => integer().withDefault(const Constant(1))();
 }
 
 /// Smart rules (SPEC §3): "payee contains X -> category Y". Manual ones from Settings, learned ones from the
@@ -180,7 +199,9 @@ class NotEncrypted implements Exception {
   String toString() => 'SQLCipher not available: refusing to open an unencrypted database';
 }
 
-@DriftDatabase(tables: [Settings, LedgerEntries, Attachments, TaxPayments, Trips, Forms1099, CategoryRules, Recurrings])
+@DriftDatabase(
+  tables: [Settings, LedgerEntries, Attachments, TaxPayments, Trips, Forms1099, CategoryRules, Recurrings, Businesses],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -206,7 +227,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -217,6 +238,7 @@ class AppDatabase extends _$AppDatabase {
       await _createSearchIndex(withTags: true);
       await customStatement('CREATE INDEX attachments_entry ON attachments(entry_id)');
       await _v6Indexes();
+      await _seedMainBusiness();
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
@@ -250,6 +272,17 @@ class AppDatabase extends _$AppDatabase {
         // Tables created above (from < 8) already have the columns.
         await m.addColumn(recurrings, recurrings.tags);
         await m.addColumn(recurrings, recurrings.paid);
+      }
+      if (from < 11) {
+        // ADD COLUMN with a default: no row is copied or rewritten, everything lands in business 1.
+        if (from >= 2) await m.addColumn(ledgerEntries, ledgerEntries.businessId);
+        if (from >= 6) {
+          await m.addColumn(trips, trips.businessId);
+          await m.addColumn(forms1099, forms1099.businessId);
+        }
+        if (from >= 8) await m.addColumn(recurrings, recurrings.businessId);
+        await m.createTable(businesses);
+        await _seedMainBusiness();
       }
     },
   );
@@ -330,6 +363,37 @@ class AppDatabase extends _$AppDatabase {
       ..where(attachments.year.equals(year) & attachments.folder.equals('receipt'));
     return (await q.getSingle()).read(c) ?? 0;
   }
+
+  // ---------- businesses (v11) ----------
+  static const mainBusinessId = 1;
+  Future<void> _seedMainBusiness() =>
+      into(businesses).insert(const BusinessesCompanion(id: Value(1), name: Value('Main business')));
+
+  Stream<List<Business>> watchBusinesses() => (select(businesses)..orderBy([(b) => OrderingTerm.asc(b.id)])).watch();
+  Future<List<Business>> allBusinesses() => (select(businesses)..orderBy([(b) => OrderingTerm.asc(b.id)])).get();
+  Future<int> addBusiness(String name) => into(businesses).insert(BusinessesCompanion.insert(name: name));
+  Future<void> renameBusiness(int id, String name) =>
+      (update(businesses)..where((b) => b.id.equals(id))).write(BusinessesCompanion(name: Value(name)));
+
+  /// Removes business [id] after moving every record, trip, 1099 and repeat it owns to [moveTo]. Nothing is ever
+  /// deleted with it, and the main business can't be removed. One transaction.
+  Future<void> deleteBusiness(int id, {int moveTo = mainBusinessId}) => transaction(() async {
+    if (id == mainBusinessId || id == moveTo) throw ArgumentError('cannot delete business $id');
+    if (await (select(businesses)..where((b) => b.id.equals(moveTo))).getSingleOrNull() == null) {
+      throw ArgumentError('no business $moveTo');
+    }
+    await (update(
+      ledgerEntries,
+    )..where((e) => e.businessId.equals(id))).write(LedgerEntriesCompanion(businessId: Value(moveTo)));
+    await (update(trips)..where((e) => e.businessId.equals(id))).write(TripsCompanion(businessId: Value(moveTo)));
+    await (update(
+      forms1099,
+    )..where((e) => e.businessId.equals(id))).write(Forms1099Companion(businessId: Value(moveTo)));
+    await (update(
+      recurrings,
+    )..where((e) => e.businessId.equals(id))).write(RecurringsCompanion(businessId: Value(moveTo)));
+    await (delete(businesses)..where((b) => b.id.equals(id))).go();
+  });
 
   // ---------- ledger ----------
 
@@ -489,6 +553,7 @@ class AppDatabase extends _$AppDatabase {
             tags: Value(r.tags),
             paid: Value(!r.isIncome || r.paid),
             recurringId: Value(r.id),
+            businessId: Value(r.businessId),
           ),
         );
       }

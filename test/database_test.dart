@@ -21,6 +21,15 @@ CREATE TRIGGER le_au AFTER UPDATE ON ledger_entries BEGIN DELETE FROM search_fts
   (new.id, new.party || ' ' || new.platform || ' ' || new.notes || ' ' || replace(new.category, '_', ' ')); END;
 """;
 
+/// Turns a current file back into v10: no businesses (run first, before older steps drop tables).
+const _toV10 = """
+DROP TABLE businesses;
+ALTER TABLE ledger_entries DROP COLUMN business_id;
+ALTER TABLE trips DROP COLUMN business_id;
+ALTER TABLE forms1099 DROP COLUMN business_id;
+ALTER TABLE recurrings DROP COLUMN business_id;
+""";
+
 void main() {
   late Directory dir;
   setUp(() => dir = Directory.systemTemp.createTempSync('ll_db'));
@@ -62,6 +71,7 @@ void main() {
     // Turn it back into a v5 file: no M6 tables, no paid column.
     final old = raw.sqlite3.open(file.path)
       ..execute("PRAGMA key = \"x'$hex'\"")
+      ..execute(_toV10)
       ..execute('DROP TABLE tax_payments')
       ..execute('DROP TABLE trips')
       ..execute('DROP TABLE forms1099')
@@ -141,6 +151,7 @@ void main() {
       await db.close();
       final old = raw.sqlite3.open(file.path)
         ..execute("PRAGMA key = \"x'$hex'\"")
+        ..execute(_toV10)
         ..execute('ALTER TABLE recurrings DROP COLUMN tags')
         ..execute('ALTER TABLE recurrings DROP COLUMN paid')
         ..execute('PRAGMA user_version = 9');
@@ -187,6 +198,7 @@ void main() {
       await db.close();
       final old = raw.sqlite3.open(file.path)
         ..execute("PRAGMA key = \"x'$hex'\"")
+        ..execute(_toV10)
         ..execute('DROP TABLE recurrings')
         ..execute('ALTER TABLE ledger_entries DROP COLUMN recurring_id')
         ..execute(_toV8)
@@ -224,6 +236,7 @@ void main() {
     // Back to v8: no tags column, and the old index triggers (without tags).
     final old = raw.sqlite3.open(file.path)
       ..execute("PRAGMA key = \"x'$hex'\"")
+      ..execute(_toV10)
       ..execute(_toV8)
       ..execute('ALTER TABLE recurrings DROP COLUMN tags')
       ..execute('ALTER TABLE recurrings DROP COLUMN paid')

@@ -19,6 +19,7 @@ Future<SearchResults> runSearch(
   SearchQuery q, {
   int limit = 200,
   Map<String, Set<String>> lineCategories = const {},
+  int business = 0,
 }) async {
   if (q.isEmpty) return SearchResults.empty;
   final sw = Stopwatch()..start();
@@ -90,6 +91,10 @@ Future<SearchResults> runSearch(
   }
   // Only punctuation typed: nothing to constrain on, so no results (and no empty WHERE).
   if (where.isEmpty) return SearchResults(const [], const [], sw.elapsed);
+  if (business != 0) {
+    where.add('e.business_id = ?');
+    args.add(Variable.withInt(business));
+  }
   final rows = await db
       .customSelect(
         'SELECT e.* FROM ledger_entries e WHERE ${where.join(' AND ')} '

@@ -91,6 +91,8 @@ class _AppShellState extends ConsumerState<AppShell> {
             if (_tab == 0) const Spacer(),
           ],
         ),
+        // Several businesses: a chip row to pick which one the tabs show (hidden with one business).
+        bottom: app.multiBusiness ? const BusinessBar() : null,
         actions: [
           IconButton(tooltip: 'Search', icon: const Icon(Icons.search_rounded), onPressed: () => openSearch(context)),
           IconButton(tooltip: 'Add a record', icon: const Icon(Icons.add_rounded), onPressed: () => openEntry(context)),
@@ -345,4 +347,39 @@ class _TabFadeState extends State<_TabFade> with SingleTickerProviderStateMixin 
       );
     },
   );
+}
+
+/// Chips under the top bar: "All" plus each business. Only shown when there is more than one business.
+class BusinessBar extends ConsumerWidget implements PreferredSizeWidget {
+  const BusinessBar({super.key});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(52);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final app = ref.watch(appControllerProvider);
+    final view = app.effectiveView;
+    return SizedBox(
+      height: 52,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(Space.gutter, 0, Space.gutter, Space.sm),
+        children: [
+          for (final (id, name) in [(0, 'All'), for (final b in app.businesses) (b.id, b.name)])
+            Padding(
+              padding: const EdgeInsets.only(right: Space.sm),
+              child: ChoiceChip(
+                label: Text(name),
+                selected: view == id,
+                onSelected: (_) {
+                  HapticFeedback.selectionClick();
+                  app.setViewBusiness(id);
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

@@ -69,6 +69,8 @@ class HomeTab extends ConsumerWidget {
             ),
           ],
         ),
+      if (entries.isNotEmpty && ref.watch(viewBusinessProvider) != 0)
+        Text('Set-aside and self-employment tax cover all your businesses together.', style: context.text.bodySmall),
       if (rules != null) _NextDueCard(rules: rules, today: today, perQuarterCents: toPay),
       if (entries.isNotEmpty)
         Column(
@@ -834,6 +836,8 @@ class TaxesTab extends ConsumerWidget {
     final year = app.selectedYear;
     final rules = ref.watch(taxRulesProvider(year)).value;
     final s = ref.watch(summaryProvider(year));
+    final all = ref.watch(combinedSummaryProvider(year)); // SE tax: every business on one Schedule SE
+    final multi = app.multiBusiness, view = app.effectiveView;
     final today = ref.watch(todayProvider);
     final ll = context.ll;
     final payments = ref.watch(paymentsProvider(year)).value ?? const <TaxPayment>[];
@@ -853,10 +857,11 @@ class TaxesTab extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: Space.sm),
-            AnimatedMoney(s.seTaxCents, style: context.text.displaySmall?.copyWith(fontSize: 34)),
+            AnimatedMoney(all.seTaxCents, style: context.text.displaySmall?.copyWith(fontSize: 34)),
             const SizedBox(height: Space.xs),
+            if (multi) Text('All ${app.businesses.length} businesses together.', style: context.text.bodySmall),
             Text(
-              s.netCents <= 0
+              all.netCents <= 0
                   ? 'No profit yet, so no self-employment tax.'
                   : 'Income tax comes on top and depends on your whole return.',
               style: context.text.bodySmall,
@@ -870,9 +875,9 @@ class TaxesTab extends ConsumerWidget {
                 title: Text('How this is worked out', style: context.text.labelLarge?.copyWith(color: ll.accent)),
                 children: [
                   Text(
-                    s.netCents <= 0
+                    all.netCents <= 0
                         ? 'Self-employment tax starts once your profit for the year passes a small threshold.'
-                        : '${formatCents(s.netCents)} profit × ${_pct(rules?.seNetEarningsFactor, 2)} × '
+                        : '${formatCents(all.netCents)} profit × ${_pct(rules?.seNetEarningsFactor, 2)} × '
                               '${_pct(rules?.seRate, 1)}. Half of it is deductible on Schedule 1.',
                     style: context.text.bodySmall,
                   ),
@@ -950,7 +955,21 @@ class TaxesTab extends ConsumerWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SectionHeader('Schedule C so far'),
+            SectionHeader(
+              !multi
+                  ? 'Schedule C so far'
+                  : view == 0
+                  ? 'All businesses combined'
+                  : 'Schedule C so far · ${app.businessName(view)}',
+            ),
+            if (multi && view == 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: Space.sm),
+                child: Text(
+                  'Each business files its own Schedule C. Pick one at the top to see its lines.',
+                  style: context.text.bodySmall,
+                ),
+              ),
             LLGroup(
               children: [
                 for (final l in rules.lineNames.entries)

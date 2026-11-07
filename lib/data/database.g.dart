@@ -378,6 +378,18 @@ class $LedgerEntriesTable extends LedgerEntries
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _businessIdMeta = const VerificationMeta(
+    'businessId',
+  );
+  @override
+  late final GeneratedColumn<int> businessId = GeneratedColumn<int>(
+    'business_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -394,6 +406,7 @@ class $LedgerEntriesTable extends LedgerEntries
     recurringId,
     tags,
     createdAt,
+    businessId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -505,6 +518,12 @@ class $LedgerEntriesTable extends LedgerEntries
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('business_id')) {
+      context.handle(
+        _businessIdMeta,
+        businessId.isAcceptableOrUnknown(data['business_id']!, _businessIdMeta),
+      );
+    }
     return context;
   }
 
@@ -570,6 +589,10 @@ class $LedgerEntriesTable extends LedgerEntries
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      businessId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}business_id'],
+      )!,
     );
   }
 
@@ -601,6 +624,9 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
   /// Tags as ' a b ' (normalizeTags): lower-case words, space-separated, padded so `LIKE '% a %'` matches exactly.
   final String tags;
   final DateTime createdAt;
+
+  /// v11: which business (Businesses.id) this belongs to. 1 = the main business every existing row moves to.
+  final int businessId;
   const LedgerEntry({
     required this.id,
     required this.isIncome,
@@ -616,6 +642,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     this.recurringId,
     required this.tags,
     required this.createdAt,
+    required this.businessId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -636,6 +663,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     }
     map['tags'] = Variable<String>(tags);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['business_id'] = Variable<int>(businessId);
     return map;
   }
 
@@ -657,6 +685,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           : Value(recurringId),
       tags: Value(tags),
       createdAt: Value(createdAt),
+      businessId: Value(businessId),
     );
   }
 
@@ -680,6 +709,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       recurringId: serializer.fromJson<int?>(json['recurringId']),
       tags: serializer.fromJson<String>(json['tags']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      businessId: serializer.fromJson<int>(json['businessId']),
     );
   }
   @override
@@ -700,6 +730,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       'recurringId': serializer.toJson<int?>(recurringId),
       'tags': serializer.toJson<String>(tags),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'businessId': serializer.toJson<int>(businessId),
     };
   }
 
@@ -718,6 +749,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     Value<int?> recurringId = const Value.absent(),
     String? tags,
     DateTime? createdAt,
+    int? businessId,
   }) => LedgerEntry(
     id: id ?? this.id,
     isIncome: isIncome ?? this.isIncome,
@@ -733,6 +765,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     recurringId: recurringId.present ? recurringId.value : this.recurringId,
     tags: tags ?? this.tags,
     createdAt: createdAt ?? this.createdAt,
+    businessId: businessId ?? this.businessId,
   );
   LedgerEntry copyWithCompanion(LedgerEntriesCompanion data) {
     return LedgerEntry(
@@ -756,6 +789,9 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           : this.recurringId,
       tags: data.tags.present ? data.tags.value : this.tags,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      businessId: data.businessId.present
+          ? data.businessId.value
+          : this.businessId,
     );
   }
 
@@ -775,7 +811,8 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           ..write('paid: $paid, ')
           ..write('recurringId: $recurringId, ')
           ..write('tags: $tags, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('businessId: $businessId')
           ..write(')'))
         .toString();
   }
@@ -796,6 +833,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     recurringId,
     tags,
     createdAt,
+    businessId,
   );
   @override
   bool operator ==(Object other) =>
@@ -814,7 +852,8 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           other.paid == this.paid &&
           other.recurringId == this.recurringId &&
           other.tags == this.tags &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.businessId == this.businessId);
 }
 
 class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
@@ -832,6 +871,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
   final Value<int?> recurringId;
   final Value<String> tags;
   final Value<DateTime> createdAt;
+  final Value<int> businessId;
   const LedgerEntriesCompanion({
     this.id = const Value.absent(),
     this.isIncome = const Value.absent(),
@@ -847,6 +887,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     this.recurringId = const Value.absent(),
     this.tags = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.businessId = const Value.absent(),
   });
   LedgerEntriesCompanion.insert({
     this.id = const Value.absent(),
@@ -863,6 +904,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     this.recurringId = const Value.absent(),
     this.tags = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.businessId = const Value.absent(),
   }) : isIncome = Value(isIncome),
        date = Value(date),
        amountCents = Value(amountCents),
@@ -882,6 +924,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     Expression<int>? recurringId,
     Expression<String>? tags,
     Expression<DateTime>? createdAt,
+    Expression<int>? businessId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -898,6 +941,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
       if (recurringId != null) 'recurring_id': recurringId,
       if (tags != null) 'tags': tags,
       if (createdAt != null) 'created_at': createdAt,
+      if (businessId != null) 'business_id': businessId,
     });
   }
 
@@ -916,6 +960,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     Value<int?>? recurringId,
     Value<String>? tags,
     Value<DateTime>? createdAt,
+    Value<int>? businessId,
   }) {
     return LedgerEntriesCompanion(
       id: id ?? this.id,
@@ -932,6 +977,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
       recurringId: recurringId ?? this.recurringId,
       tags: tags ?? this.tags,
       createdAt: createdAt ?? this.createdAt,
+      businessId: businessId ?? this.businessId,
     );
   }
 
@@ -980,6 +1026,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (businessId.present) {
+      map['business_id'] = Variable<int>(businessId.value);
+    }
     return map;
   }
 
@@ -999,7 +1048,8 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
           ..write('paid: $paid, ')
           ..write('recurringId: $recurringId, ')
           ..write('tags: $tags, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('businessId: $businessId')
           ..write(')'))
         .toString();
   }
@@ -2106,8 +2156,27 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, Trip> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _businessIdMeta = const VerificationMeta(
+    'businessId',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, date, milesTenths, purpose, route];
+  late final GeneratedColumn<int> businessId = GeneratedColumn<int>(
+    'business_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    date,
+    milesTenths,
+    purpose,
+    route,
+    businessId,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2154,6 +2223,12 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, Trip> {
         route.isAcceptableOrUnknown(data['route']!, _routeMeta),
       );
     }
+    if (data.containsKey('business_id')) {
+      context.handle(
+        _businessIdMeta,
+        businessId.isAcceptableOrUnknown(data['business_id']!, _businessIdMeta),
+      );
+    }
     return context;
   }
 
@@ -2183,6 +2258,10 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, Trip> {
         DriftSqlType.string,
         data['${effectivePrefix}route'],
       )!,
+      businessId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}business_id'],
+      )!,
     );
   }
 
@@ -2198,12 +2277,16 @@ class Trip extends DataClass implements Insertable<Trip> {
   final int milesTenths;
   final String purpose;
   final String route;
+
+  /// v11: which business (Businesses.id) this belongs to. 1 = the main business every existing row moves to.
+  final int businessId;
   const Trip({
     required this.id,
     required this.date,
     required this.milesTenths,
     required this.purpose,
     required this.route,
+    required this.businessId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2213,6 +2296,7 @@ class Trip extends DataClass implements Insertable<Trip> {
     map['miles_tenths'] = Variable<int>(milesTenths);
     map['purpose'] = Variable<String>(purpose);
     map['route'] = Variable<String>(route);
+    map['business_id'] = Variable<int>(businessId);
     return map;
   }
 
@@ -2223,6 +2307,7 @@ class Trip extends DataClass implements Insertable<Trip> {
       milesTenths: Value(milesTenths),
       purpose: Value(purpose),
       route: Value(route),
+      businessId: Value(businessId),
     );
   }
 
@@ -2237,6 +2322,7 @@ class Trip extends DataClass implements Insertable<Trip> {
       milesTenths: serializer.fromJson<int>(json['milesTenths']),
       purpose: serializer.fromJson<String>(json['purpose']),
       route: serializer.fromJson<String>(json['route']),
+      businessId: serializer.fromJson<int>(json['businessId']),
     );
   }
   @override
@@ -2248,6 +2334,7 @@ class Trip extends DataClass implements Insertable<Trip> {
       'milesTenths': serializer.toJson<int>(milesTenths),
       'purpose': serializer.toJson<String>(purpose),
       'route': serializer.toJson<String>(route),
+      'businessId': serializer.toJson<int>(businessId),
     };
   }
 
@@ -2257,12 +2344,14 @@ class Trip extends DataClass implements Insertable<Trip> {
     int? milesTenths,
     String? purpose,
     String? route,
+    int? businessId,
   }) => Trip(
     id: id ?? this.id,
     date: date ?? this.date,
     milesTenths: milesTenths ?? this.milesTenths,
     purpose: purpose ?? this.purpose,
     route: route ?? this.route,
+    businessId: businessId ?? this.businessId,
   );
   Trip copyWithCompanion(TripsCompanion data) {
     return Trip(
@@ -2273,6 +2362,9 @@ class Trip extends DataClass implements Insertable<Trip> {
           : this.milesTenths,
       purpose: data.purpose.present ? data.purpose.value : this.purpose,
       route: data.route.present ? data.route.value : this.route,
+      businessId: data.businessId.present
+          ? data.businessId.value
+          : this.businessId,
     );
   }
 
@@ -2283,13 +2375,15 @@ class Trip extends DataClass implements Insertable<Trip> {
           ..write('date: $date, ')
           ..write('milesTenths: $milesTenths, ')
           ..write('purpose: $purpose, ')
-          ..write('route: $route')
+          ..write('route: $route, ')
+          ..write('businessId: $businessId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, date, milesTenths, purpose, route);
+  int get hashCode =>
+      Object.hash(id, date, milesTenths, purpose, route, businessId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2298,7 +2392,8 @@ class Trip extends DataClass implements Insertable<Trip> {
           other.date == this.date &&
           other.milesTenths == this.milesTenths &&
           other.purpose == this.purpose &&
-          other.route == this.route);
+          other.route == this.route &&
+          other.businessId == this.businessId);
 }
 
 class TripsCompanion extends UpdateCompanion<Trip> {
@@ -2307,12 +2402,14 @@ class TripsCompanion extends UpdateCompanion<Trip> {
   final Value<int> milesTenths;
   final Value<String> purpose;
   final Value<String> route;
+  final Value<int> businessId;
   const TripsCompanion({
     this.id = const Value.absent(),
     this.date = const Value.absent(),
     this.milesTenths = const Value.absent(),
     this.purpose = const Value.absent(),
     this.route = const Value.absent(),
+    this.businessId = const Value.absent(),
   });
   TripsCompanion.insert({
     this.id = const Value.absent(),
@@ -2320,6 +2417,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
     required int milesTenths,
     this.purpose = const Value.absent(),
     this.route = const Value.absent(),
+    this.businessId = const Value.absent(),
   }) : date = Value(date),
        milesTenths = Value(milesTenths);
   static Insertable<Trip> custom({
@@ -2328,6 +2426,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
     Expression<int>? milesTenths,
     Expression<String>? purpose,
     Expression<String>? route,
+    Expression<int>? businessId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2335,6 +2434,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
       if (milesTenths != null) 'miles_tenths': milesTenths,
       if (purpose != null) 'purpose': purpose,
       if (route != null) 'route': route,
+      if (businessId != null) 'business_id': businessId,
     });
   }
 
@@ -2344,6 +2444,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
     Value<int>? milesTenths,
     Value<String>? purpose,
     Value<String>? route,
+    Value<int>? businessId,
   }) {
     return TripsCompanion(
       id: id ?? this.id,
@@ -2351,6 +2452,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
       milesTenths: milesTenths ?? this.milesTenths,
       purpose: purpose ?? this.purpose,
       route: route ?? this.route,
+      businessId: businessId ?? this.businessId,
     );
   }
 
@@ -2372,6 +2474,9 @@ class TripsCompanion extends UpdateCompanion<Trip> {
     if (route.present) {
       map['route'] = Variable<String>(route.value);
     }
+    if (businessId.present) {
+      map['business_id'] = Variable<int>(businessId.value);
+    }
     return map;
   }
 
@@ -2382,7 +2487,8 @@ class TripsCompanion extends UpdateCompanion<Trip> {
           ..write('date: $date, ')
           ..write('milesTenths: $milesTenths, ')
           ..write('purpose: $purpose, ')
-          ..write('route: $route')
+          ..write('route: $route, ')
+          ..write('businessId: $businessId')
           ..write(')'))
         .toString();
   }
@@ -2459,6 +2565,18 @@ class $Forms1099Table extends Forms1099
       'REFERENCES attachments (id) ON DELETE SET NULL',
     ),
   );
+  static const VerificationMeta _businessIdMeta = const VerificationMeta(
+    'businessId',
+  );
+  @override
+  late final GeneratedColumn<int> businessId = GeneratedColumn<int>(
+    'business_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2467,6 +2585,7 @@ class $Forms1099Table extends Forms1099
     payer,
     amountCents,
     attachmentId,
+    businessId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2527,6 +2646,12 @@ class $Forms1099Table extends Forms1099
         ),
       );
     }
+    if (data.containsKey('business_id')) {
+      context.handle(
+        _businessIdMeta,
+        businessId.isAcceptableOrUnknown(data['business_id']!, _businessIdMeta),
+      );
+    }
     return context;
   }
 
@@ -2560,6 +2685,10 @@ class $Forms1099Table extends Forms1099
         DriftSqlType.int,
         data['${effectivePrefix}attachment_id'],
       ),
+      businessId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}business_id'],
+      )!,
     );
   }
 
@@ -2576,6 +2705,9 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
   final String payer;
   final int amountCents;
   final int? attachmentId;
+
+  /// v11: which business (Businesses.id) this belongs to. 1 = the main business every existing row moves to.
+  final int businessId;
   const Form1099({
     required this.id,
     required this.year,
@@ -2583,6 +2715,7 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
     required this.payer,
     required this.amountCents,
     this.attachmentId,
+    required this.businessId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2595,6 +2728,7 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
     if (!nullToAbsent || attachmentId != null) {
       map['attachment_id'] = Variable<int>(attachmentId);
     }
+    map['business_id'] = Variable<int>(businessId);
     return map;
   }
 
@@ -2608,6 +2742,7 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
       attachmentId: attachmentId == null && nullToAbsent
           ? const Value.absent()
           : Value(attachmentId),
+      businessId: Value(businessId),
     );
   }
 
@@ -2623,6 +2758,7 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
       payer: serializer.fromJson<String>(json['payer']),
       amountCents: serializer.fromJson<int>(json['amountCents']),
       attachmentId: serializer.fromJson<int?>(json['attachmentId']),
+      businessId: serializer.fromJson<int>(json['businessId']),
     );
   }
   @override
@@ -2635,6 +2771,7 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
       'payer': serializer.toJson<String>(payer),
       'amountCents': serializer.toJson<int>(amountCents),
       'attachmentId': serializer.toJson<int?>(attachmentId),
+      'businessId': serializer.toJson<int>(businessId),
     };
   }
 
@@ -2645,6 +2782,7 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
     String? payer,
     int? amountCents,
     Value<int?> attachmentId = const Value.absent(),
+    int? businessId,
   }) => Form1099(
     id: id ?? this.id,
     year: year ?? this.year,
@@ -2652,6 +2790,7 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
     payer: payer ?? this.payer,
     amountCents: amountCents ?? this.amountCents,
     attachmentId: attachmentId.present ? attachmentId.value : this.attachmentId,
+    businessId: businessId ?? this.businessId,
   );
   Form1099 copyWithCompanion(Forms1099Companion data) {
     return Form1099(
@@ -2665,6 +2804,9 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
       attachmentId: data.attachmentId.present
           ? data.attachmentId.value
           : this.attachmentId,
+      businessId: data.businessId.present
+          ? data.businessId.value
+          : this.businessId,
     );
   }
 
@@ -2676,14 +2818,15 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
           ..write('kind: $kind, ')
           ..write('payer: $payer, ')
           ..write('amountCents: $amountCents, ')
-          ..write('attachmentId: $attachmentId')
+          ..write('attachmentId: $attachmentId, ')
+          ..write('businessId: $businessId')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, year, kind, payer, amountCents, attachmentId);
+      Object.hash(id, year, kind, payer, amountCents, attachmentId, businessId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2693,7 +2836,8 @@ class Form1099 extends DataClass implements Insertable<Form1099> {
           other.kind == this.kind &&
           other.payer == this.payer &&
           other.amountCents == this.amountCents &&
-          other.attachmentId == this.attachmentId);
+          other.attachmentId == this.attachmentId &&
+          other.businessId == this.businessId);
 }
 
 class Forms1099Companion extends UpdateCompanion<Form1099> {
@@ -2703,6 +2847,7 @@ class Forms1099Companion extends UpdateCompanion<Form1099> {
   final Value<String> payer;
   final Value<int> amountCents;
   final Value<int?> attachmentId;
+  final Value<int> businessId;
   const Forms1099Companion({
     this.id = const Value.absent(),
     this.year = const Value.absent(),
@@ -2710,6 +2855,7 @@ class Forms1099Companion extends UpdateCompanion<Form1099> {
     this.payer = const Value.absent(),
     this.amountCents = const Value.absent(),
     this.attachmentId = const Value.absent(),
+    this.businessId = const Value.absent(),
   });
   Forms1099Companion.insert({
     this.id = const Value.absent(),
@@ -2718,6 +2864,7 @@ class Forms1099Companion extends UpdateCompanion<Form1099> {
     required String payer,
     required int amountCents,
     this.attachmentId = const Value.absent(),
+    this.businessId = const Value.absent(),
   }) : year = Value(year),
        kind = Value(kind),
        payer = Value(payer),
@@ -2729,6 +2876,7 @@ class Forms1099Companion extends UpdateCompanion<Form1099> {
     Expression<String>? payer,
     Expression<int>? amountCents,
     Expression<int>? attachmentId,
+    Expression<int>? businessId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2737,6 +2885,7 @@ class Forms1099Companion extends UpdateCompanion<Form1099> {
       if (payer != null) 'payer': payer,
       if (amountCents != null) 'amount_cents': amountCents,
       if (attachmentId != null) 'attachment_id': attachmentId,
+      if (businessId != null) 'business_id': businessId,
     });
   }
 
@@ -2747,6 +2896,7 @@ class Forms1099Companion extends UpdateCompanion<Form1099> {
     Value<String>? payer,
     Value<int>? amountCents,
     Value<int?>? attachmentId,
+    Value<int>? businessId,
   }) {
     return Forms1099Companion(
       id: id ?? this.id,
@@ -2755,6 +2905,7 @@ class Forms1099Companion extends UpdateCompanion<Form1099> {
       payer: payer ?? this.payer,
       amountCents: amountCents ?? this.amountCents,
       attachmentId: attachmentId ?? this.attachmentId,
+      businessId: businessId ?? this.businessId,
     );
   }
 
@@ -2779,6 +2930,9 @@ class Forms1099Companion extends UpdateCompanion<Form1099> {
     if (attachmentId.present) {
       map['attachment_id'] = Variable<int>(attachmentId.value);
     }
+    if (businessId.present) {
+      map['business_id'] = Variable<int>(businessId.value);
+    }
     return map;
   }
 
@@ -2790,7 +2944,8 @@ class Forms1099Companion extends UpdateCompanion<Form1099> {
           ..write('kind: $kind, ')
           ..write('payer: $payer, ')
           ..write('amountCents: $amountCents, ')
-          ..write('attachmentId: $attachmentId')
+          ..write('attachmentId: $attachmentId, ')
+          ..write('businessId: $businessId')
           ..write(')'))
         .toString();
   }
@@ -3375,6 +3530,18 @@ class $RecurringsTable extends Recurrings
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _businessIdMeta = const VerificationMeta(
+    'businessId',
+  );
+  @override
+  late final GeneratedColumn<int> businessId = GeneratedColumn<int>(
+    'business_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3391,6 +3558,7 @@ class $RecurringsTable extends Recurrings
     nextDate,
     tags,
     paid,
+    businessId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3503,6 +3671,12 @@ class $RecurringsTable extends Recurrings
         paid.isAcceptableOrUnknown(data['paid']!, _paidMeta),
       );
     }
+    if (data.containsKey('business_id')) {
+      context.handle(
+        _businessIdMeta,
+        businessId.isAcceptableOrUnknown(data['business_id']!, _businessIdMeta),
+      );
+    }
     return context;
   }
 
@@ -3568,6 +3742,10 @@ class $RecurringsTable extends Recurrings
         DriftSqlType.bool,
         data['${effectivePrefix}paid'],
       )!,
+      businessId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}business_id'],
+      )!,
     );
   }
 
@@ -3594,6 +3772,9 @@ class Recurring extends DataClass implements Insertable<Recurring> {
   /// v10: copies keep the first record's tags, and repeating income can make unpaid invoices (paid = false).
   final String tags;
   final bool paid;
+
+  /// v11: which business (Businesses.id) this belongs to. 1 = the main business every existing row moves to.
+  final int businessId;
   const Recurring({
     required this.id,
     required this.isIncome,
@@ -3609,6 +3790,7 @@ class Recurring extends DataClass implements Insertable<Recurring> {
     required this.nextDate,
     required this.tags,
     required this.paid,
+    required this.businessId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3627,6 +3809,7 @@ class Recurring extends DataClass implements Insertable<Recurring> {
     map['next_date'] = Variable<String>(nextDate);
     map['tags'] = Variable<String>(tags);
     map['paid'] = Variable<bool>(paid);
+    map['business_id'] = Variable<int>(businessId);
     return map;
   }
 
@@ -3646,6 +3829,7 @@ class Recurring extends DataClass implements Insertable<Recurring> {
       nextDate: Value(nextDate),
       tags: Value(tags),
       paid: Value(paid),
+      businessId: Value(businessId),
     );
   }
 
@@ -3669,6 +3853,7 @@ class Recurring extends DataClass implements Insertable<Recurring> {
       nextDate: serializer.fromJson<String>(json['nextDate']),
       tags: serializer.fromJson<String>(json['tags']),
       paid: serializer.fromJson<bool>(json['paid']),
+      businessId: serializer.fromJson<int>(json['businessId']),
     );
   }
   @override
@@ -3689,6 +3874,7 @@ class Recurring extends DataClass implements Insertable<Recurring> {
       'nextDate': serializer.toJson<String>(nextDate),
       'tags': serializer.toJson<String>(tags),
       'paid': serializer.toJson<bool>(paid),
+      'businessId': serializer.toJson<int>(businessId),
     };
   }
 
@@ -3707,6 +3893,7 @@ class Recurring extends DataClass implements Insertable<Recurring> {
     String? nextDate,
     String? tags,
     bool? paid,
+    int? businessId,
   }) => Recurring(
     id: id ?? this.id,
     isIncome: isIncome ?? this.isIncome,
@@ -3722,6 +3909,7 @@ class Recurring extends DataClass implements Insertable<Recurring> {
     nextDate: nextDate ?? this.nextDate,
     tags: tags ?? this.tags,
     paid: paid ?? this.paid,
+    businessId: businessId ?? this.businessId,
   );
   Recurring copyWithCompanion(RecurringsCompanion data) {
     return Recurring(
@@ -3743,6 +3931,9 @@ class Recurring extends DataClass implements Insertable<Recurring> {
       nextDate: data.nextDate.present ? data.nextDate.value : this.nextDate,
       tags: data.tags.present ? data.tags.value : this.tags,
       paid: data.paid.present ? data.paid.value : this.paid,
+      businessId: data.businessId.present
+          ? data.businessId.value
+          : this.businessId,
     );
   }
 
@@ -3762,7 +3953,8 @@ class Recurring extends DataClass implements Insertable<Recurring> {
           ..write('anchorDay: $anchorDay, ')
           ..write('nextDate: $nextDate, ')
           ..write('tags: $tags, ')
-          ..write('paid: $paid')
+          ..write('paid: $paid, ')
+          ..write('businessId: $businessId')
           ..write(')'))
         .toString();
   }
@@ -3783,6 +3975,7 @@ class Recurring extends DataClass implements Insertable<Recurring> {
     nextDate,
     tags,
     paid,
+    businessId,
   );
   @override
   bool operator ==(Object other) =>
@@ -3801,7 +3994,8 @@ class Recurring extends DataClass implements Insertable<Recurring> {
           other.anchorDay == this.anchorDay &&
           other.nextDate == this.nextDate &&
           other.tags == this.tags &&
-          other.paid == this.paid);
+          other.paid == this.paid &&
+          other.businessId == this.businessId);
 }
 
 class RecurringsCompanion extends UpdateCompanion<Recurring> {
@@ -3819,6 +4013,7 @@ class RecurringsCompanion extends UpdateCompanion<Recurring> {
   final Value<String> nextDate;
   final Value<String> tags;
   final Value<bool> paid;
+  final Value<int> businessId;
   const RecurringsCompanion({
     this.id = const Value.absent(),
     this.isIncome = const Value.absent(),
@@ -3834,6 +4029,7 @@ class RecurringsCompanion extends UpdateCompanion<Recurring> {
     this.nextDate = const Value.absent(),
     this.tags = const Value.absent(),
     this.paid = const Value.absent(),
+    this.businessId = const Value.absent(),
   });
   RecurringsCompanion.insert({
     this.id = const Value.absent(),
@@ -3850,6 +4046,7 @@ class RecurringsCompanion extends UpdateCompanion<Recurring> {
     required String nextDate,
     this.tags = const Value.absent(),
     this.paid = const Value.absent(),
+    this.businessId = const Value.absent(),
   }) : isIncome = Value(isIncome),
        amountCents = Value(amountCents),
        category = Value(category),
@@ -3871,6 +4068,7 @@ class RecurringsCompanion extends UpdateCompanion<Recurring> {
     Expression<String>? nextDate,
     Expression<String>? tags,
     Expression<bool>? paid,
+    Expression<int>? businessId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3887,6 +4085,7 @@ class RecurringsCompanion extends UpdateCompanion<Recurring> {
       if (nextDate != null) 'next_date': nextDate,
       if (tags != null) 'tags': tags,
       if (paid != null) 'paid': paid,
+      if (businessId != null) 'business_id': businessId,
     });
   }
 
@@ -3905,6 +4104,7 @@ class RecurringsCompanion extends UpdateCompanion<Recurring> {
     Value<String>? nextDate,
     Value<String>? tags,
     Value<bool>? paid,
+    Value<int>? businessId,
   }) {
     return RecurringsCompanion(
       id: id ?? this.id,
@@ -3921,6 +4121,7 @@ class RecurringsCompanion extends UpdateCompanion<Recurring> {
       nextDate: nextDate ?? this.nextDate,
       tags: tags ?? this.tags,
       paid: paid ?? this.paid,
+      businessId: businessId ?? this.businessId,
     );
   }
 
@@ -3969,6 +4170,9 @@ class RecurringsCompanion extends UpdateCompanion<Recurring> {
     if (paid.present) {
       map['paid'] = Variable<bool>(paid.value);
     }
+    if (businessId.present) {
+      map['business_id'] = Variable<int>(businessId.value);
+    }
     return map;
   }
 
@@ -3988,7 +4192,195 @@ class RecurringsCompanion extends UpdateCompanion<Recurring> {
           ..write('anchorDay: $anchorDay, ')
           ..write('nextDate: $nextDate, ')
           ..write('tags: $tags, ')
-          ..write('paid: $paid')
+          ..write('paid: $paid, ')
+          ..write('businessId: $businessId')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BusinessesTable extends Businesses
+    with TableInfo<$BusinessesTable, Business> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BusinessesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'businesses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Business> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Business map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Business(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+    );
+  }
+
+  @override
+  $BusinessesTable createAlias(String alias) {
+    return $BusinessesTable(attachedDatabase, alias);
+  }
+}
+
+class Business extends DataClass implements Insertable<Business> {
+  final int id;
+  final String name;
+  const Business({required this.id, required this.name});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    return map;
+  }
+
+  BusinessesCompanion toCompanion(bool nullToAbsent) {
+    return BusinessesCompanion(id: Value(id), name: Value(name));
+  }
+
+  factory Business.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Business(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+    };
+  }
+
+  Business copyWith({int? id, String? name}) =>
+      Business(id: id ?? this.id, name: name ?? this.name);
+  Business copyWithCompanion(BusinessesCompanion data) {
+    return Business(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Business(')
+          ..write('id: $id, ')
+          ..write('name: $name')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Business && other.id == this.id && other.name == this.name);
+}
+
+class BusinessesCompanion extends UpdateCompanion<Business> {
+  final Value<int> id;
+  final Value<String> name;
+  const BusinessesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+  });
+  BusinessesCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+  }) : name = Value(name);
+  static Insertable<Business> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+    });
+  }
+
+  BusinessesCompanion copyWith({Value<int>? id, Value<String>? name}) {
+    return BusinessesCompanion(id: id ?? this.id, name: name ?? this.name);
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BusinessesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name')
           ..write(')'))
         .toString();
   }
@@ -4005,6 +4397,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $Forms1099Table forms1099 = $Forms1099Table(this);
   late final $CategoryRulesTable categoryRules = $CategoryRulesTable(this);
   late final $RecurringsTable recurrings = $RecurringsTable(this);
+  late final $BusinessesTable businesses = $BusinessesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4018,6 +4411,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     forms1099,
     categoryRules,
     recurrings,
+    businesses,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -4188,6 +4582,7 @@ typedef $$LedgerEntriesTableCreateCompanionBuilder =
       Value<int?> recurringId,
       Value<String> tags,
       Value<DateTime> createdAt,
+      Value<int> businessId,
     });
 typedef $$LedgerEntriesTableUpdateCompanionBuilder =
     LedgerEntriesCompanion Function({
@@ -4205,6 +4600,7 @@ typedef $$LedgerEntriesTableUpdateCompanionBuilder =
       Value<int?> recurringId,
       Value<String> tags,
       Value<DateTime> createdAt,
+      Value<int> businessId,
     });
 
 final class $$LedgerEntriesTableReferences
@@ -4313,6 +4709,11 @@ class $$LedgerEntriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> attachmentsRefs(
     Expression<bool> Function($$AttachmentsTableFilterComposer f) f,
   ) {
@@ -4417,6 +4818,11 @@ class $$LedgerEntriesTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$LedgerEntriesTableAnnotationComposer
@@ -4475,6 +4881,11 @@ class $$LedgerEntriesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => column,
+  );
 
   Expression<T> attachmentsRefs<T extends Object>(
     Expression<T> Function($$AttachmentsTableAnnotationComposer a) f,
@@ -4544,6 +4955,7 @@ class $$LedgerEntriesTableTableManager
                 Value<int?> recurringId = const Value.absent(),
                 Value<String> tags = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int> businessId = const Value.absent(),
               }) => LedgerEntriesCompanion(
                 id: id,
                 isIncome: isIncome,
@@ -4559,6 +4971,7 @@ class $$LedgerEntriesTableTableManager
                 recurringId: recurringId,
                 tags: tags,
                 createdAt: createdAt,
+                businessId: businessId,
               ),
           createCompanionCallback:
               ({
@@ -4576,6 +4989,7 @@ class $$LedgerEntriesTableTableManager
                 Value<int?> recurringId = const Value.absent(),
                 Value<String> tags = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int> businessId = const Value.absent(),
               }) => LedgerEntriesCompanion.insert(
                 id: id,
                 isIncome: isIncome,
@@ -4591,6 +5005,7 @@ class $$LedgerEntriesTableTableManager
                 recurringId: recurringId,
                 tags: tags,
                 createdAt: createdAt,
+                businessId: businessId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -5391,6 +5806,7 @@ typedef $$TripsTableCreateCompanionBuilder = TripsCompanion Function({
   required int milesTenths,
   Value<String> purpose,
   Value<String> route,
+  Value<int> businessId,
 });
 typedef $$TripsTableUpdateCompanionBuilder = TripsCompanion Function({
   Value<int> id,
@@ -5398,6 +5814,7 @@ typedef $$TripsTableUpdateCompanionBuilder = TripsCompanion Function({
   Value<int> milesTenths,
   Value<String> purpose,
   Value<String> route,
+  Value<int> businessId,
 });
 
 class $$TripsTableFilterComposer extends Composer<_$AppDatabase, $TripsTable> {
@@ -5430,6 +5847,11 @@ class $$TripsTableFilterComposer extends Composer<_$AppDatabase, $TripsTable> {
 
   ColumnFilters<String> get route => $composableBuilder(
     column: $table.route,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get businessId => $composableBuilder(
+    column: $table.businessId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5467,6 +5889,11 @@ class $$TripsTableOrderingComposer
     column: $table.route,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TripsTableAnnotationComposer
@@ -5494,6 +5921,11 @@ class $$TripsTableAnnotationComposer
 
   GeneratedColumn<String> get route =>
       $composableBuilder(column: $table.route, builder: (column) => column);
+
+  GeneratedColumn<int> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => column,
+  );
 }
 
 class $$TripsTableTableManager
@@ -5529,12 +5961,14 @@ class $$TripsTableTableManager
                 Value<int> milesTenths = const Value.absent(),
                 Value<String> purpose = const Value.absent(),
                 Value<String> route = const Value.absent(),
+                Value<int> businessId = const Value.absent(),
               }) => TripsCompanion(
                 id: id,
                 date: date,
                 milesTenths: milesTenths,
                 purpose: purpose,
                 route: route,
+                businessId: businessId,
               ),
           createCompanionCallback:
               ({
@@ -5543,12 +5977,14 @@ class $$TripsTableTableManager
                 required int milesTenths,
                 Value<String> purpose = const Value.absent(),
                 Value<String> route = const Value.absent(),
+                Value<int> businessId = const Value.absent(),
               }) => TripsCompanion.insert(
                 id: id,
                 date: date,
                 milesTenths: milesTenths,
                 purpose: purpose,
                 route: route,
+                businessId: businessId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -5588,6 +6024,7 @@ typedef $$Forms1099TableCreateCompanionBuilder = Forms1099Companion Function({
   required String payer,
   required int amountCents,
   Value<int?> attachmentId,
+  Value<int> businessId,
 });
 typedef $$Forms1099TableUpdateCompanionBuilder = Forms1099Companion Function({
   Value<int> id,
@@ -5596,6 +6033,7 @@ typedef $$Forms1099TableUpdateCompanionBuilder = Forms1099Companion Function({
   Value<String> payer,
   Value<int> amountCents,
   Value<int?> attachmentId,
+  Value<int> businessId,
 });
 
 final class $$Forms1099TableReferences
@@ -5651,6 +6089,11 @@ class $$Forms1099TableFilterComposer
 
   ColumnFilters<int> get amountCents => $composableBuilder(
     column: $table.amountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get businessId => $composableBuilder(
+    column: $table.businessId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5712,6 +6155,11 @@ class $$Forms1099TableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$AttachmentsTableOrderingComposer get attachmentId {
     final $$AttachmentsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -5759,6 +6207,11 @@ class $$Forms1099TableAnnotationComposer
 
   GeneratedColumn<int> get amountCents => $composableBuilder(
     column: $table.amountCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get businessId => $composableBuilder(
+    column: $table.businessId,
     builder: (column) => column,
   );
 
@@ -5820,6 +6273,7 @@ class $$Forms1099TableTableManager
                 Value<String> payer = const Value.absent(),
                 Value<int> amountCents = const Value.absent(),
                 Value<int?> attachmentId = const Value.absent(),
+                Value<int> businessId = const Value.absent(),
               }) => Forms1099Companion(
                 id: id,
                 year: year,
@@ -5827,6 +6281,7 @@ class $$Forms1099TableTableManager
                 payer: payer,
                 amountCents: amountCents,
                 attachmentId: attachmentId,
+                businessId: businessId,
               ),
           createCompanionCallback:
               ({
@@ -5836,6 +6291,7 @@ class $$Forms1099TableTableManager
                 required String payer,
                 required int amountCents,
                 Value<int?> attachmentId = const Value.absent(),
+                Value<int> businessId = const Value.absent(),
               }) => Forms1099Companion.insert(
                 id: id,
                 year: year,
@@ -5843,6 +6299,7 @@ class $$Forms1099TableTableManager
                 payer: payer,
                 amountCents: amountCents,
                 attachmentId: attachmentId,
+                businessId: businessId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -6148,6 +6605,7 @@ typedef $$RecurringsTableCreateCompanionBuilder = RecurringsCompanion Function({
   required String nextDate,
   Value<String> tags,
   Value<bool> paid,
+  Value<int> businessId,
 });
 typedef $$RecurringsTableUpdateCompanionBuilder = RecurringsCompanion Function({
   Value<int> id,
@@ -6164,6 +6622,7 @@ typedef $$RecurringsTableUpdateCompanionBuilder = RecurringsCompanion Function({
   Value<String> nextDate,
   Value<String> tags,
   Value<bool> paid,
+  Value<int> businessId,
 });
 
 class $$RecurringsTableFilterComposer
@@ -6242,6 +6701,11 @@ class $$RecurringsTableFilterComposer
 
   ColumnFilters<bool> get paid => $composableBuilder(
     column: $table.paid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get businessId => $composableBuilder(
+    column: $table.businessId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6324,6 +6788,11 @@ class $$RecurringsTableOrderingComposer
     column: $table.paid,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RecurringsTableAnnotationComposer
@@ -6380,6 +6849,11 @@ class $$RecurringsTableAnnotationComposer
 
   GeneratedColumn<bool> get paid =>
       $composableBuilder(column: $table.paid, builder: (column) => column);
+
+  GeneratedColumn<int> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => column,
+  );
 }
 
 class $$RecurringsTableTableManager
@@ -6427,6 +6901,7 @@ class $$RecurringsTableTableManager
                 Value<String> nextDate = const Value.absent(),
                 Value<String> tags = const Value.absent(),
                 Value<bool> paid = const Value.absent(),
+                Value<int> businessId = const Value.absent(),
               }) => RecurringsCompanion(
                 id: id,
                 isIncome: isIncome,
@@ -6442,6 +6917,7 @@ class $$RecurringsTableTableManager
                 nextDate: nextDate,
                 tags: tags,
                 paid: paid,
+                businessId: businessId,
               ),
           createCompanionCallback:
               ({
@@ -6459,6 +6935,7 @@ class $$RecurringsTableTableManager
                 required String nextDate,
                 Value<String> tags = const Value.absent(),
                 Value<bool> paid = const Value.absent(),
+                Value<int> businessId = const Value.absent(),
               }) => RecurringsCompanion.insert(
                 id: id,
                 isIncome: isIncome,
@@ -6474,6 +6951,7 @@ class $$RecurringsTableTableManager
                 nextDate: nextDate,
                 tags: tags,
                 paid: paid,
+                businessId: businessId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -6506,6 +6984,136 @@ typedef $$RecurringsTableProcessedTableManager =
       Recurring,
       PrefetchHooks Function()
     >;
+typedef $$BusinessesTableCreateCompanionBuilder = BusinessesCompanion Function({
+  Value<int> id,
+  required String name,
+});
+typedef $$BusinessesTableUpdateCompanionBuilder = BusinessesCompanion Function({
+  Value<int> id,
+  Value<String> name,
+});
+
+class $$BusinessesTableFilterComposer
+    extends Composer<_$AppDatabase, $BusinessesTable> {
+  $$BusinessesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BusinessesTableOrderingComposer
+    extends Composer<_$AppDatabase, $BusinessesTable> {
+  $$BusinessesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BusinessesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BusinessesTable> {
+  $$BusinessesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+}
+
+class $$BusinessesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BusinessesTable,
+          Business,
+          $$BusinessesTableFilterComposer,
+          $$BusinessesTableOrderingComposer,
+          $$BusinessesTableAnnotationComposer,
+          $$BusinessesTableCreateCompanionBuilder,
+          $$BusinessesTableUpdateCompanionBuilder,
+          (Business, BaseReferences<_$AppDatabase, $BusinessesTable, Business>),
+          Business,
+          PrefetchHooks Function()
+        > {
+  $$BusinessesTableTableManager(_$AppDatabase db, $BusinessesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BusinessesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BusinessesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BusinessesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+          }) => BusinessesCompanion(id: id, name: name),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String name,
+          }) => BusinessesCompanion.insert(id: id, name: name),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$BusinessesTable, Business>(table),
+                  BaseReferences<_$AppDatabase, $BusinessesTable, Business>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BusinessesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BusinessesTable,
+      Business,
+      $$BusinessesTableFilterComposer,
+      $$BusinessesTableOrderingComposer,
+      $$BusinessesTableAnnotationComposer,
+      $$BusinessesTableCreateCompanionBuilder,
+      $$BusinessesTableUpdateCompanionBuilder,
+      (Business, BaseReferences<_$AppDatabase, $BusinessesTable, Business>),
+      Business,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6526,4 +7134,6 @@ class $AppDatabaseManager {
       $$CategoryRulesTableTableManager(_db, _db.categoryRules);
   $$RecurringsTableTableManager get recurrings =>
       $$RecurringsTableTableManager(_db, _db.recurrings);
+  $$BusinessesTableTableManager get businesses =>
+      $$BusinessesTableTableManager(_db, _db.businesses);
 }

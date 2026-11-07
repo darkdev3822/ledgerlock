@@ -109,6 +109,7 @@ List<LedgerEntry> fixtureEntries() {
   return [
     for (final r in raw.cast<Map<String, dynamic>>())
       LedgerEntry(
+        businessId: 1,
         id: ++id,
         isIncome: r['kind'] == 'income',
         date: r['date'] as String,
@@ -177,6 +178,9 @@ void main() {
           todayProvider.overrideWithValue(DateTime(2026, 11, 1)),
           taxRulesProvider.overrideWith((ref, year) async => rules[year]!),
           entriesProvider.overrideWith(
+            (ref, year) => Stream.value(data ? fixtureEntries().where((e) => e.date.startsWith('$year')).toList() : []),
+          ),
+          allEntriesProvider.overrideWith(
             (ref, year) => Stream.value(data ? fixtureEntries().where((e) => e.date.startsWith('$year')).toList() : []),
           ),
         ],
@@ -322,8 +326,15 @@ void main() {
         extra: [
           tripsProvider.overrideWith(
             (ref, y) => Stream.value(const [
-              Trip(id: 2, date: '2026-08-04', milesTenths: 236, purpose: 'Client workshop', route: 'Home to Riverside'),
-              Trip(id: 1, date: '2026-05-12', milesTenths: 84, purpose: 'Supplies run', route: ''),
+              Trip(
+                businessId: 1,
+                id: 2,
+                date: '2026-08-04',
+                milesTenths: 236,
+                purpose: 'Client workshop',
+                route: 'Home to Riverside',
+              ),
+              Trip(businessId: 1, id: 1, date: '2026-05-12', milesTenths: 84, purpose: 'Supplies run', route: ''),
             ]),
           ),
         ],
@@ -340,8 +351,15 @@ void main() {
         extra: [
           forms1099Provider.overrideWith(
             (ref, y) => Stream.value([
-              Form1099(id: 1, year: 2026, kind: '1099-K', payer: 'Etsy', amountCents: recordedEtsy()),
-              const Form1099(id: 2, year: 2026, kind: '1099-NEC', payer: 'Studio Co', amountCents: 120000),
+              Form1099(businessId: 1, id: 1, year: 2026, kind: '1099-K', payer: 'Etsy', amountCents: recordedEtsy()),
+              const Form1099(
+                businessId: 1,
+                id: 2,
+                year: 2026,
+                kind: '1099-NEC',
+                payer: 'Studio Co',
+                amountCents: 120000,
+              ),
             ]),
           ),
         ],
@@ -457,6 +475,7 @@ void main() {
           recurringProvider.overrideWith(
             (ref) => Stream.value(const [
               Recurring(
+                businessId: 1,
                 tags: '',
                 paid: true,
                 id: 1,
@@ -473,6 +492,7 @@ void main() {
                 nextDate: '2026-11-14',
               ),
               Recurring(
+                businessId: 1,
                 tags: '',
                 paid: true,
                 id: 2,
@@ -489,6 +509,7 @@ void main() {
                 nextDate: '2026-12-03',
               ),
               Recurring(
+                businessId: 1,
                 tags: '',
                 paid: true,
                 id: 3,

@@ -67,6 +67,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
 
   /// New records: 'never' or a recurringEvery value. Existing records: the repeat that made them, if still on.
   String _repeat = 'never';
+  late int _business = _src?.businessId ?? ref.read(appControllerProvider).newRecordBusiness;
   Recurring? _rule;
   List<String> _recentParties = const [];
   List<String> _recentPlatforms = const [];
@@ -171,6 +172,28 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       ),
     );
     if (v != null && mounted) setState(() => _repeat = v);
+  }
+
+  Future<void> _pickBusiness() async {
+    final app = ref.read(appControllerProvider);
+    final v = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final b in app.businesses)
+              ListTile(
+                title: Text(b.name),
+                trailing: b.id == _business ? Icon(Icons.check_rounded, color: c.ll.accent) : null,
+                onTap: () => Navigator.pop(c, b.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (v != null && mounted) setState(() => _business = v);
   }
 
   Future<void> _stopRepeat() async {
@@ -278,6 +301,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           notes: _notes.text.trim(),
           tags: normalizeTags(_tags.text),
           paid: !_income || _paid,
+          businessId: _business,
         ),
       );
     } else {
@@ -297,6 +321,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
             tags: Value(normalizeTags(_tags.text)),
             paid: Value(!_income || _paid),
             anchorDay: _date.day,
+            businessId: Value(_business),
             nextDate: isoDay(stepDate(_date, _repeat, _date.day)),
           ),
         );
@@ -315,6 +340,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           paid: Value(!_income || _paid),
           tags: Value(normalizeTags(_tags.text)),
           recurringId: Value(ruleId),
+          businessId: Value(_business),
         ),
       );
       // A backdated repeat ("Netflix since January") fills in the dates already passed.
@@ -512,6 +538,16 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                           if (d != null) setState(() => _date = d);
                         },
                       ),
+                      if (ref.watch(appControllerProvider.select((a) => a.multiBusiness)))
+                        ListTile(
+                          leading: const Icon(Icons.storefront_outlined),
+                          title: const Text('Business'),
+                          trailing: Text(
+                            ref.read(appControllerProvider).businessName(_business),
+                            style: context.text.titleSmall,
+                          ),
+                          onTap: _pickBusiness,
+                        ),
                       if (!_editing)
                         ListTile(
                           leading: const Icon(Icons.repeat_rounded),

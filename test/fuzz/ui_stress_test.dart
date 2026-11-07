@@ -24,6 +24,7 @@ import 'package:ledgerlock/ui/ledger/import_screen.dart';
 import 'package:ledgerlock/ui/ledger/recurring_screen.dart';
 import 'package:ledgerlock/ui/search/search_screen.dart';
 import 'package:ledgerlock/ui/ledger/budgets_screen.dart';
+import 'package:ledgerlock/ui/ledger/businesses_screen.dart';
 import 'package:ledgerlock/ui/ledger/categories_screen.dart';
 import 'package:ledgerlock/ui/onboarding_screens.dart';
 import 'package:ledgerlock/ui/recovery_screens.dart';
@@ -113,6 +114,7 @@ LedgerEntry _e(
   String notes = '',
   bool paid = true,
 }) => LedgerEntry(
+  businessId: 1,
   id: id,
   isIncome: income,
   date: date,
@@ -147,20 +149,27 @@ List<Override> hostileTools() => [
   ),
   tripsProvider.overrideWith(
     (ref, y) => Stream.value([
-      Trip(id: 1, date: '$y-08-04', milesTenths: 999999999, purpose: longName, route: arabicName),
-      Trip(id: 2, date: '$y-05-12', milesTenths: 0, purpose: emojiName, route: ''),
+      Trip(businessId: 1, id: 1, date: '$y-08-04', milesTenths: 999999999, purpose: longName, route: arabicName),
+      Trip(businessId: 1, id: 2, date: '$y-05-12', milesTenths: 0, purpose: emojiName, route: ''),
+    ]),
+  ),
+  allTripsProvider.overrideWith(
+    (ref, y) => Stream.value([
+      Trip(businessId: 1, id: 1, date: '$y-08-04', milesTenths: 999999999, purpose: longName, route: arabicName),
+      Trip(businessId: 1, id: 2, date: '$y-05-12', milesTenths: 0, purpose: emojiName, route: ''),
     ]),
   ),
   forms1099Provider.overrideWith(
     (ref, y) => Stream.value([
-      Form1099(id: 1, year: y, kind: '1099-K', payer: emojiName, amountCents: huge),
-      Form1099(id: 2, year: y, kind: '1099-NEC', payer: longName, amountCents: 0),
-      Form1099(id: 3, year: y, kind: '1099-MISC', payer: arabicName, amountCents: -1),
+      Form1099(businessId: 1, id: 1, year: y, kind: '1099-K', payer: emojiName, amountCents: huge),
+      Form1099(businessId: 1, id: 2, year: y, kind: '1099-NEC', payer: longName, amountCents: 0),
+      Form1099(businessId: 1, id: 3, year: y, kind: '1099-MISC', payer: arabicName, amountCents: -1),
     ]),
   ),
   recurringProvider.overrideWith(
     (ref) => Stream.value([
       Recurring(
+        businessId: 1,
         tags: '',
         paid: true,
         id: 1,
@@ -177,6 +186,7 @@ List<Override> hostileTools() => [
         nextDate: '2026-11-30',
       ),
       Recurring(
+        businessId: 1,
         tags: '',
         paid: true,
         id: 2,
@@ -252,6 +262,9 @@ void main() {
           entriesProvider.overrideWith(
             (ref, year) => Stream.value(entries.where((e) => e.date.startsWith('$year')).toList()),
           ),
+          allEntriesProvider.overrideWith(
+            (ref, year) => Stream.value(entries.where((e) => e.date.startsWith('$year')).toList()),
+          ),
         ],
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
@@ -301,6 +314,7 @@ void main() {
     'recurring': (const RecurringScreen(), const []),
     'budgets': (const BudgetsScreen(), const []),
     'categories': (const CategoriesScreen(), const []),
+    'businesses': (const BusinessesScreen(), const []),
     'import_map': (
       ImportScreen(
         initialRows: [
@@ -618,6 +632,80 @@ void main() {
     expect(app.customCategories.single.baseId, 'meals');
     final stored = await t.runAsync(() => db.getSetting('customCategories'));
     expect(stored, contains('Client lunches'));
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('M1 adding a business lists it, and removing it moves its records to the main business', (t) async {
+    final db = memDb();
+    final app = await pumpWithDb(t, opener(() => const BusinessesScreen()), db);
+    app.businesses = (await t.runAsync(db.allBusinesses))!;
+    await t.tap(find.text('open'));
+    await settle(t);
+    await t.tap(find.text('Add business'));
+    await settle(t);
+    await t.enterText(find.byType(TextField), '  Etsy   shop ');
+    await t.pump();
+    await t.tap(find.text('Add'));
+    await settle(t);
+    expect(find.text('Etsy shop'), findsOneWidget);
+    expect(app.multiBusiness, isTrue);
+    final etsy = app.businesses.last.id;
+    await t.runAsync(
+      () => db.addEntry(
+        LedgerEntriesCompanion.insert(
+          isIncome: true,
+          date: '2026-03-01',
+          amountCents: 500,
+          category: 'services',
+          businessId: Value(etsy),
+        ),
+      ),
+    );
+    await t.tap(find.byTooltip('Remove Etsy shop'));
+    await settle(t);
+    expect(find.textContaining('Nothing is deleted'), findsOneWidget);
+    await t.tap(find.text('Remove'));
+    await settle(t);
+    expect(find.text('Etsy shop'), findsNothing);
+    final rows = await t.runAsync(() => db.watchYear(2026).first);
+    expect(rows!.single.businessId, AppDatabase.mainBusinessId, reason: 'record kept, moved to main');
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('M2 with a business on screen, a new record saves to it (and can be switched)', (t) async {
+    final db = memDb();
+    final id = (await t.runAsync(() => db.addBusiness('Tutoring')))!;
+    final app = await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    app.businesses = (await t.runAsync(db.allBusinesses))!;
+    app.viewBusiness = id;
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('2'));
+    await t.tap(find.byType(ChoiceChip).first);
+    await t.pumpAndSettle();
+    expect(find.text('Business'), findsOneWidget);
+    expect(find.text('Tutoring'), findsOneWidget);
+    await t.tap(find.text('Save expense'));
+    await settle(t);
+    final rows = await t.runAsync(() => db.watchYear(2026).first);
+    expect(rows!.single.businessId, id);
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('M3 one business: no business row or chip bar anywhere', (t) async {
+    final db = memDb();
+    final app = await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    app.businesses = (await t.runAsync(db.allBusinesses))!;
+    await t.tap(find.text('open'));
+    await t.pumpAndSettle();
+    expect(find.text('Business'), findsNothing);
+    expect(app.newRecordBusiness, AppDatabase.mainBusinessId);
     await t.pumpWidget(const SizedBox());
     await settle(t);
     await t.runAsync(db.close);

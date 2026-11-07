@@ -12,6 +12,7 @@ LedgerEntry _e(
   String cat = 'supplies',
   bool paid = true,
 }) => LedgerEntry(
+  businessId: 1,
   id: ++_id,
   isIncome: income,
   date: date,
@@ -23,7 +24,8 @@ LedgerEntry _e(
   platform: platform,
   notes: '',
   paid: paid,
-  tags: '', createdAt: DateTime(2026),
+  tags: '',
+  createdAt: DateTime(2026),
 );
 
 final _rules = TaxRules(
@@ -101,7 +103,7 @@ void main() {
     final q = _ask(DateTime(2026, 2, 1), e, receipts: {e.last.id});
     expect(q.single.text, contains('from Etsy'));
     expect(q.single.text, isNot(contains('Bank')));
-    const f = Form1099(id: 1, year: 2025, kind: '1099-K', payer: 'etsy', amountCents: 1);
+    const f = Form1099(businessId: 1, id: 1, year: 2025, kind: '1099-K', payer: 'etsy', amountCents: 1);
     expect(_ask(DateTime(2026, 2, 1), e, receipts: {e.last.id}, forms: [f]), isEmpty);
   });
 

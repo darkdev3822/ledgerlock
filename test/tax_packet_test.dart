@@ -23,6 +23,7 @@ const _rules = TaxRules(
 
 LedgerEntry _e(int id, bool income, int cents, String cat, {int pct = 100, bool paid = true, String platform = ''}) =>
     LedgerEntry(
+      businessId: 1,
       id: id,
       isIncome: income,
       date: '2026-03-0$id',
@@ -69,8 +70,10 @@ void main() {
         rules: _rules,
         summary: summary,
         entries: _entries,
-        forms: const [Form1099(id: 1, year: 2026, kind: '1099-K', payer: 'Etsy', amountCents: 100000)],
-        trips: const [Trip(id: 1, date: '2026-02-01', milesTenths: 125, purpose: 'Client', route: 'A-B')],
+        forms: const [Form1099(businessId: 1, id: 1, year: 2026, kind: '1099-K', payer: 'Etsy', amountCents: 100000)],
+        trips: const [
+          Trip(businessId: 1, id: 1, date: '2026-02-01', milesTenths: 125, purpose: 'Client', route: 'A-B'),
+        ],
         payments: const [
           TaxPayment(
             id: 1,

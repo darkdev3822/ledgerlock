@@ -18,7 +18,8 @@ String _money(int cents) => (cents / 100).toStringAsFixed(2);
 String _csv(List<List<Object?>> rows) => '${rows.map((r) => r.map(csvCell).join(',')).join('\r\n')}\r\n';
 
 /// Records for one year: one row per entry, with the Schedule C line.
-String entriesCsv(Iterable<LedgerEntry> entries, TaxRules rules) => _csv([
+/// [businesses] (id -> name): adds a Business column, for an export of several businesses together.
+String entriesCsv(Iterable<LedgerEntry> entries, TaxRules rules, {Map<int, String>? businesses}) => _csv([
   [
     'Date',
     'Type',
@@ -32,6 +33,7 @@ String entriesCsv(Iterable<LedgerEntry> entries, TaxRules rules) => _csv([
     'Received',
     'Notes',
     'Tags',
+    if (businesses != null) 'Business',
   ],
   for (final e in entries)
     [
@@ -47,6 +49,7 @@ String entriesCsv(Iterable<LedgerEntry> entries, TaxRules rules) => _csv([
       e.isIncome ? (e.paid ? 'Yes' : 'No (invoiced)') : '',
       e.notes,
       tagList(e.tags).join(' '),
+      if (businesses != null) businesses[e.businessId] ?? '',
     ],
 ]);
 

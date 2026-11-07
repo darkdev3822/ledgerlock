@@ -132,6 +132,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     final rows = _rows, picks = _review;
     if (db == null || rows == null || picks == null) return;
     final chosen = picks.where((p) => p.include).toList();
+    final business = ref.read(appControllerProvider).newRecordBusiness;
     setState(() => _busy = true);
     try {
       await db.addEntries([
@@ -146,6 +147,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             party: Value(p.row.payee),
             platform: Value(_source.text.trim()),
             notes: Value(safeTake(p.row.notes, 200)),
+            businessId: Value(business),
           ),
       ]);
       await db.setSetting(headerSignature(rows.first), jsonEncode(_map.toJson()));

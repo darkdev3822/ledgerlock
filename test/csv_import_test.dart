@@ -67,6 +67,7 @@ void main() {
   test('build: sign -> kind, fees on income only, skips bad lines, flags duplicates', () {
     const map = ColumnMap(date: 0, payee: 1, amount: 2, fee: 3);
     final existing = LedgerEntry(
+      businessId: 1,
       id: 1,
       isIncome: false,
       date: '2026-01-05',
@@ -78,7 +79,8 @@ void main() {
       platform: '',
       notes: '',
       paid: true,
-      tags: '', createdAt: DateTime(2026),
+      tags: '',
+      createdAt: DateTime(2026),
     );
     final r = buildImport(
       [

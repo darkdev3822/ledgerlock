@@ -327,6 +327,7 @@ class MileageScreen extends ConsumerWidget {
             milesTenths: t,
             purpose: Value(purpose.text.trim()),
             route: Value(route.text.trim()),
+            businessId: Value(ref.read(appControllerProvider).newRecordBusiness),
           ),
         );
         return true;
@@ -530,7 +531,13 @@ class Forms1099Screen extends ConsumerWidget {
           return false;
         }
         await db.addForm1099(
-          Forms1099Companion.insert(year: year, kind: kind, payer: payer.text.trim(), amountCents: c),
+          Forms1099Companion.insert(
+            year: year,
+            kind: kind,
+            payer: payer.text.trim(),
+            amountCents: c,
+            businessId: Value(ref.read(appControllerProvider).newRecordBusiness),
+          ),
         );
         return true;
       },
@@ -610,10 +617,28 @@ class Forms1099Screen extends ConsumerWidget {
 
 // ============================== CSV export ==============================
 
+/// File-name-safe business name: lower-case ASCII letters and digits joined by '-' (never a path).
+String businessFileSlug(String name) {
+  var s = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-');
+  if (s.length > 30) s = s.substring(0, 30);
+  s = s.replaceAll(RegExp(r'^-+|-+$'), '');
+  return s.isEmpty ? 'business' : s;
+}
+
 Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) async {
   final db = ref.read(appControllerProvider).db;
   final rules = ref.read(taxRulesProvider(year)).value;
   if (db == null || rules == null) return;
+  // Exports follow the business on screen (0 = all). Tax payments are the person's, shared by every business.
+  final app0 = ref.read(appControllerProvider);
+  final view = app0.effectiveView;
+  final suffix = view == 0 ? '' : '-${businessFileSlug(app0.businessName(view))}';
+  Future<List<LedgerEntry>> entriesNow() async => [
+    ...(await db.watchYear(year).first).where((e) => view == 0 || e.businessId == view),
+  ];
+  Future<List<Trip>> tripsNow() async => [
+    ...(await db.watchTrips(year).first).where((t) => view == 0 || t.businessId == view),
+  ];
   Future<void> export(String name, Future<String> Function() build) async {
     try {
       final ok = await saveWithPicker(name, Uint8List.fromList(csvBytes(await build())));
@@ -629,15 +654,16 @@ Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) asyn
     final app = ref.read(appControllerProvider);
     try {
       if (withReceipts && context.mounted) _toast(context, 'Building the packet with receipts…');
-      final trips = await db.watchTrips(year).first;
-      final entries = await db.watchYear(year).first;
-      final sqft = app.homeOfficeSqft[year] ?? 0;
+      final trips = await tripsNow();
+      final entries = await entriesNow();
+      final sqft = view == 0 || view == AppDatabase.mainBusinessId ? app.homeOfficeSqft[year] ?? 0 : 0;
       final receipts = <PacketReceipt>[];
       final docs = app.documents;
       if (withReceipts && docs != null) {
         final byId = {for (final e in entries) e.id: e};
         for (final a in await db.watchAttachments(year, folder: 'receipt').first) {
           final e = a.entryId == null ? null : byId[a.entryId];
+          if (view != 0 && e == null && a.entryId != null) continue; // another business's receipt
           final caption = e == null
               ? 'Not matched to a record'
               : '${DateFormat.yMMMd().format(e.day)} · '
@@ -662,14 +688,16 @@ Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) asyn
           entries: entries,
           trips: trips,
           payments: await db.watchPayments(year).first,
-          forms: await db.watchForms1099(year).first,
+          forms: [...(await db.watchForms1099(year).first).where((f) => view == 0 || f.businessId == view)],
           mileageCents: mileageDeductionCents(trips.map((t) => (t.date, t.milesTenths)), rules),
           homeOfficeCents: homeOfficeCents(sqft, rules) ?? 0,
           generated: DateTime.now(),
           receipts: receipts,
+          business: view == 0 ? null : app.businessName(view),
+          combinedBusinesses: view == 0 && app.multiBusiness ? app.businesses.length : 0,
         ),
       );
-      final name = 'ledgerlock-$year-tax-packet${withReceipts ? '-with-receipts' : ''}.pdf';
+      final name = 'ledgerlock-$year$suffix-tax-packet${withReceipts ? '-with-receipts' : ''}.pdf';
       final ok = await saveWithPicker(name, bytes, mime: 'application/pdf');
       if (ok && context.mounted) _toast(context, 'Saved $name');
     } on PlatformException {
@@ -720,14 +748,18 @@ Future<void> showExportSheet(BuildContext context, WidgetRef ref, int year) asyn
             (
               Icons.list_alt_rounded,
               'Records',
-              'ledgerlock-$year-records.csv',
-              () async => entriesCsv(await db.watchYear(year).first, rules),
+              'ledgerlock-$year$suffix-records.csv',
+              () async => entriesCsv(
+                await entriesNow(),
+                rules,
+                businesses: view == 0 && app0.multiBusiness ? {for (final b in app0.businesses) b.id: b.name} : null,
+              ),
             ),
             (
               Icons.directions_car_outlined,
               'Mileage log',
-              'ledgerlock-$year-mileage.csv',
-              () async => tripsCsv(await db.watchTrips(year).first),
+              'ledgerlock-$year$suffix-mileage.csv',
+              () async => tripsCsv(await tripsNow()),
             ),
             (
               Icons.payments_outlined,

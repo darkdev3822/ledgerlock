@@ -51,6 +51,10 @@ class PacketInput {
 
   /// Receipts appendix (SPEC §3). Empty = no appendix.
   final List<PacketReceipt> receipts;
+
+  /// With several businesses: the one this packet covers, or [combinedBusinesses] > 1 for all of them together.
+  final String? business;
+  final int combinedBusinesses;
   const PacketInput({
     required this.year,
     required this.rules,
@@ -63,6 +67,8 @@ class PacketInput {
     this.homeOfficeCents = 0,
     required this.generated,
     this.receipts = const [],
+    this.business,
+    this.combinedBusinesses = 0,
   });
 }
 
@@ -145,6 +151,19 @@ Future<Uint8List> buildTaxPacket(PacketInput p, {bool compress = true}) async {
           'Self-employment records (Schedule C) · generated ${DateFormat.yMMMd().format(p.generated)}',
           style: small,
         ),
+        if (p.business != null) ...[
+          pw.SizedBox(height: 4),
+          pw.Text('Business: ${p.business}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+        ],
+        if (p.combinedBusinesses > 1) ...[
+          pw.SizedBox(height: 4),
+          pw.Text(
+            'All ${p.combinedBusinesses} businesses combined. Each business has its own Schedule C, so the lines '
+            'below are totals, not one form. Export a packet from each business for its own lines. '
+            'Self-employment tax is figured on all of them together.',
+            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+          ),
+        ],
         pw.SizedBox(height: 8),
         pw.Container(
           padding: const pw.EdgeInsets.all(8),

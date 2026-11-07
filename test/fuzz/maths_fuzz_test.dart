@@ -151,6 +151,7 @@ void main() {
   // ---------- check-in ----------
 
   LedgerEntry le(Random r, DateTime d) => LedgerEntry(
+    businessId: 1,
     id: r.nextInt(1 << 30),
     isIncome: r.nextBool(),
     date: isoDay(d),
@@ -162,7 +163,8 @@ void main() {
     platform: ['Etsy', 'PayPal', '', 'Stripe'][r.nextInt(4)],
     notes: '',
     paid: r.nextBool(),
-    tags: '', createdAt: DateTime(2026),
+    tags: '',
+    createdAt: DateTime(2026),
   );
 
   final edgeDays = [

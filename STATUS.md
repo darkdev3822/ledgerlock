@@ -306,6 +306,18 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - DEPTH 11 DONE: receipts appendix (Export sheet "Tax packet with receipts": a page per receipt image with record
   caption, PDFs/overflow listed; PacketReceipt in tax_packet.dart; max 300 image pages). SECURITY T38.
   Emulator-verified end to end. Next big item: multiple businesses (needs a plan: profile_id on every table).
+- DEPTH 12 DONE (2026-11-06): multiple businesses. Schema v11: `businesses` table (row 1 = "Main business", can't
+  be removed) + `business_id` (default 1, ADD COLUMN only, no row copied) on ledger_entries, trips, forms1099,
+  recurrings. Payments, receipts vault, rules, categories, budgets stay shared. Filtering is in providers
+  (entriesProvider/tripsProvider/forms1099Provider/recurringProvider follow AppController.effectiveView;
+  allEntriesProvider/allTripsProvider/combinedSummaryProvider = every business). businessSummary(): per-business
+  Schedule C, SE tax + set-aside on all businesses together (one Schedule SE); home office counts toward main.
+  UI: Settings > Businesses (add/rename/remove; remove MOVES rows to main), chip bar under the top bar (only with
+  2+ businesses), entry "Business" row, Taxes labels, Home caption; exports/search follow the business on screen
+  (packet header names it, "All" packet says combined; CSV gets a Business column for All). With one business
+  nothing changes (goldens identical). test/businesses_test.dart, M1-M3, SECURITY T39. Emulator-verified: beta 2
+  vault upgraded v10->v11 with data intact, Etsy shop added, $500 income saved to it, Taxes per business/All.
+  Known limit: home office only on the main business; budgets/income goal are shared targets.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

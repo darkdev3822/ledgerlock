@@ -56,6 +56,21 @@ class AppController extends ChangeNotifier {
   /// The user's own categories (SPEC §3), merged into every year's rules by taxRulesProvider.
   List<CustomCategory> customCategories = const [];
 
+  /// Businesses (SPEC §3: each with its own Schedule C). Always holds the main business (id 1) once unlocked.
+  List<Business> businesses = const [];
+
+  /// Which business the screens show: a business id, or 0 = all of them together.
+  int viewBusiness = 0;
+  bool get multiBusiness => businesses.length > 1;
+
+  /// The business filter in effect (0 = no filter). With one business there is nothing to filter.
+  int get effectiveView => multiBusiness && businesses.any((b) => b.id == viewBusiness) ? viewBusiness : 0;
+
+  /// Where a new record goes: the business on screen, or the main one while showing all.
+  int get newRecordBusiness => effectiveView == 0 ? AppDatabase.mainBusinessId : effectiveView;
+  String businessName(int id) =>
+      businesses.where((b) => b.id == id).map((b) => b.name).firstOrNull ?? (id == 0 ? 'All businesses' : 'Business');
+
   /// What the user picked on "You're all set" ('scan' | 'add'); AppShell takes it once.
   String? firstAction;
   String? pendingCode;
@@ -206,6 +221,8 @@ class AppController extends ChangeNotifier {
     onboarded = await db.getSetting('onboarded') == 'true';
     budgets = _decodeBudgets(await db.getSetting('budgets'));
     customCategories = CustomCategory.decodeList(await db.getSetting('customCategories'));
+    businesses = await db.allBusinesses();
+    viewBusiness = int.tryParse(await db.getSetting('viewBusiness') ?? '') ?? 0;
     filedYears = (await db.getSetting('filedYears') ?? '').split(',').map(int.tryParse).whereType<int>().toSet();
     businessTypes = (await db.getSetting('businessTypes') ?? '').split(',').where((t) => t.isNotEmpty).toSet();
     lastCheckIn = DateTime.tryParse(await db.getSetting('lastCheckIn') ?? '');
@@ -253,6 +270,8 @@ class AppController extends ChangeNotifier {
     budgets = {};
     incomeGoals = {};
     customCategories = const [];
+    businesses = const [];
+    viewBusiness = 0;
     if (allowScreenshots) setSecureWindow(true); // locked: always secure
     allowScreenshots = false;
     stage = Stage.locked;
@@ -426,6 +445,46 @@ class AppController extends ChangeNotifier {
     customCategories = customCategories.where((x) => x.id != c.id).toList();
     await db?.setSetting('customCategories', CustomCategory.encodeList(customCategories));
     if (budgets.containsKey(c.id)) await setBudget(c.id, 0);
+    notifyListeners();
+  }
+
+  /// Adds a business. Returns its id, or null for an empty or duplicate name.
+  Future<int?> addBusiness(String name) async {
+    final n = safeTake(name.trim().replaceAll(RegExp(r'\s+'), ' '), 40);
+    final d = db;
+    if (d == null || n.isEmpty || businesses.any((b) => b.name.toLowerCase() == n.toLowerCase())) return null;
+    final id = await d.addBusiness(n);
+    businesses = await d.allBusinesses();
+    notifyListeners();
+    return id;
+  }
+
+  /// Renames a business. Returns false for an empty or duplicate name.
+  Future<bool> renameBusiness(int id, String name) async {
+    final n = safeTake(name.trim().replaceAll(RegExp(r'\s+'), ' '), 40);
+    final d = db;
+    if (d == null || n.isEmpty || businesses.any((b) => b.id != id && b.name.toLowerCase() == n.toLowerCase())) {
+      return false;
+    }
+    await d.renameBusiness(id, n);
+    businesses = await d.allBusinesses();
+    notifyListeners();
+    return true;
+  }
+
+  /// Removes a business; its records, trips, 1099s and repeats move to the main business (never deleted).
+  Future<void> deleteBusiness(int id) async {
+    final d = db;
+    if (d == null || id == AppDatabase.mainBusinessId) return;
+    await d.deleteBusiness(id);
+    businesses = await d.allBusinesses();
+    if (viewBusiness == id) await setViewBusiness(0);
+    notifyListeners();
+  }
+
+  Future<void> setViewBusiness(int id) async {
+    viewBusiness = id;
+    await db?.setSetting('viewBusiness', '$id');
     notifyListeners();
   }
 
@@ -642,30 +701,96 @@ final taxRulesProvider = FutureProvider.family<TaxRules, int>((ref, year) async 
   return (await TaxRules.load(year)).withCustom(custom);
 });
 
-/// Live ledger entries for a tax year (empty while locked).
-final entriesProvider = StreamProvider.family<List<LedgerEntry>, int>((ref, year) {
+/// Every business's entries for a tax year (empty while locked). Self-employment tax and set-aside use these.
+final allEntriesProvider = StreamProvider.family<List<LedgerEntry>, int>((ref, year) {
   final db = ref.watch(appControllerProvider.select((a) => a.db));
   return db == null ? Stream.value(const []) : db.watchYear(year);
 });
 
-/// Dashboard numbers for a tax year.
+/// The business filter screens use (0 = all).
+final viewBusinessProvider = Provider<int>((ref) => ref.watch(appControllerProvider.select((a) => a.effectiveView)));
+
+/// Live ledger entries for a tax year, for the business on screen.
+final entriesProvider = StreamProvider.family<List<LedgerEntry>, int>((ref, year) {
+  final db = ref.watch(appControllerProvider.select((a) => a.db));
+  final v = ref.watch(viewBusinessProvider);
+  if (db == null) return Stream.value(const []);
+  return v == 0 ? db.watchYear(year) : db.watchYear(year).map((l) => [...l.where((e) => e.businessId == v)]);
+});
+
+/// Dashboard numbers for a tax year. With several businesses and one on screen, the Schedule C lines, profit and
+/// chart are that business's, while self-employment tax and set-aside are figured on all of them together (one
+/// Schedule SE covers every Schedule C). The home office counts toward the main business.
 final summaryProvider = Provider.family<LedgerSummary, int>((ref, year) {
   final rules = ref.watch(taxRulesProvider(year)).value;
-  final entries = ref.watch(entriesProvider(year)).value ?? const [];
+  final all = ref.watch(allEntriesProvider(year)).value ?? const [];
+  final allTrips = ref.watch(allTripsProvider(year)).value ?? const [];
+  final v = ref.watch(viewBusinessProvider);
   final pct = ref.watch(appControllerProvider.select((a) => a.setAsidePct));
   final w2 = ref.watch(appControllerProvider.select((a) => a.w2WagesCents[year] ?? 0));
-  final trips = ref.watch(tripsProvider(year)).value ?? const [];
   final sqft = ref.watch(appControllerProvider.select((a) => a.homeOfficeSqft[year] ?? 0));
   if (rules == null) return LedgerSummary.empty;
-  return summarize(
-    entries.map((e) => e.data),
+  return businessSummary(
     rules,
+    all,
+    allTrips,
+    view: v,
     setAsidePct: pct,
     w2WagesCents: w2,
-    mileageCents: mileageDeductionCents(trips.map((t) => (t.date, t.milesTenths)), rules),
     homeOfficeCents: homeOfficeCents(sqft, rules) ?? 0,
   );
 });
+
+/// Every business together (Schedule SE view): what self-employment tax is figured on.
+final combinedSummaryProvider = Provider.family<LedgerSummary, int>((ref, year) {
+  final rules = ref.watch(taxRulesProvider(year)).value;
+  if (rules == null) return LedgerSummary.empty;
+  return businessSummary(
+    rules,
+    ref.watch(allEntriesProvider(year)).value ?? const [],
+    ref.watch(allTripsProvider(year)).value ?? const [],
+    setAsidePct: ref.watch(appControllerProvider.select((a) => a.setAsidePct)),
+    w2WagesCents: ref.watch(appControllerProvider.select((a) => a.w2WagesCents[year] ?? 0)),
+    homeOfficeCents:
+        homeOfficeCents(ref.watch(appControllerProvider.select((a) => a.homeOfficeSqft[year] ?? 0)), rules) ?? 0,
+  );
+});
+
+/// [summaryProvider]'s maths, separate so it can be tested. [view] 0 = every business.
+LedgerSummary businessSummary(
+  TaxRules rules,
+  List<LedgerEntry> entries,
+  List<Trip> trips, {
+  int view = 0,
+  double? setAsidePct,
+  int w2WagesCents = 0,
+  int homeOfficeCents = 0,
+}) {
+  LedgerSummary of(int v) => summarize(
+    entries.where((e) => v == 0 || e.businessId == v).map((e) => e.data),
+    rules,
+    setAsidePct: setAsidePct,
+    w2WagesCents: w2WagesCents,
+    mileageCents: mileageDeductionCents(
+      trips.where((t) => v == 0 || t.businessId == v).map((t) => (t.date, t.milesTenths)),
+      rules,
+    ),
+    homeOfficeCents: v == 0 || v == AppDatabase.mainBusinessId ? homeOfficeCents : 0,
+  );
+  final combined = of(0);
+  if (view == 0) return combined;
+  final one = of(view);
+  return LedgerSummary(
+    lines: one.lines,
+    grossCents: one.grossCents,
+    expensesCents: one.expensesCents,
+    netCents: one.netCents,
+    seTaxCents: combined.seTaxCents,
+    setAsideCents: combined.setAsideCents,
+    setAsidePct: combined.setAsidePct,
+    monthly: one.monthly,
+  );
+}
 
 /// Bundled free-help list (SPEC §2.12). Overridable in tests.
 final resourcesProvider = FutureProvider<List<Resource>>((ref) => Resource.load());
@@ -682,14 +807,23 @@ final paymentsProvider = StreamProvider.family<List<TaxPayment>, int>((ref, year
   return db == null ? Stream.value(const []) : db.watchPayments(year);
 });
 
-final tripsProvider = StreamProvider.family<List<Trip>, int>((ref, year) {
+final allTripsProvider = StreamProvider.family<List<Trip>, int>((ref, year) {
   final db = ref.watch(appControllerProvider.select((a) => a.db));
   return db == null ? Stream.value(const []) : db.watchTrips(year);
 });
 
+final tripsProvider = StreamProvider.family<List<Trip>, int>((ref, year) {
+  final db = ref.watch(appControllerProvider.select((a) => a.db));
+  final v = ref.watch(viewBusinessProvider);
+  if (db == null) return Stream.value(const []);
+  return v == 0 ? db.watchTrips(year) : db.watchTrips(year).map((l) => [...l.where((t) => t.businessId == v)]);
+});
+
 final recurringProvider = StreamProvider<List<Recurring>>((ref) {
   final db = ref.watch(appControllerProvider.select((a) => a.db));
-  return db == null ? Stream.value(const []) : db.watchRecurring();
+  final v = ref.watch(viewBusinessProvider);
+  if (db == null) return Stream.value(const []);
+  return v == 0 ? db.watchRecurring() : db.watchRecurring().map((l) => [...l.where((r) => r.businessId == v)]);
 });
 
 final categoryRulesProvider = StreamProvider<List<CategoryRule>>((ref) {
@@ -699,5 +833,7 @@ final categoryRulesProvider = StreamProvider<List<CategoryRule>>((ref) {
 
 final forms1099Provider = StreamProvider.family<List<Form1099>, int>((ref, year) {
   final db = ref.watch(appControllerProvider.select((a) => a.db));
-  return db == null ? Stream.value(const []) : db.watchForms1099(year);
+  final v = ref.watch(viewBusinessProvider);
+  if (db == null) return Stream.value(const []);
+  return v == 0 ? db.watchForms1099(year) : db.watchForms1099(year).map((l) => [...l.where((f) => f.businessId == v)]);
 });

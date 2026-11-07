@@ -149,7 +149,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       }
     }
     final search =
-        widget.searchOverride ?? (db == null ? null : (SearchQuery q) => runSearch(db, q, lineCategories: lineCats));
+        widget.searchOverride ??
+        (db == null
+            ? null
+            : (SearchQuery q) => runSearch(db, q, lineCategories: lineCats, business: ref.read(viewBusinessProvider)));
     if (search == null) return;
     final q = parseQuery(text, today: ref.read(todayProvider));
     final seq = ++_seq;

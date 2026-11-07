@@ -179,6 +179,7 @@ void main() {
     final entries = [
       for (var i = 0; i < 300; i++)
         LedgerEntry(
+          businessId: 1,
           id: i,
           isIncome: r.nextBool(),
           date: '2026-01-01',
@@ -190,7 +191,8 @@ void main() {
           platform: fuzzString(r, maxPieces: 2),
           notes: fuzzString(r),
           paid: r.nextBool(),
-          tags: '', createdAt: DateTime(2026),
+          tags: '',
+          createdAt: DateTime(2026),
         ),
     ];
     final csv = timed(() => entriesCsv(entries, rules), limitMs: 500);
@@ -220,6 +222,7 @@ void main() {
   });
 
   LedgerEntry entry(bool income, String party) => LedgerEntry(
+    businessId: 1,
     id: 1,
     isIncome: income,
     date: '2026-03-04',
@@ -231,7 +234,8 @@ void main() {
     platform: '',
     notes: '',
     paid: true,
-    tags: '', createdAt: DateTime(2026),
+    tags: '',
+    createdAt: DateTime(2026),
   );
 
   test('F3 re-importing LedgerLock\'s own CSV export turns every expense into income', () {
