@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'design/brand.dart';
 import 'design/theme.dart';
 
+import '../data/database.dart' show isDatabaseTooNew;
 import '../security/attempt_guard.dart';
 import '../security/vault.dart';
 
@@ -241,6 +242,15 @@ class _UnlockScreenState extends State<UnlockScreen> {
       if (mounted) setState(() => _error = 'Wrong password');
     } on TooManyAttempts catch (e) {
       if (mounted) setState(() => _error = lockoutMessage(e));
+    } catch (e) {
+      if (mounted) {
+        setState(
+          () => _error = isDatabaseTooNew(e)
+              ? 'This data was saved by a newer version of LedgerLock. Install the latest version to open it. '
+                    'Nothing was changed.'
+              : 'Couldn’t open your data. Nothing was changed. Try again.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

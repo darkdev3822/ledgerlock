@@ -195,6 +195,12 @@ class AppController extends ChangeNotifier {
 
   Future<void> _afterUnlock(Session s) async {
     final db = s.db;
+    try {
+      await db.getSetting('autoLockMinutes'); // first query: runs the migration
+    } catch (_) {
+      await s.lock(); // e.g. DatabaseTooNew: close it and wipe the key instead of leaving a half-open session
+      rethrow;
+    }
     autoLockMinutes = int.tryParse(await db.getSetting('autoLockMinutes') ?? '') ?? 1;
     autoLock.timeout = Duration(minutes: autoLockMinutes);
     themeMode = ThemeMode.values.asNameMap()[await db.getSetting('themeMode')] ?? ThemeMode.system;

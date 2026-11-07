@@ -16,6 +16,7 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
+import '../data/database.dart' show vaultSchemaVersion;
 import '../security/attempt_guard.dart';
 import '../security/crypto.dart';
 import '../security/session.dart';
@@ -23,6 +24,9 @@ import '../security/vault.dart';
 
 const backupMagic = 'LLBK';
 const backupVersion = 1;
+
+/// [BackupInvalid.why] for a backup made by a newer app version than this one.
+const newerBackup = 'made by a newer version of LedgerLock';
 const _maxHeaderBytes = 256 * 1024;
 const _maxEntries = 200000;
 const _maxEntryBytes = 4 * 1024 * 1024 * 1024; // 4 GB (database or one file)
@@ -98,6 +102,7 @@ Future<({int files, int bytes})> createBackup({
       utf8.encode(
         jsonEncode({
           'created': (now ?? DateTime.now()).toIso8601String(),
+          'schema': vaultSchemaVersion,
           'entries': manifest,
           'vault': {'v': 2, 'slots': slots},
         }),
@@ -111,6 +116,7 @@ Future<({int files, int bytes})> createBackup({
       jsonEncode({
         'v': backupVersion,
         'created': (now ?? DateTime.now()).toIso8601String(),
+        'schema': vaultSchemaVersion,
         'vault': {'v': 2, 'slots': slots},
         'manifest': base64Encode(sealed),
       }),
@@ -168,7 +174,7 @@ class BackupFile {
       if (head.length < 9 || ascii.decode(head.sublist(0, 4), allowInvalid: true) != backupMagic) {
         throw const BackupInvalid('not a LedgerLock backup');
       }
-      if (head[4] != backupVersion) throw const BackupInvalid('made by a newer version of LedgerLock');
+      if (head[4] != backupVersion) throw const BackupInvalid(newerBackup);
       final len = ByteData.sublistView(head, 5, 9).getUint32(0);
       if (len <= 0 || len > _maxHeaderBytes) throw const BackupInvalid('damaged header');
       final bytes = await raf.read(len);
@@ -178,6 +184,8 @@ class BackupFile {
       if (vault['v'] != 2 || vault['slots'] is! Map) throw const BackupInvalid('damaged header');
       final known = {for (final x in Slot.values) x.name};
       if (!(vault['slots'] as Map).keys.every(known.contains)) throw const BackupInvalid('damaged header');
+      // Older backups have no schema field (all <= 11). Refuse a newer one before any secret is asked for.
+      if ((j['schema'] as int? ?? 0) > vaultSchemaVersion) throw const BackupInvalid(newerBackup);
       return BackupFile._(
         file,
         DateTime.tryParse(j['created'] as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
@@ -210,6 +218,7 @@ class BackupFile {
     List<dynamic> expected;
     DateTime made;
     Map<String, dynamic> sealedVault;
+    int schema;
     try {
       final m = jsonDecode(
         utf8.decode(await LedgerCrypto.decrypt(sealedManifest, key, aad: utf8.encode(_manifestAad))),
@@ -217,11 +226,14 @@ class BackupFile {
       expected = (m as Map)['entries'] as List;
       made = DateTime.parse(m['created'] as String); // authenticated, unlike the header's display copy
       sealedVault = Map<String, dynamic>.from(m['vault'] as Map);
+      schema = m['schema'] as int? ?? 0;
     } catch (_) {
       throw const BackupInvalid('this backup does not match that secret, or was changed');
     } finally {
       LedgerCrypto.zero(key);
     }
+    // Authenticated copy of the header check: an edited header can't sneak a newer vault past an older app.
+    if (schema > vaultSchemaVersion) throw const BackupInvalid(newerBackup);
     if (expected.length > _maxEntries) throw const BackupInvalid('too many entries');
     final want = {for (final e in expected) (e as Map)['name'] as String: e};
     final seen = <String>{};

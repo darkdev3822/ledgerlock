@@ -37,13 +37,17 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
     super.dispose();
   }
 
+  static const _newer =
+      'This backup was made by a newer version of LedgerLock. Update the app first, then restore it. '
+      'Nothing was changed.';
+
   Future<void> _pick() async {
     setState(() => _error = null);
     try {
       final b = await ref.read(appControllerProvider).pickBackup();
       if (b != null && mounted) setState(() => _backup = b);
     } on BackupInvalid catch (e) {
-      setState(() => _error = 'That isn’t a LedgerLock backup (${e.why}).');
+      setState(() => _error = e.why == newerBackup ? _newer : 'That isn’t a LedgerLock backup (${e.why}).');
     } catch (_) {
       setState(() => _error = 'Couldn’t read that file.');
     }
@@ -70,8 +74,12 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
       _fail('That recovery key doesn’t open this backup. Check each character.');
     } on TooManyAttempts catch (e) {
       _fail('Too many tries. Wait ${e.wait.inMinutes + 1} min.');
-    } on BackupInvalid {
-      _fail('This backup was changed or is incomplete, so nothing was restored. Your current data is untouched.');
+    } on BackupInvalid catch (e) {
+      _fail(
+        e.why == newerBackup
+            ? _newer
+            : 'This backup was changed or is incomplete, so nothing was restored. Your current data is untouched.',
+      );
     } catch (_) {
       _fail('Restore failed. Nothing was changed.');
     }

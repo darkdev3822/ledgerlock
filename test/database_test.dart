@@ -263,6 +263,47 @@ void main() {
     await db.close();
   });
 
+  test('beta 2 opened a v11 vault from a restored backup (stamped v10, columns kept): the update opens it', () async {
+    final file = File('${dir.path}/round.db');
+    final key = LedgerCrypto.randomBytes(32);
+    final hex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    var db = AppDatabase.open(file, key);
+    await db.addEntry(e('2026-03-01', income: true, cat: 'services', c: 5000));
+    await db.addTrip(TripsCompanion.insert(date: '2026-04-02', milesTenths: 125));
+    await db.close();
+    // What beta 2 (schema 10) did to it: its no-op "upgrade" from 11 to 10 just rewrote the version number.
+    raw.sqlite3.open(file.path)
+      ..execute("PRAGMA key = \"x'$hex'\"")
+      ..execute('PRAGMA user_version = 10')
+      ..close();
+    db = AppDatabase.open(file, key);
+    expect((await db.watchYear(2026).first).single.amountCents, 5000);
+    expect((await db.allBusinesses()).single.name, 'Main business');
+    await db.close();
+    final v = raw.sqlite3.open(file.path)..execute("PRAGMA key = \"x'$hex'\"");
+    expect(v.select('PRAGMA user_version').single.values.single, vaultSchemaVersion);
+    v.close();
+  });
+
+  test('a vault from a newer app version is refused, never downgraded', () async {
+    final file = File('${dir.path}/new.db');
+    final key = LedgerCrypto.randomBytes(32);
+    final hex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    var db = AppDatabase.open(file, key);
+    await db.addEntry(e('2026-03-01'));
+    await db.close();
+    raw.sqlite3.open(file.path)
+      ..execute("PRAGMA key = \"x'$hex'\"")
+      ..execute('PRAGMA user_version = ${vaultSchemaVersion + 1}')
+      ..close();
+    db = AppDatabase.open(file, key);
+    await expectLater(db.watchYear(2026).first, throwsA(predicate((e) => isDatabaseTooNew(e!))));
+    await db.close();
+    final v = raw.sqlite3.open(file.path)..execute("PRAGMA key = \"x'$hex'\"");
+    expect(v.select('PRAGMA user_version').single.values.single, vaultSchemaVersion + 1);
+    v.close();
+  });
+
   test('watchYear filters by year and orders newest first; restore undoes delete', () async {
     final db = AppDatabase.open(File('${dir.path}/t.db'), LedgerCrypto.randomBytes(32));
     await db.addEntry(e('2026-01-05', c: 1));

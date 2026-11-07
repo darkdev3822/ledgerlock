@@ -1,4 +1,5 @@
 // M9 encrypted backups: round trip to a fresh install, integrity, and hostile files (SECURITY.md T25).
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -82,6 +83,29 @@ void main() {
     expect(att.single.entryId, rows.single.id);
     await s.lock();
     expect(Directory('${phoneB.path}/.restore-staging').existsSync(), isFalse);
+  });
+
+  // Rewrites the plain header JSON of a backup file (length-prefixed after "LLBK" + version byte).
+  void editHeader(File f, void Function(Map<String, dynamic>) edit) {
+    final b = f.readAsBytesSync();
+    final len = ByteData.sublistView(b, 5, 9).getUint32(0);
+    final j = jsonDecode(utf8.decode(b.sublist(9, 9 + len))) as Map<String, dynamic>;
+    edit(j);
+    final h = utf8.encode(jsonEncode(j));
+    final l = ByteData(4)..setUint32(0, h.length);
+    f.writeAsBytesSync([...b.sublist(0, 5), ...l.buffer.asUint8List(), ...h, ...b.sublist(9 + len)]);
+  }
+
+  test('backups record the schema; a newer one is refused up front, an older one (no field) still opens', () async {
+    final (file, _) = await makeBackup();
+    editHeader(file, (j) => expect(j['schema'], vaultSchemaVersion));
+    final old = File('${root.path}/old.llbackup')..writeAsBytesSync(file.readAsBytesSync());
+    editHeader(old, (j) => j.remove('schema'));
+    final staging = Directory('${phoneB.path}/st');
+    final b = await BackupFile.open(old);
+    await b.extractVerified(staging, await (await b.stageVault(staging)).unlock('pw-A'));
+    editHeader(file, (j) => j['schema'] = vaultSchemaVersion + 1);
+    await expectLater(BackupFile.open(file), throwsA(isA<BackupInvalid>().having((e) => e.why, 'why', newerBackup)));
   });
 
   test('restore with the recovery key works too', () async {

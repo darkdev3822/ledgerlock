@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ledgerlock/data/database.dart' show DatabaseTooNew;
 import 'package:ledgerlock/security/vault.dart';
 import 'package:ledgerlock/ui/lock_screens.dart';
 
@@ -46,5 +47,20 @@ void main() {
     await t.tap(find.text('Unlock'));
     await t.pump();
     expect(find.text('Wrong password'), findsOneWidget);
+  });
+
+  testWidgets('unlock explains a vault from a newer app version (and any other open failure) instead of hanging', (
+    t,
+  ) async {
+    Object err = const DatabaseTooNew(12, 11);
+    await t.pumpWidget(MaterialApp(home: UnlockScreen(onSubmit: (_) async => throw err)));
+    await t.enterText(find.byKey(const Key('unlock')), 'pw');
+    await t.tap(find.text('Unlock'));
+    await t.pump();
+    expect(find.textContaining('newer version of LedgerLock'), findsOneWidget);
+    err = StateError('disk');
+    await t.tap(find.text('Unlock'));
+    await t.pump();
+    expect(find.textContaining('Couldn’t open your data'), findsOneWidget);
   });
 }

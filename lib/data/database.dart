@@ -199,6 +199,20 @@ class NotEncrypted implements Exception {
   String toString() => 'SQLCipher not available: refusing to open an unencrypted database';
 }
 
+/// Database layout version of this app. Backups record it so an older app refuses a newer backup up front.
+const vaultSchemaVersion = 11;
+
+/// The vault was written by a newer version of the app than this one (schema [found] > [supported]).
+class DatabaseTooNew implements Exception {
+  final int found, supported;
+  const DatabaseTooNew(this.found, this.supported);
+  @override
+  String toString() => 'DatabaseTooNew($found > $supported)';
+}
+
+/// True for [DatabaseTooNew], also when it comes back from the database isolate wrapped (DriftRemoteException).
+bool isDatabaseTooNew(Object e) => e is DatabaseTooNew || e.toString().contains('DatabaseTooNew(');
+
 @DriftDatabase(
   tables: [Settings, LedgerEntries, Attachments, TaxPayments, Trips, Forms1099, CategoryRules, Recurrings, Businesses],
 )
@@ -227,7 +241,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => vaultSchemaVersion;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -241,6 +255,9 @@ class AppDatabase extends _$AppDatabase {
       await _seedMainBusiness();
     },
     onUpgrade: (m, from, to) async {
+      // A vault from a newer app version (e.g. its backup restored into this older app): never "downgrade" it. Doing
+      // so would stamp the old version on a newer layout, and the next update would then fail to open it.
+      if (from > to) throw DatabaseTooNew(from, to);
       if (from < 2) {
         await m.createTable(ledgerEntries);
         await customStatement('CREATE INDEX entries_date ON ledger_entries(date)');
@@ -275,13 +292,15 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 11) {
         // ADD COLUMN with a default: no row is copied or rewritten, everything lands in business 1.
-        if (from >= 2) await m.addColumn(ledgerEntries, ledgerEntries.businessId);
+        // Idempotent: a beta 2 app that opened a v11 vault (restored backup) stamped it v10 but kept these columns.
+        if (from >= 2) await _addColumnOnce(m, ledgerEntries, ledgerEntries.businessId);
         if (from >= 6) {
-          await m.addColumn(trips, trips.businessId);
-          await m.addColumn(forms1099, forms1099.businessId);
+          await _addColumnOnce(m, trips, trips.businessId);
+          await _addColumnOnce(m, forms1099, forms1099.businessId);
         }
-        if (from >= 8) await m.addColumn(recurrings, recurrings.businessId);
-        await m.createTable(businesses);
+        if (from >= 8) await _addColumnOnce(m, recurrings, recurrings.businessId);
+        final has = await customSelect("SELECT 1 FROM sqlite_master WHERE type='table' AND name='businesses'").get();
+        if (has.isEmpty) await m.createTable(businesses);
         await _seedMainBusiness();
       }
     },
@@ -366,8 +385,16 @@ class AppDatabase extends _$AppDatabase {
 
   // ---------- businesses (v11) ----------
   static const mainBusinessId = 1;
-  Future<void> _seedMainBusiness() =>
-      into(businesses).insert(const BusinessesCompanion(id: Value(1), name: Value('Main business')));
+  Future<void> _seedMainBusiness() => into(businesses).insert(
+    const BusinessesCompanion(id: Value(1), name: Value('Main business')),
+    mode: InsertMode.insertOrIgnore,
+  );
+
+  Future<void> _addColumnOnce(Migrator m, TableInfo table, GeneratedColumn column) async {
+    final cols = await customSelect('PRAGMA table_info(${table.actualTableName})').get();
+    if (cols.any((r) => r.read<String>('name') == column.name)) return;
+    await m.addColumn(table, column);
+  }
 
   Stream<List<Business>> watchBusinesses() => (select(businesses)..orderBy([(b) => OrderingTerm.asc(b.id)])).watch();
   Future<List<Business>> allBusinesses() => (select(businesses)..orderBy([(b) => OrderingTerm.asc(b.id)])).get();
