@@ -60,4 +60,27 @@ void main() {
     }
     expect((await freq()).length, 4);
   });
+
+  test('frequent trips: same purpose, route and miles twice or more; per business; max 3', () async {
+    Future<void> trip(String d, String p, int t, {String r = '', int b = 1}) => db.addTrip(
+      TripsCompanion.insert(date: d, milesTenths: t, purpose: Value(p), route: Value(r), businessId: Value(b)),
+    );
+    await trip('2026-01-01', 'Client visit', 124, r: 'Home to Acme');
+    await trip('2026-02-01', ' client VISIT ', 124, r: 'home to acme');
+    await trip('2026-03-01', 'Client visit', 125, r: 'Home to Acme'); // other miles: once
+    await trip('2024-01-01', 'Old', 10);
+    await trip('2024-02-01', 'Old', 10);
+    await trip('2026-01-01', 'Supplies', 40, b: 2);
+    await trip('2026-02-01', 'Supplies', 40, b: 2);
+    Future<List<(String, int)>> f({int b = 0}) async => [
+      for (final t in await db.frequentTrips(since: '2025-11-01', business: b)) (t.purpose, t.milesTenths),
+    ];
+    expect((await f()).toSet(), {(' client VISIT ', 124), ('Supplies', 40)});
+    expect(await f(b: 2), [('Supplies', 40)]);
+    for (var i = 0; i < 5; i++) {
+      await trip('2026-05-01', 'P$i', 10 + i);
+      await trip('2026-05-02', 'P$i', 10 + i);
+    }
+    expect((await f()).length, 3);
+  });
 }

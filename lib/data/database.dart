@@ -557,6 +557,20 @@ class AppDatabase extends _$AppDatabase {
     return [for (final r in rows) ledgerEntries.map(r.data)];
   }
 
+  /// Trips driven again and again (same purpose, route and miles at least twice since [since]); newest copy of each.
+  Future<List<Trip>> frequentTrips({required String since, int business = 0, int limit = 3}) async {
+    final rows = await customSelect(
+      'SELECT t.* FROM trips t JOIN ('
+      '  SELECT COUNT(*) AS n, MAX(id) AS mid FROM trips WHERE date >= ? AND miles_tenths > 0'
+      '${business == 0 ? '' : ' AND business_id = ?'}'
+      '  GROUP BY lower(trim(purpose)), lower(trim(route)), miles_tenths HAVING n >= 2'
+      ') g ON t.id = g.mid ORDER BY g.n DESC, t.date DESC, t.id DESC LIMIT ?',
+      variables: [Variable.withString(since), if (business != 0) Variable.withInt(business), Variable.withInt(limit)],
+      readsFrom: {trips},
+    ).get();
+    return [for (final r in rows) trips.map(r.data)];
+  }
+
   // ---------- M7: import ----------
   /// Entries between two ISO dates (inclusive), for duplicate checks.
   Future<List<LedgerEntry>> entriesBetween(String from, String to) =>

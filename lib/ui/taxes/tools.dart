@@ -302,10 +302,36 @@ class MileageScreen extends ConsumerWidget {
     final today = ref.read(todayProvider);
     var date = today.year == year ? today : DateTime(year, 1, 1);
     final miles = TextEditingController(), purpose = TextEditingController(), route = TextEditingController();
+    final again = await db.frequentTrips(
+      since: isoDay(DateTime(today.year - 1, today.month, today.day)),
+      business: ref.read(appControllerProvider).effectiveView,
+    );
+    if (!context.mounted) return;
     await _sheet(
       context,
       'Add a business trip',
       [
+        if (again.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Space.sm),
+            child: Wrap(
+              spacing: Space.sm,
+              runSpacing: Space.xs,
+              children: [
+                for (final t in again)
+                  ActionChip(
+                    avatar: const Icon(Icons.replay_rounded, size: 18),
+                    label: Text('${safeTake(t.purpose.trim(), 22)} · ${(t.milesTenths / 10).toStringAsFixed(1)} mi'),
+                    tooltip: 'Fill in this trip again',
+                    onPressed: () {
+                      miles.text = (t.milesTenths / 10).toStringAsFixed(1);
+                      purpose.text = t.purpose.trim();
+                      route.text = t.route.trim();
+                    },
+                  ),
+              ],
+            ),
+          ),
         _DateRow(initial: date, year: year, onChanged: (d) => date = d),
         _field(miles, 'Miles', number: true),
         _field(purpose, 'Business purpose', helper: 'The IRS expects a purpose for each trip, e.g. "client meeting"'),

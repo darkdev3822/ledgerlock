@@ -890,6 +890,38 @@ void main() {
     await t.runAsync(db.close);
   });
 
+  testWidgets('T1 a trip driven again fills from its chip and saves', (t) async {
+    final db = memDb();
+    for (final d in ['2026-09-01', '2026-10-01']) {
+      await t.runAsync(
+        () => db.addTrip(
+          TripsCompanion.insert(
+            date: d,
+            milesTenths: 124,
+            purpose: const Value('Client visit'),
+            route: const Value('Home to Acme'),
+          ),
+        ),
+      );
+    }
+    await pumpWithDb(t, opener(() => const MileageScreen(2026)), db);
+    await t.tap(find.text('open'));
+    await settle(t);
+    await t.tap(find.text('Add trip'));
+    await settle(t);
+    await t.tap(find.text('Client visit · 12.4 mi'));
+    await t.pump();
+    await t.tap(find.text('Save'));
+    await settle(t);
+    final trips = (await t.runAsync(() => db.watchTrips(2026).first))!;
+    expect(trips.length, 3);
+    expect(trips.first.date, '2026-11-01');
+    expect((trips.first.milesTenths, trips.first.purpose, trips.first.route), (124, 'Client visit', 'Home to Acme'));
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
   testWidgets('M3 one business: no business row or chip bar anywhere', (t) async {
     final db = memDb();
     final app = await pumpWithDb(t, opener(() => const EntryScreen()), db);
