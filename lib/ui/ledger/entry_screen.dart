@@ -1,5 +1,7 @@
 // Add / edit an income or expense (SPEC §5 fast entry: keypad-first amount,
 // smart category default, today's date; details are optional).
+import 'dart:math' as math;
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -455,298 +457,304 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           const SizedBox(width: Space.sm),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: FocusScope(
-              node: _focus,
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: Space.gutter),
-                children: [
-                  SegmentedButton<bool>(
-                    showSelectedIcon: false,
-                    segments: const [
-                      ButtonSegment(value: false, label: Text('Expense'), icon: Icon(Icons.north_east_rounded)),
-                      ButtonSegment(value: true, label: Text('Income'), icon: Icon(Icons.south_west_rounded)),
-                    ],
-                    selected: {_income},
-                    onSelectionChanged: (s) {
-                      setState(() {
-                        _income = s.first;
-                        _category = null;
-                        _userPickedCategory = false;
-                        _frequent = const [];
-                      });
-                      _loadFrequent();
-                      _maybeSuggest();
-                    },
-                  ),
-                  if (ref.watch(appControllerProvider.select((a) => a.filedYears)).contains(_date.year))
-                    Padding(
-                      padding: const EdgeInsets.only(top: Space.md),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline_rounded, size: 18, color: ll.warning),
-                          const SizedBox(width: Space.sm),
-                          Expanded(
-                            child: Text(
-                              'You marked ${_date.year} as filed. Changes here won\'t change the return you sent; '
-                              'if they matter, you may need to file an amended return.',
-                              style: context.text.bodySmall,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: Space.xl),
-                  GestureDetector(
-                    onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                    child: Column(
+      // Wide and short (phone in landscape, split screen, a fold's outer screen sideways): form on the left,
+      // keypad + Save on the right. Stacked, the keypad took the whole height and hid the amount and categories
+      // (device lab, landscape).
+      body: LayoutBuilder(
+        builder: (context, box) {
+          // The WINDOW's shape, not the body's: the soft keyboard shrinks the body, and flipping layouts while
+          // typing would rebuild the form and drop the field's focus.
+          final win = MediaQuery.sizeOf(context);
+          final side = win.width > win.height && win.height < 600;
+          final form = FocusScope(
+            node: _focus,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: Space.gutter),
+              children: [
+                SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Expense'), icon: Icon(Icons.north_east_rounded)),
+                    ButtonSegment(value: true, label: Text('Income'), icon: Icon(Icons.south_west_rounded)),
+                  ],
+                  selected: {_income},
+                  onSelectionChanged: (s) {
+                    setState(() {
+                      _income = s.first;
+                      _category = null;
+                      _userPickedCategory = false;
+                      _frequent = const [];
+                    });
+                    _loadFrequent();
+                    _maybeSuggest();
+                  },
+                ),
+                if (ref.watch(appControllerProvider.select((a) => a.filedYears)).contains(_date.year))
+                  Padding(
+                    padding: const EdgeInsets.only(top: Space.md),
+                    child: Row(
                       children: [
-                        Text(_income ? 'Gross amount' : 'Amount', style: context.text.labelMedium),
-                        const SizedBox(height: 4),
-                        Semantics(
-                          label: 'Amount ${formatCents(_cents)}',
+                        Icon(Icons.info_outline_rounded, size: 18, color: ll.warning),
+                        const SizedBox(width: Space.sm),
+                        Expanded(
                           child: Text(
-                            formatCents(_cents),
-                            style: context.text.displayMedium?.copyWith(
-                              fontFamily: Fonts.ui,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -1,
-                              color: amountColor,
-                              fontFeatures: tabular,
-                            ),
+                            'You marked ${_date.year} as filed. Changes here won\'t change the return you sent; '
+                            'if they matter, you may need to file an amended return.',
+                            style: context.text.bodySmall,
                           ),
-                        ),
-                        AnimatedSize(
-                          duration: Motion.medium,
-                          curve: Motion.enter,
-                          child: _reading == null && _ocrFilled == null
-                              ? const SizedBox(width: double.infinity)
-                              : Padding(
-                                  padding: const EdgeInsets.only(top: Space.sm),
-                                  child: _ReceiptReadBanner(reading: _reading == true, filled: _ocrFilled),
-                                ),
                         ),
                       ],
                     ),
                   ),
-                  if (_cents == 0 && _frequent.isNotEmpty) ...[
-                    const SizedBox(height: Space.md),
-                    Text('Again?', style: context.text.labelMedium?.copyWith(color: ll.muted)),
-                    const SizedBox(height: Space.xs),
-                    SizedBox(
-                      height: 44,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _frequent.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: Space.sm),
-                        itemBuilder: (_, i) {
-                          final e = _frequent[i];
-                          final who = e.party.trim().isNotEmpty
-                              ? e.party.trim()
-                              : (rules.category(e.category)?.name ?? e.category);
-                          return ActionChip(
-                            avatar: Icon(categoryIcon(e.category), size: 18),
-                            label: Text('${safeTake(who, 24)} · ${formatCents(e.amountCents)}'),
-                            tooltip: 'Fill in $who, ${formatCents(e.amountCents)}',
-                            onPressed: () => _quickFill(e),
-                          );
-                        },
+                const SizedBox(height: Space.xl),
+                GestureDetector(
+                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                  child: Column(
+                    children: [
+                      Text(_income ? 'Gross amount' : 'Amount', style: context.text.labelMedium),
+                      const SizedBox(height: 4),
+                      Semantics(
+                        label: 'Amount ${formatCents(_cents)}',
+                        child: Text(
+                          formatCents(_cents),
+                          style: context.text.displayMedium?.copyWith(
+                            fontFamily: Fonts.ui,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -1,
+                            color: amountColor,
+                            fontFeatures: tabular,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                  const SizedBox(height: Space.lg),
+                      AnimatedSize(
+                        duration: Motion.medium,
+                        curve: Motion.enter,
+                        child: _reading == null && _ocrFilled == null
+                            ? const SizedBox(width: double.infinity)
+                            : Padding(
+                                padding: const EdgeInsets.only(top: Space.sm),
+                                child: _ReceiptReadBanner(reading: _reading == true, filled: _ocrFilled),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_cents == 0 && _frequent.isNotEmpty) ...[
+                  const SizedBox(height: Space.md),
+                  Text('Again?', style: context.text.labelMedium?.copyWith(color: ll.muted)),
+                  const SizedBox(height: Space.xs),
                   SizedBox(
                     height: 44,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
-                      itemCount: cats.length,
+                      itemCount: _frequent.length,
                       separatorBuilder: (_, _) => const SizedBox(width: Space.sm),
                       itemBuilder: (_, i) {
-                        final c = cats[i];
-                        return ChoiceChip(
-                          avatar: Icon(categoryIcon(c.id), size: 18),
-                          label: Text(c.name),
-                          selected: c.id == _category,
-                          showCheckmark: false,
-                          onSelected: (_) => setState(() {
-                            _category = c.id;
-                            _userPickedCategory = true;
-                          }),
+                        final e = _frequent[i];
+                        final who = e.party.trim().isNotEmpty
+                            ? e.party.trim()
+                            : (rules.category(e.category)?.name ?? e.category);
+                        return ActionChip(
+                          avatar: Icon(categoryIcon(e.category), size: 18),
+                          label: Text('${safeTake(who, 24)} · ${formatCents(e.amountCents)}'),
+                          tooltip: 'Fill in $who, ${formatCents(e.amountCents)}',
+                          onPressed: () => _quickFill(e),
                         );
                       },
                     ),
                   ),
-                  if (selected != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: Space.sm, left: 4),
-                      child: Text('Schedule C line ${selected.line} · ${selected.hint}', style: context.text.bodySmall),
-                    ),
-                  const SectionHeader('Details'),
-                  LLGroup(
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.event_outlined),
-                        title: const Text('Date'),
-                        trailing: Text(DateFormat.yMMMd().format(_date), style: context.text.titleSmall),
-                        onTap: () async {
-                          final d = await showDatePicker(
-                            context: context,
-                            initialDate: _date,
-                            firstDate: DateTime(TaxRules.supportedYears.last),
-                            lastDate: DateTime(TaxRules.supportedYears.first, 12, 31),
-                          );
-                          if (d != null) setState(() => _date = d);
-                        },
-                      ),
-                      if (ref.watch(appControllerProvider.select((a) => a.multiBusiness)))
-                        ListTile(
-                          leading: const Icon(Icons.storefront_outlined),
-                          title: const Text('Business'),
-                          trailing: Text(
-                            ref.read(appControllerProvider).businessName(_business),
-                            style: context.text.titleSmall,
-                          ),
-                          onTap: _pickBusiness,
-                        ),
-                      if (!_editing)
-                        ListTile(
-                          leading: const Icon(Icons.repeat_rounded),
-                          title: const Text('Repeats'),
-                          trailing: Text(everyLabel(_repeat), style: context.text.titleSmall),
-                          onTap: _pickRepeat,
-                        )
-                      else if (_rule != null)
-                        ListTile(
-                          leading: const Icon(Icons.repeat_rounded),
-                          title: Text(everyLabel(_rule!.every)),
-                          subtitle: Text(
-                            'Next ${DateFormat.yMMMd().format(DateTime.parse(_rule!.nextDate))}. '
-                            'Changes here affect this record only.',
-                          ),
-                          trailing: TextButton(onPressed: _stopRepeat, child: const Text('Stop')),
-                        ),
-                      _AutoField(
-                        controller: _party,
-                        icon: Icons.person_outline_rounded,
-                        label: _income ? 'Paid by' : 'Paid to',
-                        options: _recentParties,
-                      ),
-                      if (_income) ...[
-                        _AutoField(
-                          controller: _platform,
-                          icon: Icons.storefront_outlined,
-                          label: 'Platform or account',
-                          options: {
-                            ..._recentPlatforms,
-                            'Fiverr',
-                            'Etsy',
-                            'itch.io',
-                            'Uber',
-                            'PayPal',
-                            'Bank',
-                            'Cash',
-                          }.toList(),
-                        ),
-                        _Field(
-                          controller: _fee,
-                          icon: Icons.percent_rounded,
-                          label: 'Platform fee (deductible)',
-                          keyboard: const TextInputType.numberWithOptions(decimal: true),
-                          prefix: r'$ ',
-                        ),
-                      ] else
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(Space.lg, Space.md, Space.lg, Space.sm),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.work_outline_rounded, color: ll.muted),
-                                  const SizedBox(width: Space.lg),
-                                  const Expanded(child: Text('Business use')),
-                                  Text('${_businessPct.round()}%', style: context.text.titleSmall),
-                                ],
-                              ),
-                              Slider(
-                                value: _businessPct,
-                                max: 100,
-                                divisions: 20,
-                                label: '${_businessPct.round()}%',
-                                onChanged: (v) => setState(() {
-                                  _businessPct = v;
-                                  _userSetPct = true;
-                                }),
-                              ),
-                            ],
-                          ),
-                        ),
-                      _Field(controller: _notes, icon: Icons.notes_rounded, label: 'Notes'),
-                      _Field(controller: _tags, icon: Icons.sell_outlined, label: 'Tags (e.g. client-a etsy-shop)'),
-                      _ReceiptRow(
-                        entryId: widget.existing?.id,
-                        pending: _pendingReceipts,
-                        onAdd: () async {
-                          final id = await captureReceipt(context, year: _date.year);
-                          if (id == null) return;
-                          final db = ref.read(appControllerProvider).db!;
-                          if (_editing) {
-                            await db.linkAttachment(id, widget.existing!.id);
-                          } else {
-                            setState(() => _pendingReceipts.add(id));
-                            if (_cents == 0) _readReceipt(id);
-                          }
-                        },
-                      ),
-                    ],
+                ],
+                const SizedBox(height: Space.lg),
+                SizedBox(
+                  height: 44,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: cats.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: Space.sm),
+                    itemBuilder: (_, i) {
+                      final c = cats[i];
+                      return ChoiceChip(
+                        avatar: Icon(categoryIcon(c.id), size: 18),
+                        label: Text(c.name),
+                        selected: c.id == _category,
+                        showCheckmark: false,
+                        onSelected: (_) => setState(() {
+                          _category = c.id;
+                          _userPickedCategory = true;
+                        }),
+                      );
+                    },
                   ),
-                  if (_income) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(4, Space.sm, 4, 0),
-                      child: Text(
-                        'Gross is what the buyer paid; the fee is what the platform kept. 1099-K forms report gross.',
-                        style: context.text.bodySmall,
-                      ),
+                ),
+                if (selected != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: Space.sm, left: 4),
+                    child: Text('Schedule C line ${selected.line} · ${selected.hint}', style: context.text.bodySmall),
+                  ),
+                const SectionHeader('Details'),
+                LLGroup(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.event_outlined),
+                      title: const Text('Date'),
+                      trailing: Text(DateFormat.yMMMd().format(_date), style: context.text.titleSmall),
+                      onTap: () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: _date,
+                          firstDate: DateTime(TaxRules.supportedYears.last),
+                          lastDate: DateTime(TaxRules.supportedYears.first, 12, 31),
+                        );
+                        if (d != null) setState(() => _date = d);
+                      },
                     ),
-                    SwitchListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                      title: const Text('Received'),
-                      subtitle: Text(
-                        _paid
-                            ? 'Counted in your totals.'
-                            : 'Invoiced, not paid yet: not counted until you mark it received.',
+                    if (ref.watch(appControllerProvider.select((a) => a.multiBusiness)))
+                      ListTile(
+                        leading: const Icon(Icons.storefront_outlined),
+                        title: const Text('Business'),
+                        trailing: Text(
+                          ref.read(appControllerProvider).businessName(_business),
+                          style: context.text.titleSmall,
+                        ),
+                        onTap: _pickBusiness,
                       ),
-                      value: _paid,
-                      onChanged: (v) async {
-                        // An old invoice paid now: income counts when received (cash basis), maybe next year.
-                        final today = ref.read(todayProvider);
-                        final day = DateTime(today.year, today.month, today.day);
-                        if (v && _editing && !widget.existing!.paid && _date.isBefore(day)) {
-                          final r = await askReceivedDate(context, today: today, invoiced: _date);
-                          if (r == null || !mounted) return;
-                          setState(() {
-                            _paid = true;
-                            if (r.date != null) _date = r.date!;
-                          });
-                          return;
+                    if (!_editing)
+                      ListTile(
+                        leading: const Icon(Icons.repeat_rounded),
+                        title: const Text('Repeats'),
+                        trailing: Text(everyLabel(_repeat), style: context.text.titleSmall),
+                        onTap: _pickRepeat,
+                      )
+                    else if (_rule != null)
+                      ListTile(
+                        leading: const Icon(Icons.repeat_rounded),
+                        title: Text(everyLabel(_rule!.every)),
+                        subtitle: Text(
+                          'Next ${DateFormat.yMMMd().format(DateTime.parse(_rule!.nextDate))}. '
+                          'Changes here affect this record only.',
+                        ),
+                        trailing: TextButton(onPressed: _stopRepeat, child: const Text('Stop')),
+                      ),
+                    _AutoField(
+                      controller: _party,
+                      icon: Icons.person_outline_rounded,
+                      label: _income ? 'Paid by' : 'Paid to',
+                      options: _recentParties,
+                    ),
+                    if (_income) ...[
+                      _AutoField(
+                        controller: _platform,
+                        icon: Icons.storefront_outlined,
+                        label: 'Platform or account',
+                        options: {
+                          ..._recentPlatforms,
+                          'Fiverr',
+                          'Etsy',
+                          'itch.io',
+                          'Uber',
+                          'PayPal',
+                          'Bank',
+                          'Cash',
+                        }.toList(),
+                      ),
+                      _Field(
+                        controller: _fee,
+                        icon: Icons.percent_rounded,
+                        label: 'Platform fee (deductible)',
+                        keyboard: const TextInputType.numberWithOptions(decimal: true),
+                        prefix: r'$ ',
+                      ),
+                    ] else
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(Space.lg, Space.md, Space.lg, Space.sm),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.work_outline_rounded, color: ll.muted),
+                                const SizedBox(width: Space.lg),
+                                const Expanded(child: Text('Business use')),
+                                Text('${_businessPct.round()}%', style: context.text.titleSmall),
+                              ],
+                            ),
+                            Slider(
+                              value: _businessPct,
+                              max: 100,
+                              divisions: 20,
+                              label: '${_businessPct.round()}%',
+                              onChanged: (v) => setState(() {
+                                _businessPct = v;
+                                _userSetPct = true;
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                    _Field(controller: _notes, icon: Icons.notes_rounded, label: 'Notes'),
+                    _Field(controller: _tags, icon: Icons.sell_outlined, label: 'Tags (e.g. client-a etsy-shop)'),
+                    _ReceiptRow(
+                      entryId: widget.existing?.id,
+                      pending: _pendingReceipts,
+                      onAdd: () async {
+                        final id = await captureReceipt(context, year: _date.year);
+                        if (id == null) return;
+                        final db = ref.read(appControllerProvider).db!;
+                        if (_editing) {
+                          await db.linkAttachment(id, widget.existing!.id);
+                        } else {
+                          setState(() => _pendingReceipts.add(id));
+                          if (_cents == 0) _readReceipt(id);
                         }
-                        setState(() => _paid = v);
                       },
                     ),
                   ],
-                  const SizedBox(height: Space.xl),
+                ),
+                if (_income) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, Space.sm, 4, 0),
+                    child: Text(
+                      'Gross is what the buyer paid; the fee is what the platform kept. 1099-K forms report gross.',
+                      style: context.text.bodySmall,
+                    ),
+                  ),
+                  SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    title: const Text('Received'),
+                    subtitle: Text(
+                      _paid
+                          ? 'Counted in your totals.'
+                          : 'Invoiced, not paid yet: not counted until you mark it received.',
+                    ),
+                    value: _paid,
+                    onChanged: (v) async {
+                      // An old invoice paid now: income counts when received (cash basis), maybe next year.
+                      final today = ref.read(todayProvider);
+                      final day = DateTime(today.year, today.month, today.day);
+                      if (v && _editing && !widget.existing!.paid && _date.isBefore(day)) {
+                        final r = await askReceivedDate(context, today: today, invoiced: _date);
+                        if (r == null || !mounted) return;
+                        setState(() {
+                          _paid = true;
+                          if (r.date != null) _date = r.date!;
+                        });
+                        return;
+                      }
+                      setState(() => _paid = v);
+                    },
+                  ),
                 ],
-              ),
+                const SizedBox(height: Space.xl),
+              ],
             ),
-          ),
+          );
           // A Material (not a coloured Container) so the keypad's ink ripples are painted where you can see them.
-          Material(
+          final bar = Material(
             color: ll.surface,
-            shape: Border(top: BorderSide(color: ll.border)),
+            shape: side ? null : Border(top: BorderSide(color: ll.border)),
             child: SafeArea(
-              top: false,
+              top: side,
+              left: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(Space.gutter, Space.sm, Space.gutter, Space.md),
                 child: Center(
@@ -774,8 +782,32 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                 ),
               ),
             ),
-          ),
-        ],
+          );
+          if (!side) {
+            return Column(
+              children: [
+                Expanded(child: form),
+                bar,
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: form),
+              SizedBox(
+                width: math.min(box.maxWidth * 0.45, 440),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: ll.surface,
+                    border: Border(left: BorderSide(color: ll.border)),
+                  ),
+                  child: Center(child: SingleChildScrollView(child: bar)),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

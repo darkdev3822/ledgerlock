@@ -922,6 +922,32 @@ void main() {
     await t.runAsync(db.close);
   });
 
+  for (final size in [const Size(844, 390), const Size(915, 412), const Size(600, 400)]) {
+    testWidgets('L1 landscape/split ${size.width.round()}x${size.height.round()}: amount, categories, keypad and Save '
+        'all reachable; saving works', (t) async {
+      final db = memDb();
+      await pumpWithDb(t, opener(() => const EntryScreen()), db);
+      t.view.physicalSize = size;
+      await t.pumpAndSettle();
+      await t.tap(find.text('open'));
+      await t.pumpAndSettle();
+      for (final k in ['1', '2', '5', '0']) {
+        await t.tap(find.text(k));
+      }
+      await t.pump();
+      expect(find.text('\$12.50').hitTestable(), findsOneWidget, reason: 'amount visible next to the keypad');
+      await t.tap(find.byType(ChoiceChip).first);
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+      await t.tap(find.text('Save expense'));
+      await settle(t);
+      expect((await t.runAsync(() => db.watchYear(2026).first))!.single.amountCents, 1250);
+      await t.pumpWidget(const SizedBox());
+      await settle(t);
+      await t.runAsync(db.close);
+    });
+  }
+
   testWidgets('M3 one business: no business row or chip bar anywhere', (t) async {
     final db = memDb();
     final app = await pumpWithDb(t, opener(() => const EntryScreen()), db);

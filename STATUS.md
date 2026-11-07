@@ -329,6 +329,14 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   so cash-basis income lands in the right year; "Received" bulk action for selected unpaid invoices.
 - Mileage quick fill: "Add trip" sheet shows up to 3 chips for trips logged 2+ times (purpose/route/miles), per
   business. db.frequentTrips. Covered by T40.
+- DEVICE LAB (2026-11-06): tool/device_lab.py + tool/lab_ui.py run the real debug app on headless `lab_*`
+  emulators shaped like popular phones (small budget, mainstream 6.1-6.5", Pixel 9a, big 6.9", book fold, flip,
+  tablet) x settings (font 1.3/2.0, display +20%, dark, 3-button nav, landscape): setup, keypad expense + income,
+  every tab, search, settings; scans logcat for exceptions/overflows. Reports in build/device_lab/. Emulators
+  ONLY (refuses non-emulator serials). Found + fixed: landscape/split-screen entry screen was all keypad
+  (amount and categories hidden, Save impossible) -> side-by-side layout when the window is wide and < 600 dp
+  tall (decided on window size so the soft keyboard can't flip it). Tests L1 x3.
+  Not covered by emulators: Samsung One UI itself, Android < 16 (needs system images; owner runs sdkmanager).
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY
