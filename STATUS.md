@@ -325,6 +325,8 @@ Spec: SPEC.md. Rules: CLAUDE.md.
 - DEPTH 14 DONE: select several records (Records: press and hold, tap more, "Select all N"; floating bar:
   Category / Tag / Business (2+ businesses) / Delete; Undo for all; back button leaves selection).
   lib/ui/ledger/bulk_edit.dart, db.editEntries/replaceEntries/deleteEntries/restoreEntries. SECURITY T41.
+- FIX (T42): marking an old invoice received asks when the money arrived (askReceivedDate in bulk_edit.dart),
+  so cash-basis income lands in the right year; "Received" bulk action for selected unpaid invoices.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY

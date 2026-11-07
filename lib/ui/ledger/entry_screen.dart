@@ -17,6 +17,7 @@ import '../design/components.dart';
 import '../design/theme.dart';
 import '../vault/capture_screen.dart';
 import '../vault/vault_screens.dart';
+import 'bulk_edit.dart';
 import 'category_icons.dart';
 
 /// Opens the entry screen. Pass [existing] to edit.
@@ -718,7 +719,21 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                             : 'Invoiced, not paid yet: not counted until you mark it received.',
                       ),
                       value: _paid,
-                      onChanged: (v) => setState(() => _paid = v),
+                      onChanged: (v) async {
+                        // An old invoice paid now: income counts when received (cash basis), maybe next year.
+                        final today = ref.read(todayProvider);
+                        final day = DateTime(today.year, today.month, today.day);
+                        if (v && _editing && !widget.existing!.paid && _date.isBefore(day)) {
+                          final r = await askReceivedDate(context, today: today, invoiced: _date);
+                          if (r == null || !mounted) return;
+                          setState(() {
+                            _paid = true;
+                            if (r.date != null) _date = r.date!;
+                          });
+                          return;
+                        }
+                        setState(() => _paid = v);
+                      },
                     ),
                   ],
                   const SizedBox(height: Space.xl),

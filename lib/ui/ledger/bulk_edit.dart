@@ -1,6 +1,7 @@
 // Records selection (long-press a record): change category, add a tag, move to another business or delete several
 // records at once. Every action is one transaction and can be undone from the snackbar.
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +11,65 @@ import '../../data/tax_rules.dart';
 import '../design/components.dart';
 import '../design/theme.dart';
 import 'category_icons.dart';
+
+/// Cash basis: income counts on the day it's received, which can be a later tax year than the invoice. Asks when the
+/// money arrived. Returns null if cancelled; `(date: null)` = keep each invoice date.
+Future<({DateTime? date})?> askReceivedDate(
+  BuildContext context, {
+  required DateTime today,
+  required DateTime invoiced,
+  int count = 1,
+}) {
+  final d = DateFormat.yMMMd();
+  final day = DateTime(today.year, today.month, today.day);
+  return showModalBottomSheet<({DateTime? date})>(
+    context: context,
+    showDragHandle: true,
+    builder: (c) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Space.lg),
+            child: Text('When did the money arrive?', style: c.text.titleMedium),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Space.lg, Space.xs, Space.lg, Space.sm),
+            child: Text(
+              'Income counts on the day you receive it, which can be in a later tax year than the invoice.',
+              style: c.text.bodySmall,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.today_rounded),
+            title: Text('Today, ${d.format(day)}'),
+            onTap: () => Navigator.pop(c, (date: day)),
+          ),
+          ListTile(
+            leading: const Icon(Icons.event_outlined),
+            title: const Text('Pick the date'),
+            onTap: () async {
+              final p = await showDatePicker(
+                context: c,
+                initialDate: day,
+                firstDate: invoiced.isAfter(day) ? day : invoiced,
+                lastDate: day,
+              );
+              if (p != null && c.mounted) Navigator.pop(c, (date: p));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.history_rounded),
+            title: Text(count == 1 ? 'On the invoice date, ${d.format(invoiced)}' : 'On each invoice date'),
+            onTap: () => Navigator.pop(c, (date: null)),
+          ),
+          const SizedBox(height: Space.sm),
+        ],
+      ),
+    ),
+  );
+}
 
 /// The floating bar shown while records are selected.
 class SelectionBar extends ConsumerWidget {
@@ -110,6 +170,19 @@ class SelectionBar extends ConsumerWidget {
     await _edit(context, ref, 'Moved', (e) => e.copyWith(businessId: id));
   }
 
+  Future<void> _received(BuildContext context, WidgetRef ref) async {
+    final first = selected.map((e) => e.day).reduce((a, b) => a.isBefore(b) ? a : b);
+    final r = await askReceivedDate(context, today: ref.read(todayProvider), invoiced: first, count: selected.length);
+    if (r == null || !context.mounted) return;
+    final date = r.date;
+    await _edit(
+      context,
+      ref,
+      'Marked received:',
+      (e) => e.copyWith(paid: true, date: date == null ? e.date : isoDay(date)),
+    );
+  }
+
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final db = ref.read(appControllerProvider).db;
     if (db == null) return;
@@ -181,6 +254,8 @@ class SelectionBar extends ConsumerWidget {
             ),
             Row(
               children: [
+                if (selected.every((e) => e.isIncome && !e.paid))
+                  action(Icons.price_check_rounded, 'Received', () => _received(context, ref)),
                 action(Icons.category_outlined, 'Category', () => _category(context, ref)),
                 action(Icons.sell_outlined, 'Tag', () => _tag(context, ref)),
                 if (multi) action(Icons.storefront_outlined, 'Business', () => _business(context, ref)),

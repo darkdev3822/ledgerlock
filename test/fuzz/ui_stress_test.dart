@@ -828,6 +828,68 @@ void main() {
     });
   }
 
+  Future<int> addInvoice(WidgetTester t, AppDatabase db, String date, String party) async => (await t.runAsync(
+    () => db.addEntry(
+      LedgerEntriesCompanion.insert(
+        isIncome: true,
+        date: date,
+        amountCents: 90000,
+        category: 'services',
+        party: Value(party),
+        paid: const Value(false),
+      ),
+    ),
+  ))!;
+
+  testWidgets('I1 marking an old invoice received asks when, and moves it to that day (cash basis)', (t) async {
+    final db = memDb();
+    await addInvoice(t, db, '2026-09-01', 'Acme');
+    final e = (await t.runAsync(() => db.watchYear(2026).first))!.single;
+    await pumpWithDb(t, opener(() => EntryScreen(existing: e)), db);
+    await t.tap(find.text('open'));
+    await settle(t);
+    await t.scrollUntilVisible(find.byType(SwitchListTile), 200, scrollable: find.byType(Scrollable).first);
+    await t.drag(find.byType(Scrollable).first, const Offset(0, -400));
+    await settle(t);
+    await t.tap(find.byType(SwitchListTile));
+    await settle(t);
+    expect(find.text('When did the money arrive?'), findsOneWidget);
+    await t.tap(find.textContaining('Today,'));
+    await settle(t);
+    await t.tap(find.text('Save changes'));
+    await settle(t);
+    final n = (await t.runAsync(() => db.watchYear(2026).first))!.single;
+    expect((n.paid, n.date), (true, '2026-11-01'));
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
+  testWidgets('I2 selected unpaid invoices: Received, keeping each invoice date; undo', (t) async {
+    final db = memDb();
+    await addInvoice(t, db, '2026-09-01', 'Acme');
+    await addInvoice(t, db, '2026-10-01', 'Beta Co');
+    await pumpWithDb(t, const Scaffold(body: RecordsTab()), db);
+    await settle(t);
+    await t.longPress(find.text('Acme'));
+    await settle(t);
+    await t.tap(find.text('Beta Co'));
+    await settle(t);
+    await t.tap(find.text('Received'));
+    await settle(t);
+    await t.tap(find.text('On each invoice date'));
+    await settle(t);
+    var rows = (await t.runAsync(() => db.watchYear(2026).first))!;
+    expect(rows.map((e) => (e.paid, e.date)).toSet(), {(true, '2026-09-01'), (true, '2026-10-01')});
+    await t.tap(find.text('Undo'));
+    await settle(t);
+    rows = (await t.runAsync(() => db.watchYear(2026).first))!;
+    expect(rows.every((e) => !e.paid), isTrue);
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
   testWidgets('M3 one business: no business row or chip bar anywhere', (t) async {
     final db = memDb();
     final app = await pumpWithDb(t, opener(() => const EntryScreen()), db);
