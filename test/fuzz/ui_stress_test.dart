@@ -698,6 +698,40 @@ void main() {
     await t.runAsync(db.close);
   });
 
+  testWidgets('Q1 "Again?" chip fills a frequent record in one tap and saves it', (t) async {
+    final db = memDb();
+    for (final d in ['2026-09-01', '2026-10-01']) {
+      await t.runAsync(
+        () => db.addEntry(
+          LedgerEntriesCompanion.insert(
+            isIncome: false,
+            date: d,
+            amountCents: 540,
+            category: 'meals',
+            party: const Value('Starbucks'),
+            tags: Value(normalizeTags('client-a')),
+          ),
+        ),
+      );
+    }
+    await pumpWithDb(t, opener(() => const EntryScreen()), db);
+    await t.tap(find.text('open'));
+    await settle(t);
+    expect(find.text('Again?'), findsOneWidget);
+    await t.tap(find.text('Starbucks · \$5.40'));
+    await t.pumpAndSettle();
+    expect(find.text('Again?'), findsNothing, reason: 'hidden once an amount is in');
+    await t.tap(find.text('Save expense'));
+    await settle(t);
+    final rows = (await t.runAsync(() => db.watchYear(2026).first))!;
+    expect(rows.length, 3);
+    final n = rows.firstWhere((e) => e.date == '2026-11-01');
+    expect((n.party, n.amountCents, n.category, n.tags), ('Starbucks', 540, 'meals', ' client-a '));
+    await t.pumpWidget(const SizedBox());
+    await settle(t);
+    await t.runAsync(db.close);
+  });
+
   testWidgets('M3 one business: no business row or chip bar anywhere', (t) async {
     final db = memDb();
     final app = await pumpWithDb(t, opener(() => const EntryScreen()), db);

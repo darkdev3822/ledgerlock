@@ -70,6 +70,9 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
   late int _business = _src?.businessId ?? ref.read(appControllerProvider).newRecordBusiness;
   Recurring? _rule;
   List<String> _recentParties = const [];
+
+  /// Quick fill chips: things this person records over and over (new records only).
+  List<LedgerEntry> _frequent = const [];
   List<String> _recentPlatforms = const [];
 
   /// Receipts captured before a new entry is saved; linked on save.
@@ -211,7 +214,38 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     if (db == null) return;
     _recentParties = await db.recentValues(db.ledgerEntries.party);
     _recentPlatforms = await db.recentValues(db.ledgerEntries.platform);
+    await _loadFrequent();
     await _maybeSuggest();
+  }
+
+  Future<void> _loadFrequent() async {
+    final app = ref.read(appControllerProvider);
+    final db = app.db;
+    if (db == null || _editing || widget.template != null) return;
+    final today = ref.read(todayProvider);
+    final f = await db.frequentEntries(
+      isIncome: _income,
+      since: isoDay(DateTime(today.year - 1, today.month, today.day)),
+      business: app.effectiveView,
+    );
+    if (mounted) setState(() => _frequent = f);
+  }
+
+  /// Fills the form from a frequent record. Date stays as picked; notes aren't copied (they're per record).
+  void _quickFill(LedgerEntry e) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _cents = e.amountCents;
+      _category = e.category;
+      _userPickedCategory = true;
+      _businessPct = e.businessPct.toDouble();
+      _userSetPct = true;
+      _party.text = e.party;
+      _platform.text = e.platform;
+      _fee.text = e.feeCents == 0 ? '' : (e.feeCents / 100).toStringAsFixed(2);
+      _tags.text = tagList(e.tags).join(' ');
+      _business = e.businessId;
+    });
   }
 
   Future<void> _maybeSuggest() async {
@@ -440,7 +474,9 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                         _income = s.first;
                         _category = null;
                         _userPickedCategory = false;
+                        _frequent = const [];
                       });
+                      _loadFrequent();
                       _maybeSuggest();
                     },
                   ),
@@ -494,6 +530,31 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                       ],
                     ),
                   ),
+                  if (_cents == 0 && _frequent.isNotEmpty) ...[
+                    const SizedBox(height: Space.md),
+                    Text('Again?', style: context.text.labelMedium?.copyWith(color: ll.muted)),
+                    const SizedBox(height: Space.xs),
+                    SizedBox(
+                      height: 44,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _frequent.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: Space.sm),
+                        itemBuilder: (_, i) {
+                          final e = _frequent[i];
+                          final who = e.party.trim().isNotEmpty
+                              ? e.party.trim()
+                              : (rules.category(e.category)?.name ?? e.category);
+                          return ActionChip(
+                            avatar: Icon(categoryIcon(e.category), size: 18),
+                            label: Text('${safeTake(who, 24)} · ${formatCents(e.amountCents)}'),
+                            tooltip: 'Fill in $who, ${formatCents(e.amountCents)}',
+                            onPressed: () => _quickFill(e),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: Space.lg),
                   SizedBox(
                     height: 44,

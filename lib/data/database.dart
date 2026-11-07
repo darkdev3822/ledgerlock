@@ -492,6 +492,33 @@ class AppDatabase extends _$AppDatabase {
   Future<int> addForm1099(Forms1099Companion f) => into(forms1099).insert(f);
   Future<void> deleteForm1099(int id) => (delete(forms1099)..where((f) => f.id.equals(id))).go();
 
+  /// Quick fill: records typed again and again (same payee, category and amount at least twice since [since]),
+  /// most frequent first, newest copy of each. Repeating-record copies are left out (they add themselves).
+  /// [business] 0 = every business.
+  Future<List<LedgerEntry>> frequentEntries({
+    required bool isIncome,
+    required String since,
+    int business = 0,
+    int limit = 4,
+  }) async {
+    final rows = await customSelect(
+      'SELECT e.* FROM ledger_entries e JOIN ('
+      '  SELECT COUNT(*) AS n, MAX(id) AS mid FROM ledger_entries'
+      '  WHERE is_income = ? AND recurring_id IS NULL AND date >= ? AND amount_cents > 0'
+      '${business == 0 ? '' : ' AND business_id = ?'}'
+      '  GROUP BY lower(trim(party)), category, amount_cents HAVING n >= 2'
+      ') g ON e.id = g.mid ORDER BY g.n DESC, e.date DESC, e.id DESC LIMIT ?',
+      variables: [
+        Variable.withBool(isIncome),
+        Variable.withString(since),
+        if (business != 0) Variable.withInt(business),
+        Variable.withInt(limit),
+      ],
+      readsFrom: {ledgerEntries},
+    ).get();
+    return [for (final r in rows) ledgerEntries.map(r.data)];
+  }
+
   // ---------- M7: import ----------
   /// Entries between two ISO dates (inclusive), for duplicate checks.
   Future<List<LedgerEntry>> entriesBetween(String from, String to) =>

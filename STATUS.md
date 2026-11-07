@@ -318,6 +318,10 @@ Spec: SPEC.md. Rules: CLAUDE.md.
   nothing changes (goldens identical). test/businesses_test.dart, M1-M3, SECURITY T39. Emulator-verified: beta 2
   vault upgraded v10->v11 with data intact, Etsy shop added, $500 income saved to it, Taxes per business/All.
   Known limit: home office only on the main business; budgets/income goal are shared targets.
+- DEPTH 13 DONE: quick fill. New-record screen shows "Again?" chips (max 4) for records typed 2+ times in the last
+  year (same payee/category/amount; repeat copies excluded; business on screen); one tap fills everything but date
+  and notes. db.frequentEntries. SECURITY T40. OWNER RULE: never touch the owner's phone or any external device;
+  adb only with ANDROID_SERIAL=emulator-5554.
 - After the review: device-check a link opening in the browser (none visible until items are verified).
 - M5 leftovers part 1 DONE (2026-11-06): search "understood" chips are InputChips; tap or x removes that filter
   (SearchQuery.chips keep their source words; without(i) rebuilds the query). Repeated category = one chip. SECURITY
